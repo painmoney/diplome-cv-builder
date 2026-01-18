@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import AppRoutes from './routes'
 
 export default function App() {
   return (
@@ -15,13 +16,17 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route
-            path="/dashboard"
-            element={
+          <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             }
+          />
+          <Route path="/resume-editor" element={
+              <ProtectedRoute>
+                <ResumeEditor />
+              </ProtectedRoute>
+            } 
           />
         </Routes>
       </Router>
