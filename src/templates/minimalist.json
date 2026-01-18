@@ -1,0 +1,50 @@
+{
+  "name": "Minimalist Template",
+  "description": "Простой и лаконичный шаблон для любых специальностей",
+  "template": "minimalist",
+  "defaultData": {
+    "profile": {
+      "name": "Иван Петров",
+      "email": "ivan.petrov@example.com",
+      "phone": "+7 (900) 123-45-67",
+      "about": "Full-stack разработчик с опытом работы более 3 лет. Специализируюсь на React, Node.js и PostgreSQL."
+    },
+    "skills": [
+      "JavaScript",
+      "React",
+      "Node.js",
+      "PostgreSQL",
+      "Docker",
+      "Git"
+    ],
+    "experience": [
+      {
+        "position": "Senior Frontend Developer",
+        "company": "Tech Company",
+        "startDate": "2023-01",
+        "endDate": "",
+        "description": "Разработка и поддержка SPA приложений на React. Оптимизация производительности."
+      },
+      {
+        "position": "Frontend Developer",
+        "company": "Startup LLC",
+        "startDate": "2021-06",
+        "endDate": "2022-12",
+        "description": "Создание веб-интерфейсов, интеграция с REST API."
+      }
+    ],
+    "education": [
+      {
+        "degree": "Бакалавр, Информационные системы",
+        "institution": "Самарский университет",
+        "year": "2021"
+      }
+    ],
+    "github": []
+  },
+  "style": {
+    "primaryColor": "#1976d2",
+    "fontFamily": "Roboto, sans-serif",
+    "layout": "single-column"
+  }
+}

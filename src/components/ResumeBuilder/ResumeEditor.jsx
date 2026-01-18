@@ -1,3 +1,4 @@
+// src/components/ResumeBuilder/ResumeEditor.jsx — ПОЛНОСТЬЮ ЗАМЕНИ
 import React, { useState, useEffect } from 'react';
 import {
   Container, Tabs, Tab, Box, Button, Typography, Alert, TextField
@@ -14,7 +15,7 @@ import TemplateSelector from './TemplateSelector';
 export default function ResumeEditor() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
-  const [resumeTitle, setResumeTitle] = useState('Моё IT-резюме');  // ← ДОБАВЛЕНО!
+  const [resumeTitle, setResumeTitle] = useState('Моё IT-резюме');
   const [resumeData, setResumeData] = useState({
     profile: { name: '', photo: '', summary: '' },
     education: [],
@@ -32,46 +33,84 @@ export default function ResumeEditor() {
   }, [user]);
 
   const loadResumeData = async () => {
-    const { data } = await supabase
+    console.log('📥 Loading data for user:', user.id);
+    
+    const { data, error } = await supabase
       .from('resumes')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
+    
+    console.log('📦 Loaded data:', data);
+    
+    if (error) {
+      console.error('❌ Load error:', error);
+      return;
+    }
+    
     if (data) {
-      setResumeData(data.data);
-      setResumeTitle(data.title || 'Моё IT-резюме');  // ← ДОБАВЛЕНО!
+      const loadedData = data.data || {
+        profile: { name: '', photo: '', summary: '' },
+        education: [],
+        skills: [],
+        experience: [],
+        github: [],
+        template: 'minimalist',
+        recommendations: []
+      };
+      console.log('✅ Setting resumeData:', loadedData);
+      setResumeData(loadedData);
+      setResumeTitle(data.title || 'Моё IT-резюме');
     }
   };
 
-  const updateSection = (section, data) => {
-    setResumeData(prev => ({ ...prev, [section]: data }));
+  const updateSection = (section, newData) => {
+    console.log(`🔄 Updating ${section}:`, newData);
+    setResumeData(prev => {
+      const updated = { ...prev, [section]: newData };
+      console.log('📝 New resumeData:', updated);
+      return updated;
+    });
   };
 
   const saveResume = async () => {
     setLoading(true);
     setMessage('');
-    const { error } = await supabase
-      .from('resumes')
-      .upsert({ 
+    
+    console.log('💾 Saving resumeData:', resumeData);
+    
+    const payload = {
         user_id: user.id,
-        title: resumeTitle,  // ← ДОБАВЛЕНО!
+        title: resumeTitle,
         template: resumeData.template,
         data: resumeData,
         updated_at: new Date().toISOString()
-      });
+    };
+    
+    console.log('📤 Payload to save:', payload);
+    
+    const { error } = await supabase
+        .from('resumes')
+        .upsert(payload, {
+        onConflict: 'user_id'
+        });
+    
     setLoading(false);
+    
     if (error) {
-      setMessage(`Ошибка: ${error.message}`);
+        console.error('❌ Save error:', error);
+        setMessage(`Ошибка: ${error.message}`);
     } else {
-      setMessage('✅ Резюме сохранено!');
+        console.log('✅ Saved successfully!');
+        setMessage('✅ Резюме сохранено!');
+        await loadResumeData();
     }
-  };
+    };
 
   return (
     <Container sx={{ mt: 4, maxWidth: 1200 }}>
       <Typography variant="h4" gutterBottom>Редактор IT-резюме</Typography>
       
-      {/* ← ДОБАВЛЕНО поле Title */}
       <TextField
         label="Название резюме"
         value={resumeTitle}
@@ -94,8 +133,8 @@ export default function ResumeEditor() {
       
       <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 4 }}>
         <Tab label="Профиль" />
-        <Tab label="Образование" />
         <Tab label="Навыки" />
+        <Tab label="Образование" />
         <Tab label="Опыт работы" />
         <Tab label="GitHub" />
       </Tabs>
@@ -108,15 +147,15 @@ export default function ResumeEditor() {
           />
         )}
         {activeTab === 1 && (
-          <EducationBlock 
-            data={resumeData.education}
-            onChange={(data) => updateSection('education', data)}
-          />
-        )}
-        {activeTab === 2 && (
           <SkillsBlock 
             data={resumeData.skills}
             onChange={(data) => updateSection('skills', data)}
+          />
+        )}
+        {activeTab === 2 && (
+          <EducationBlock 
+            data={resumeData.education}
+            onChange={(data) => updateSection('education', data)}
           />
         )}
         {activeTab === 3 && (
@@ -133,19 +172,30 @@ export default function ResumeEditor() {
         )}
       </Box>
 
-      <Button 
-        variant="contained" 
-        size="large"
-        onClick={saveResume}
-        disabled={loading}
-        sx={{ mr: 2 }}
-      >
-        {loading ? 'Сохранение...' : '💾 Сохранить резюме'}
-      </Button>
-      
-      <Button variant="outlined" size="large">
-        📄 Предпросмотр PDF
-      </Button>
+      <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+        <Button 
+          variant="contained" 
+          size="large"
+          onClick={saveResume}
+          disabled={loading}
+        >
+          {loading ? 'Сохранение...' : '💾 Сохранить резюме'}
+        </Button>
+        
+        <Button 
+          variant="outlined" 
+          size="large"
+          onClick={() => console.log('Current resumeData:', resumeData)}
+        >
+          🐛 Debug State
+        </Button>
+      </Box>
+
+      {/* DEBUG панель */}
+      <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1, fontSize: 12 }}>
+        <Typography variant="caption">DEBUG:</Typography>
+        <pre>{JSON.stringify(resumeData, null, 2)}</pre>
+      </Box>
     </Container>
   );
 }

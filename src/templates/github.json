@@ -1,0 +1,73 @@
+{
+  "name": "GitHub Template",
+  "description": "Шаблон для разработчиков с акцентом на open-source проекты",
+  "template": "github",
+  "defaultData": {
+    "profile": {
+      "name": "Алексей Смирнов",
+      "email": "alex.smirnov@github.com",
+      "phone": "+7 (900) 555-12-34",
+      "github": "https://github.com/alexsmirnov",
+      "about": "Open-source разработчик. Создаю инструменты для автоматизации и DevOps. Активный контрибьютор в проекты React и Node.js."
+    },
+    "skills": [
+      "JavaScript",
+      "TypeScript",
+      "React",
+      "Node.js",
+      "Docker",
+      "Kubernetes",
+      "CI/CD",
+      "AWS"
+    ],
+    "experience": [
+      {
+        "position": "DevOps Engineer",
+        "company": "Cloud Solutions Inc",
+        "startDate": "2022-03",
+        "endDate": "",
+        "description": "Настройка CI/CD пайплайнов, контейнеризация приложений, управление инфраструктурой в AWS."
+      },
+      {
+        "position": "Backend Developer",
+        "company": "Digital Agency",
+        "startDate": "2020-01",
+        "endDate": "2022-02",
+        "description": "Разработка RESTful API на Node.js, интеграция с базами данных, оптимизация запросов."
+      }
+    ],
+    "education": [
+      {
+        "degree": "Бакалавр, Программная инженерия",
+        "institution": "Самарский технический университет",
+        "year": "2020"
+      }
+    ],
+    "github": [
+      {
+        "name": "awesome-devops-tools",
+        "description": "Коллекция инструментов для DevOps инженеров",
+        "url": "https://github.com/alexsmirnov/awesome-devops-tools",
+        "stars": 1250,
+        "language": "Shell"
+      },
+      {
+        "name": "react-testing-utils",
+        "description": "Утилиты для тестирования React компонентов",
+        "url": "https://github.com/alexsmirnov/react-testing-utils",
+        "stars": 430,
+        "language": "TypeScript"
+      }
+    ],
+    "contributions": {
+      "totalCommits": 2450,
+      "totalPRs": 180,
+      "totalRepos": 45
+    }
+  },
+  "style": {
+    "primaryColor": "#24292e",
+    "fontFamily": "Consolas, monospace",
+    "layout": "github-style"
+  }
+}

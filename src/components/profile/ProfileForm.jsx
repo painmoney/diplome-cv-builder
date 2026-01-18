@@ -101,7 +101,7 @@ export default function ProfileForm({ data = {}, onChange }) {
 
       {/* Текстовые поля */}
       <TextField
-        label="Имя Фамилия"
+        label="ФИО"
         value={data.name || ''}
         onChange={(e) => handleChange('name', e.target.value)}
         fullWidth

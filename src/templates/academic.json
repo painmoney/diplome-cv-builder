@@ -1,0 +1,64 @@
+{
+  "name": "Academic Template",
+  "description": "Шаблон для научных работников, студентов и преподавателей",
+  "template": "academic",
+  "defaultData": {
+    "profile": {
+      "name": "Мария Иванова",
+      "email": "maria.ivanova@university.ru",
+      "phone": "+7 (900) 987-65-43",
+      "about": "Кандидат технических наук, старший преподаватель кафедры информационных технологий. Область интересов: машинное обучение, компьютерное зрение."
+    },
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "TensorFlow",
+      "PyTorch",
+      "Data Analysis",
+      "Research",
+      "LaTeX"
+    ],
+    "experience": [
+      {
+        "position": "Старший преподаватель",
+        "company": "Самарский университет",
+        "startDate": "2020-09",
+        "endDate": "",
+        "description": "Преподавание курсов по машинному обучению и анализу данных. Научное руководство дипломными проектами."
+      },
+      {
+        "position": "Младший научный сотрудник",
+        "company": "Научно-исследовательский институт",
+        "startDate": "2018-01",
+        "endDate": "2020-08",
+        "description": "Исследования в области компьютерного зрения. Публикация научных статей."
+      }
+    ],
+    "education": [
+      {
+        "degree": "Кандидат технических наук",
+        "institution": "Самарский университет",
+        "year": "2020",
+        "thesis": "Методы глубокого обучения в задачах классификации изображений"
+      },
+      {
+        "degree": "Магистр, Прикладная математика",
+        "institution": "Самарский университет",
+        "year": "2017"
+      }
+    ],
+    "publications": [
+      {
+        "title": "Deep Learning Approaches for Image Classification",
+        "journal": "International Journal of Computer Science",
+        "year": "2019"
+      }
+    ],
+    "github": []
+  },
+  "style": {
+    "primaryColor": "#2e7d32",
+    "fontFamily": "Times New Roman, serif",
+    "layout": "two-column"
+  }
+}
