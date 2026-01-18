@@ -1,11 +1,9 @@
-// src/index.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
+import App from "./App";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import "./styles.css";
 
-// Создаем базовую тему
 const theme = createTheme({
   palette: {
     mode: "light",

@@ -1,20 +1,20 @@
-// src/pages/ResumeEditor.jsx
 import React, { useState, useEffect } from 'react';
 import {
-  Container, Tabs, Tab, Box, Button, Typography, Card, CardContent
+  Container, Tabs, Tab, Box, Button, Typography, Alert, TextField
 } from '@mui/material';
-import { supabase } from '../api/supabaseClient';
-import { useAuth } from '../context/AuthContext';
-import ProfileForm from '../components/profile/ProfileForm';
-import EducationBlock from '../components/ResumeBuilder/EducationBlock';
-import SkillsBlock from '../components/ResumeBuilder/SkillsBlock';
-import ExperienceBlock from '../components/ResumeBuilder/ExperienceBlock';
-import GitHubBlock from '../components/ResumeBuilder/GitHubBlock';
-import TemplateSelector from '../components/ResumeBuilder/TemplateSelector';
+import { supabase } from '../../api/supabaseClient';
+import { useAuth } from '../../context/AuthContext';
+import ProfileForm from '../profile/ProfileForm';
+import EducationBlock from './EducationBlock';
+import SkillsBlock from './SkillsBlock';
+import ExperienceBlock from './ExperienceBlock';
+import GitHubBlock from './GitHubBlock';
+import TemplateSelector from './TemplateSelector';
 
 export default function ResumeEditor() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
+  const [resumeTitle, setResumeTitle] = useState('Моё IT-резюме');  // ← ДОБАВЛЕНО!
   const [resumeData, setResumeData] = useState({
     profile: { name: '', photo: '', summary: '' },
     education: [],
@@ -25,10 +25,10 @@ export default function ResumeEditor() {
     recommendations: []
   });
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  // Загрузка данных при монтировании
   useEffect(() => {
-    loadResumeData();
+    if (user) loadResumeData();
   }, [user]);
 
   const loadResumeData = async () => {
@@ -37,7 +37,10 @@ export default function ResumeEditor() {
       .select('*')
       .eq('user_id', user.id)
       .single();
-    if (data) setResumeData(data.data);
+    if (data) {
+      setResumeData(data.data);
+      setResumeTitle(data.title || 'Моё IT-резюме');  // ← ДОБАВЛЕНО!
+    }
   };
 
   const updateSection = (section, data) => {
@@ -46,21 +49,44 @@ export default function ResumeEditor() {
 
   const saveResume = async () => {
     setLoading(true);
+    setMessage('');
     const { error } = await supabase
       .from('resumes')
       .upsert({ 
-        user_id: user.id, 
+        user_id: user.id,
+        title: resumeTitle,  // ← ДОБАВЛЕНО!
+        template: resumeData.template,
         data: resumeData,
         updated_at: new Date().toISOString()
       });
     setLoading(false);
-    if (!error) alert('Резюме сохранено!');
+    if (error) {
+      setMessage(`Ошибка: ${error.message}`);
+    } else {
+      setMessage('✅ Резюме сохранено!');
+    }
   };
 
   return (
     <Container sx={{ mt: 4, maxWidth: 1200 }}>
-      <Typography variant="h4" gutterBottom>Редактор резюме</Typography>
+      <Typography variant="h4" gutterBottom>Редактор IT-резюме</Typography>
       
+      {/* ← ДОБАВЛЕНО поле Title */}
+      <TextField
+        label="Название резюме"
+        value={resumeTitle}
+        onChange={(e) => setResumeTitle(e.target.value)}
+        fullWidth
+        sx={{ mb: 3 }}
+        placeholder="Моё IT-резюме"
+      />
+
+      {message && (
+        <Alert severity={message.includes('✅') ? 'success' : 'error'} sx={{ mb: 3 }}>
+          {message}
+        </Alert>
+      )}
+
       <TemplateSelector 
         value={resumeData.template}
         onChange={(template) => updateSection('template', template)}
@@ -114,11 +140,11 @@ export default function ResumeEditor() {
         disabled={loading}
         sx={{ mr: 2 }}
       >
-        {loading ? 'Сохранение...' : 'Сохранить резюме'}
+        {loading ? 'Сохранение...' : '💾 Сохранить резюме'}
       </Button>
       
       <Button variant="outlined" size="large">
-        Предпросмотр PDF
+        📄 Предпросмотр PDF
       </Button>
     </Container>
   );

@@ -1,8 +1,8 @@
 // src/components/layout/LayoutWrapper.jsx
 import React from "react";
-import Header from "./header";
-import Footer from "./footer";
-import Sidebar from "./sidebar";
+import Header from "./Header";
+import Footer from "./Footer";
+import Sidebar from "./Sidebar";
 import { Box } from "@mui/material";
 
 export default function LayoutWrapper({ children }) {
