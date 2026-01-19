@@ -4,7 +4,7 @@ import { PhotoCamera } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
 import { uploadAvatar, getAvatarUrl } from "../../api/storage";
 
-export default function ProfileForm({ data = {}, onChange, errors = {} }) {
+export default function ProfileForm({ data = {}, errors = {}, onChange }) {
   const { user } = useAuth();
 
   const [avatarUrl, setAvatarUrl] = useState(data.photo || null);
@@ -47,7 +47,7 @@ export default function ProfileForm({ data = {}, onChange, errors = {} }) {
     try {
       await uploadAvatar(user.id, avatarFile);
       const url = getAvatarUrl(user.id);
-      setAvatarUrl(`${url}?t=${Date.now()}`); // cache buster
+      setAvatarUrl(`${url}?t=${Date.now()}`); // cache-buster
       handleChange("photo", url);
       setAvatarFile(null);
       setSnackbar({ open: true, message: "✅ Аватар загружен!", severity: "success" });
@@ -113,43 +113,45 @@ export default function ProfileForm({ data = {}, onChange, errors = {} }) {
         </Box>
       </Box>
 
-      {/* Основные поля */}
+      {/* Поля (✅ id совпадают с recommendationLogic targets) */}
       <TextField
+        id="profile-name"
         label="ФИО"
         value={data.name || ""}
         onChange={(e) => handleChange("name", e.target.value)}
         fullWidth
         margin="normal"
         placeholder="Иван Иванов"
-        autoComplete="name"
+        error={Boolean(errors.name)}
+        helperText={errors.name || " "}
       />
 
       <TextField
+        id="profile-email"
         label="Email"
         value={data.email || ""}
         onChange={(e) => handleChange("email", e.target.value)}
         fullWidth
         margin="normal"
         placeholder="ivan.ivanov@example.com"
-        autoComplete="email"
         error={Boolean(errors.email)}
         helperText={errors.email || " "}
       />
 
       <TextField
+        id="profile-phone"
         label="Телефон"
         value={data.phone || ""}
         onChange={(e) => handleChange("phone", e.target.value)}
         fullWidth
         margin="normal"
         placeholder="+7 (900) 123-45-67"
-        autoComplete="tel"
-        inputMode="tel"
         error={Boolean(errors.phone)}
         helperText={errors.phone || " "}
       />
 
       <TextField
+        id="profile-about"
         label="О себе (краткое резюме)"
         value={aboutValue}
         onChange={(e) => handleChange("about", e.target.value)}
@@ -157,7 +159,9 @@ export default function ProfileForm({ data = {}, onChange, errors = {} }) {
         multiline
         rows={4}
         margin="normal"
-        placeholder="Fullstack разработчик с 3 годами опыта в React, Node.js, PostgreSQL..."
+        placeholder="Frontend/Fullstack разработчик... Стек... Достижения..."
+        error={Boolean(errors.about)}
+        helperText={errors.about || " "}
       />
 
       <Snackbar

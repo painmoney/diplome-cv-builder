@@ -1,4 +1,3 @@
-// src/utils/recommendationLogic.js — ЗАМЕНИ ПОЛНОСТЬЮ
 import {
   normalizeResumeData,
   hasNumbers,
@@ -64,6 +63,7 @@ export function getRecommendations(resumeData) {
   if (!safeText(profile.name)) {
     rec.push({
       type: "profile",
+      target: "profile-name",
       text: "Добавьте ФИО — это первое, что видит HR.",
     });
   }
@@ -71,11 +71,13 @@ export function getRecommendations(resumeData) {
   if (!safeText(profile.email)) {
     rec.push({
       type: "profile",
+      target: "profile-email",
       text: "Добавьте email для связи.",
     });
   } else if (!isEmailValid(profile.email)) {
     rec.push({
       type: "profile",
+      target: "profile-email",
       text: "Проверьте email — похоже, в адресе есть ошибка формата.",
     });
   }
@@ -83,11 +85,13 @@ export function getRecommendations(resumeData) {
   if (!safeText(profile.phone)) {
     rec.push({
       type: "profile",
+      target: "profile-phone",
       text: "Добавьте номер телефона (часто это ускоряет коммуникацию с рекрутером).",
     });
   } else if (!isPhoneProbablyValid(profile.phone)) {
     rec.push({
       type: "profile",
+      target: "profile-phone",
       text: "Проверьте номер телефона — кажется, слишком мало цифр.",
     });
   }
@@ -96,11 +100,13 @@ export function getRecommendations(resumeData) {
   if (!safeText(profile.about) || aboutWC < 12) {
     rec.push({
       type: "content",
+      target: "profile-about",
       text: "Раздел «О себе» слишком короткий. Укажите специализацию, ключевой стек и роль (например: Frontend/Backend/QA).",
     });
   } else if (aboutWC > 80) {
     rec.push({
       type: "content",
+      target: "profile-about",
       text: "Раздел «О себе» слишком длинный. Сократите до 3–5 предложений: кто вы, стек, сильные стороны, чего ищете.",
     });
   }
@@ -111,6 +117,7 @@ export function getRecommendations(resumeData) {
   if (skills.length < 5) {
     rec.push({
       type: "skills",
+      target: "skills-skill",
       text: "Навыков меньше 5 — добавьте ключевые технологии (языки, фреймворки, инструменты).",
     });
   }
@@ -129,6 +136,7 @@ export function getRecommendations(resumeData) {
   if (dupSkillSet.size > 0) {
     rec.push({
       type: "skills",
+      target: "skills-skill",
       text: "Есть повторяющиеся навыки. Уберите дубликаты, чтобы резюме выглядело аккуратно.",
     });
   }
@@ -137,6 +145,7 @@ export function getRecommendations(resumeData) {
   if (lowLevelCount >= 3) {
     rec.push({
       type: "skills",
+      target: "skills-level",
       text: "Много навыков с уровнем 1–2. Оставьте ключевые технологии и подчеркните сильные стороны (уровень 3–5).",
     });
   }
@@ -145,6 +154,7 @@ export function getRecommendations(resumeData) {
   if (skills.length >= 5 && highLevelCount === 0) {
     rec.push({
       type: "skills",
+      target: "skills-level",
       text: "У вас нет навыков уровня 4–5. Отметьте 2–3 сильные технологии — это помогает рекрутеру быстрее понять ваш профиль.",
     });
   }
@@ -155,6 +165,7 @@ export function getRecommendations(resumeData) {
   if (!experience.length) {
     rec.push({
       type: "experience",
+      target: "experience-company",
       text: "Добавьте опыт/проекты. Для IT подойдут даже учебные и пет-проекты.",
     });
   } else {
@@ -162,6 +173,7 @@ export function getRecommendations(resumeData) {
     if (withoutDesc > 0) {
       rec.push({
         type: "experience",
+        target: "experience-description",
         text: "В опыте есть записи без описания. Добавьте: задачи, стек, результат.",
       });
     }
@@ -170,6 +182,7 @@ export function getRecommendations(resumeData) {
     if (veryShortDesc > 0) {
       rec.push({
         type: "experience",
+        target: "experience-description",
         text: "Некоторые описания опыта слишком короткие. Добавьте 1–3 пункта: что делали, какие технологии, какой эффект.",
       });
     }
@@ -178,6 +191,7 @@ export function getRecommendations(resumeData) {
     if (withoutAction > 0) {
       rec.push({
         type: "experience",
+        target: "experience-description",
         text: "В описании опыта используйте глаголы действия: «разработал», «внедрил», «оптимизировал», «интегрировал».",
       });
     }
@@ -186,6 +200,7 @@ export function getRecommendations(resumeData) {
     if (withoutMetrics >= 1) {
       rec.push({
         type: "experience",
+        target: "experience-description",
         text: "Добавьте метрики/цифры (%, время, количество пользователей, скорость, SLA). Это сильно усиливает резюме.",
       });
     }
@@ -194,14 +209,15 @@ export function getRecommendations(resumeData) {
     if (withoutPeriod > 0) {
       rec.push({
         type: "experience",
+        target: "experience-period",
         text: "Укажите период работы/проекта (например, 2023–2024).",
       });
     } else {
-      // если period заполнен, но выглядит странно — подсказка
       const weirdPeriod = experience.filter((e) => safeText(e.period) && !looksLikeRange(e.period)).length;
       if (weirdPeriod > 0) {
         rec.push({
           type: "experience",
+          target: "experience-period",
           text: "Проверьте формат периода (например: 2024–2025 или 01.2024–12.2025).",
         });
       }
@@ -216,6 +232,7 @@ export function getRecommendations(resumeData) {
     if (expDup) {
       rec.push({
         type: "experience",
+        target: "experience-company",
         text: "Есть повторяющиеся записи опыта (одинаковая компания/позиция). Проверьте, не продублировали ли вы запись.",
       });
     }
@@ -227,6 +244,7 @@ export function getRecommendations(resumeData) {
   if (!education.length) {
     rec.push({
       type: "education",
+      target: "education-institution",
       text: "Добавьте образование/курсы (вуз, онлайн-курсы, сертификаты).",
     });
   } else {
@@ -234,6 +252,7 @@ export function getRecommendations(resumeData) {
     if (withoutYears > 0) {
       rec.push({
         type: "education",
+        target: "education-years",
         text: "В образовании укажите годы обучения (например, 2022–2026) — это стандарт для резюме.",
       });
     }
@@ -245,12 +264,14 @@ export function getRecommendations(resumeData) {
   if (!github.length) {
     rec.push({
       type: "github",
+      target: "github-username",
       text: "Подключите GitHub и добавьте 2–5 репозиториев. Для IT это сильный плюс.",
     });
   } else {
     if (github.length > 5) {
       rec.push({
         type: "github",
+        target: "github-username",
         text: "Репозиториев больше 5 — оставьте 3–5 самых релевантных (с хорошим описанием и звёздами).",
       });
     }
@@ -259,6 +280,7 @@ export function getRecommendations(resumeData) {
     if (emptyDesc > 0) {
       rec.push({
         type: "github",
+        target: "github-username",
         text: "Некоторые репозитории без описания. Добавьте: что делает проект + технологии.",
       });
     }
@@ -267,6 +289,7 @@ export function getRecommendations(resumeData) {
     if (noUrl > 0) {
       rec.push({
         type: "github",
+        target: "github-username",
         text: "Проверьте ссылки на репозитории — у некоторых проектов нет URL.",
       });
     }
@@ -275,7 +298,8 @@ export function getRecommendations(resumeData) {
     if (github.length >= 2 && lowStars === github.length) {
       rec.push({
         type: "github",
-        text: "Если звёзд нет — это ок. Но обязательно добавьте понятные описания и скриншоты/README в ключевых проектах.",
+        target: "github-username",
+        text: "Если звёзд нет — это ок. Но обязательно добавьте понятные описания и README в ключевых проектах.",
       });
     }
   }

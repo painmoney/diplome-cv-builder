@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Container,
   Box,
@@ -9,9 +9,14 @@ import {
   Alert,
   ToggleButtonGroup,
   ToggleButton,
-  Chip,
 } from "@mui/material";
-import { Edit, GetApp, ArrowBack, Description } from "@mui/icons-material";
+import {
+  Edit,
+  GetApp,
+  ArrowBack,
+  Description,
+  Image as ImageIcon,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
@@ -23,6 +28,8 @@ import GithubTemplate from "../components/templates/GithubTemplate";
 import { exportToPDF } from "../components/export/ExportPDF";
 import { exportToMarkdown } from "../components/export/ExportMarkdown";
 
+import html2canvas from "html2canvas";
+
 export default function ResumePreview() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -32,13 +39,15 @@ export default function ResumePreview() {
 
   const [exportingPDF, setExportingPDF] = useState(false);
   const [exportingMD, setExportingMD] = useState(false);
-  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [exportingIMG, setExportingIMG] = useState(null); // "png" | "jpg" | null
 
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+
+  const captureRef = useRef(null);
 
   useEffect(() => {
     if (user) loadResume();
@@ -47,6 +56,7 @@ export default function ResumePreview() {
 
   const loadResume = async () => {
     setLoading(true);
+
     const { data, error } = await supabase
       .from("resumes")
       .select("*")
@@ -108,22 +118,94 @@ export default function ResumePreview() {
     }
   };
 
-  const handleTemplateChange = async (_, newTemplate) => {
-    if (!newTemplate) return;
-    if (!resume) return;
-    if (newTemplate === resume.template) return;
+  const sanitizeFileName = (name) => {
+    const base = String(name || "resume")
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+      .replace(/\s+/g, "_")
+      .trim();
+    return base || "resume";
+  };
 
-    // Оптимистично обновим UI сразу
+  const handleExportImage = async (format) => {
+    if (!resume) return;
+    if (!captureRef.current) {
+      setSnackbar({
+        open: true,
+        message: "Не удалось найти блок резюме для экспорта",
+        severity: "error",
+      });
+      return;
+    }
+
+    setExportingIMG(format);
+
+    try {
+      // дождаться загрузки шрифтов (важно для красивого рендера)
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      const scale = Math.max(2, window.devicePixelRatio || 2);
+
+      const canvas = await html2canvas(captureRef.current, {
+        scale,
+        useCORS: true,
+        backgroundColor: null, // сохранить фон как есть
+        logging: false,
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
+      });
+
+      const mime = format === "jpg" ? "image/jpeg" : "image/png";
+      const quality = format === "jpg" ? 0.92 : undefined;
+
+      const dataUrl = canvas.toDataURL(mime, quality);
+
+      const fileBase = sanitizeFileName(resume?.data?.profile?.name || "resume");
+      const ext = format === "jpg" ? "jpg" : "png";
+
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `${fileBase}_${resume.template}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setSnackbar({
+        open: true,
+        message: `✅ ${ext.toUpperCase()} успешно скачан`,
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Image Export Error:", err);
+
+      const msg = String(err || "").toLowerCase();
+      const corsLikely =
+        msg.includes("tainted") || msg.includes("cors") || msg.includes("cross-origin");
+
+      setSnackbar({
+        open: true,
+        message: corsLikely
+          ? "Экспорт изображения заблокирован из-за CORS (внешние картинки). Попробуйте убрать фото/внешние изображения или используйте PDF."
+          : "Ошибка при экспорте PNG/JPG",
+        severity: "error",
+      });
+    } finally {
+      setExportingIMG(null);
+    }
+  };
+
+  const handleChangeTemplate = async (newTemplate) => {
+    if (!resume || !user || !newTemplate || newTemplate === resume.template) return;
+
+    // мгновенно обновим UI
     const prev = resume.template;
     setResume((r) => ({ ...r, template: newTemplate }));
 
-    setSavingTemplate(true);
     const { error } = await supabase
       .from("resumes")
       .update({ template: newTemplate, updated_at: new Date().toISOString() })
-      .eq("id", resume.id);
-
-    setSavingTemplate(false);
+      .eq("user_id", user.id);
 
     if (error) {
       console.error("Template update error:", error);
@@ -131,7 +213,7 @@ export default function ResumePreview() {
       setResume((r) => ({ ...r, template: prev }));
       setSnackbar({
         open: true,
-        message: `Не удалось сменить шаблон: ${error.message}`,
+        message: `Ошибка сохранения шаблона: ${error.message}`,
         severity: "error",
       });
       return;
@@ -139,7 +221,7 @@ export default function ResumePreview() {
 
     setSnackbar({
       open: true,
-      message: "✅ Шаблон обновлён",
+      message: "✅ Шаблон обновлен",
       severity: "success",
     });
   };
@@ -190,13 +272,7 @@ export default function ResumePreview() {
     );
   }
 
-  const disabled = exportingPDF || exportingMD || savingTemplate;
-
-  const templateLabel = {
-    minimalist: "Минималистичный",
-    academic: "Академический",
-    github: "GitHub-стиль",
-  }[resume.template] || resume.template;
+  const disabled = exportingPDF || exportingMD || exportingIMG;
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -210,8 +286,6 @@ export default function ResumePreview() {
           p: 2,
           bgcolor: "background.paper",
           borderRadius: 2,
-          border: "1px solid",
-          borderColor: "divider",
           boxShadow: 1,
           gap: 2,
           flexWrap: "wrap",
@@ -225,28 +299,23 @@ export default function ResumePreview() {
           Назад
         </Button>
 
-        {/* Переключатель шаблонов */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+        {/* Переключатель шаблонов прямо в превью */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <Typography variant="body2" color="text.secondary">
             Шаблон:
           </Typography>
-
           <ToggleButtonGroup
             value={resume.template}
             exclusive
-            onChange={handleTemplateChange}
+            onChange={(_, v) => v && handleChangeTemplate(v)}
             size="small"
-            disabled={disabled}
           >
-            <ToggleButton value="minimalist">Minimalist</ToggleButton>
+            <ToggleButton value="minimalist">Minimal</ToggleButton>
             <ToggleButton value="academic">Academic</ToggleButton>
             <ToggleButton value="github">GitHub</ToggleButton>
           </ToggleButtonGroup>
-
-          {savingTemplate && <Chip size="small" label="Сохранение..." />}
         </Box>
 
-        {/* Экспорт/действия */}
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           <Button
             variant="outlined"
@@ -263,7 +332,25 @@ export default function ResumePreview() {
             onClick={handleExportMarkdown}
             disabled={disabled}
           >
-            {exportingMD ? "Экспорт..." : "Скачать Markdown"}
+            {exportingMD ? "Экспорт..." : "Markdown"}
+          </Button>
+
+          <Button
+            variant="outlined"
+            startIcon={<ImageIcon />}
+            onClick={() => handleExportImage("png")}
+            disabled={disabled}
+          >
+            {exportingIMG === "png" ? "Экспорт..." : "PNG"}
+          </Button>
+
+          <Button
+            variant="outlined"
+            startIcon={<ImageIcon />}
+            onClick={() => handleExportImage("jpg")}
+            disabled={disabled}
+          >
+            {exportingIMG === "jpg" ? "Экспорт..." : "JPG"}
           </Button>
 
           <Button
@@ -272,7 +359,7 @@ export default function ResumePreview() {
             onClick={handleExportPDF}
             disabled={disabled}
           >
-            {exportingPDF ? "Экспорт..." : "Скачать PDF"}
+            {exportingPDF ? "Экспорт..." : "PDF"}
           </Button>
         </Box>
       </Box>
@@ -281,20 +368,22 @@ export default function ResumePreview() {
       <Box
         sx={{
           bgcolor: "background.default",
-          p: { xs: 2, md: 4 },
+          p: 4,
           borderRadius: 2,
           display: "flex",
           justifyContent: "center",
-          overflowX: "auto",
         }}
       >
-        {TemplateComponent}
+        {/* ВАЖНО: экспортируем именно этот блок */}
+        <Box ref={captureRef} sx={{ width: "fit-content" }}>
+          {TemplateComponent}
+        </Box>
       </Box>
 
       {/* Информация */}
       <Box sx={{ mt: 2, textAlign: "center", color: "text.secondary" }}>
         <Typography variant="caption">
-          Активный шаблон: {templateLabel} | Последнее изменение:{" "}
+          Шаблон: {resume.template} | Последнее изменение:{" "}
           {new Date(resume.updated_at).toLocaleString("ru-RU")}
         </Typography>
       </Box>
@@ -302,7 +391,7 @@ export default function ResumePreview() {
       {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={3000}
+        autoHideDuration={3500}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
