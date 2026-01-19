@@ -30,18 +30,20 @@ export default function AcademicTemplate({ data }) {
   };
 
   return (
-    <Paper 
-      elevation={0} 
-      sx={{ 
-        width: '210mm',
-        minHeight: '297mm',
-        margin: '0 auto',
-        padding: '20mm',
-        backgroundColor: 'white',
-        boxSizing: 'border-box',
-        fontFamily: '"Georgia", "Times New Roman", serif'
+    <Paper
+      elevation={0}
+      sx={{
+        width: "210mm",
+        minHeight: "297mm",
+        margin: "0 auto",
+        padding: "20mm",
+        backgroundColor: "white",
+        color: "#111", // ✅
+        boxSizing: "border-box",
+        fontFamily: '"Georgia", "Times New Roman", serif',
       }}
     >
+
       {/* Header - Academic Style */}
       <Box sx={{ 
         textAlign: 'center', 

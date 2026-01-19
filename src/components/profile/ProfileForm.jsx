@@ -4,7 +4,7 @@ import { PhotoCamera } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
 import { uploadAvatar, getAvatarUrl } from "../../api/storage";
 
-export default function ProfileForm({ data = {}, onChange }) {
+export default function ProfileForm({ data = {}, onChange, errors = {} }) {
   const { user } = useAuth();
 
   const [avatarUrl, setAvatarUrl] = useState(data.photo || null);
@@ -21,7 +21,6 @@ export default function ProfileForm({ data = {}, onChange }) {
     const url = getAvatarUrl(user.id);
     setAvatarUrl(url);
 
-    // Поддержка автозаполнения photo, как было у тебя
     if (!data.photo) {
       onChange({ ...data, photo: url });
     }
@@ -31,15 +30,9 @@ export default function ProfileForm({ data = {}, onChange }) {
   const handleChange = (field, value) => {
     const next = { ...data, [field]: value };
 
-    // Мост about <-> summary чтобы:
-    // - шаблоны, которые читают about, работали
-    // - старые места, которые читают summary, не ломались
-    if (field === "about") {
-      next.summary = value;
-    }
-    if (field === "summary") {
-      next.about = value;
-    }
+    // мост about <-> summary
+    if (field === "about") next.summary = value;
+    if (field === "summary") next.about = value;
 
     onChange(next);
   };
@@ -54,7 +47,7 @@ export default function ProfileForm({ data = {}, onChange }) {
     try {
       await uploadAvatar(user.id, avatarFile);
       const url = getAvatarUrl(user.id);
-      setAvatarUrl(`${url}?t=${Date.now()}`); // кэш-бастер
+      setAvatarUrl(`${url}?t=${Date.now()}`); // cache buster
       handleChange("photo", url);
       setAvatarFile(null);
       setSnackbar({ open: true, message: "✅ Аватар загружен!", severity: "success" });
@@ -128,6 +121,7 @@ export default function ProfileForm({ data = {}, onChange }) {
         fullWidth
         margin="normal"
         placeholder="Иван Иванов"
+        autoComplete="name"
       />
 
       <TextField
@@ -137,6 +131,9 @@ export default function ProfileForm({ data = {}, onChange }) {
         fullWidth
         margin="normal"
         placeholder="ivan.ivanov@example.com"
+        autoComplete="email"
+        error={Boolean(errors.email)}
+        helperText={errors.email || " "}
       />
 
       <TextField
@@ -146,6 +143,10 @@ export default function ProfileForm({ data = {}, onChange }) {
         fullWidth
         margin="normal"
         placeholder="+7 (900) 123-45-67"
+        autoComplete="tel"
+        inputMode="tel"
+        error={Boolean(errors.phone)}
+        helperText={errors.phone || " "}
       />
 
       <TextField

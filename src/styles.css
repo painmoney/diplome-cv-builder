@@ -2,4 +2,9 @@ body {
   margin: 0;
   font-family: "Roboto", sans-serif;
   background-color: #fafafa;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(25,118,210,0.25), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(46,125,50,0.18), transparent 55%),
+    radial-gradient(900px 500px at 50% 120%, rgba(88,166,255,0.22), transparent 55%);
 }
+

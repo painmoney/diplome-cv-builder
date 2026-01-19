@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Container,
   Box,
@@ -7,6 +7,9 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  ToggleButtonGroup,
+  ToggleButton,
+  Chip,
 } from "@mui/material";
 import { Edit, GetApp, ArrowBack, Description } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +32,7 @@ export default function ResumePreview() {
 
   const [exportingPDF, setExportingPDF] = useState(false);
   const [exportingMD, setExportingMD] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -104,6 +108,42 @@ export default function ResumePreview() {
     }
   };
 
+  const handleTemplateChange = async (_, newTemplate) => {
+    if (!newTemplate) return;
+    if (!resume) return;
+    if (newTemplate === resume.template) return;
+
+    // Оптимистично обновим UI сразу
+    const prev = resume.template;
+    setResume((r) => ({ ...r, template: newTemplate }));
+
+    setSavingTemplate(true);
+    const { error } = await supabase
+      .from("resumes")
+      .update({ template: newTemplate, updated_at: new Date().toISOString() })
+      .eq("id", resume.id);
+
+    setSavingTemplate(false);
+
+    if (error) {
+      console.error("Template update error:", error);
+      // откат
+      setResume((r) => ({ ...r, template: prev }));
+      setSnackbar({
+        open: true,
+        message: `Не удалось сменить шаблон: ${error.message}`,
+        severity: "error",
+      });
+      return;
+    }
+
+    setSnackbar({
+      open: true,
+      message: "✅ Шаблон обновлён",
+      severity: "success",
+    });
+  };
+
   const TemplateComponent = useMemo(() => {
     if (!resume?.data) return null;
 
@@ -150,7 +190,13 @@ export default function ResumePreview() {
     );
   }
 
-  const disabled = exportingPDF || exportingMD;
+  const disabled = exportingPDF || exportingMD || savingTemplate;
+
+  const templateLabel = {
+    minimalist: "Минималистичный",
+    academic: "Академический",
+    github: "GitHub-стиль",
+  }[resume.template] || resume.template;
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -163,17 +209,45 @@ export default function ResumePreview() {
           mb: 3,
           p: 2,
           bgcolor: "background.paper",
-          borderRadius: 1,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
           boxShadow: 1,
           gap: 2,
           flexWrap: "wrap",
         }}
       >
-        <Button startIcon={<ArrowBack />} onClick={() => navigate("/dashboard")} disabled={disabled}>
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => navigate("/dashboard")}
+          disabled={disabled}
+        >
           Назад
         </Button>
 
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+        {/* Переключатель шаблонов */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Шаблон:
+          </Typography>
+
+          <ToggleButtonGroup
+            value={resume.template}
+            exclusive
+            onChange={handleTemplateChange}
+            size="small"
+            disabled={disabled}
+          >
+            <ToggleButton value="minimalist">Minimalist</ToggleButton>
+            <ToggleButton value="academic">Academic</ToggleButton>
+            <ToggleButton value="github">GitHub</ToggleButton>
+          </ToggleButtonGroup>
+
+          {savingTemplate && <Chip size="small" label="Сохранение..." />}
+        </Box>
+
+        {/* Экспорт/действия */}
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           <Button
             variant="outlined"
             startIcon={<Edit />}
@@ -206,20 +280,21 @@ export default function ResumePreview() {
       {/* Превью резюме */}
       <Box
         sx={{
-          bgcolor: "#f5f5f5",
-          p: 4,
+          bgcolor: "background.default",
+          p: { xs: 2, md: 4 },
           borderRadius: 2,
           display: "flex",
           justifyContent: "center",
+          overflowX: "auto",
         }}
       >
         {TemplateComponent}
       </Box>
 
-      {/* Информация о шаблоне */}
+      {/* Информация */}
       <Box sx={{ mt: 2, textAlign: "center", color: "text.secondary" }}>
         <Typography variant="caption">
-          Шаблон: {resume.template} | Последнее изменение:{" "}
+          Активный шаблон: {templateLabel} | Последнее изменение:{" "}
           {new Date(resume.updated_at).toLocaleString("ru-RU")}
         </Typography>
       </Box>

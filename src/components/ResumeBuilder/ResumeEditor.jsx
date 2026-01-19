@@ -9,6 +9,7 @@ import {
   Alert,
   TextField,
   Chip,
+  Snackbar,
 } from "@mui/material";
 import { supabase } from "../../api/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
@@ -23,8 +24,10 @@ import TemplateSelector from "./TemplateSelector";
 import RecommendationPanel from "./RecommendationPanel";
 import { getRecommendations } from "../../utils/recommendationLogic";
 
+import { validateProfile, formatValidationToast } from "../../utils/validators";
+
 const DEFAULT_RESUME_DATA = {
-  profile: { name: "", photo: "", about: "", summary: "" }, // поддержим оба поля
+  profile: { name: "", photo: "", about: "", summary: "", email: "", phone: "" },
   education: [],
   skills: [],
   experience: [],
@@ -46,6 +49,9 @@ export default function ResumeEditor() {
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [saveError, setSaveError] = useState("");
 
+  // Toast (кастомный push)
+  const [toast, setToast] = useState({ open: false, message: "", severity: "error" });
+
   // чтобы не запускать автосейв во время первичной загрузки
   const isHydratingRef = useRef(true);
   const autosaveTimerRef = useRef(null);
@@ -54,12 +60,14 @@ export default function ResumeEditor() {
     if (user) {
       loadResumeData();
     }
-    // cleanup таймера при размонтировании
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  const profileErrors = useMemo(() => validateProfile(resumeData.profile), [resumeData.profile]);
+  const isValidForSave = Object.keys(profileErrors).length === 0;
 
   const loadResumeData = async () => {
     if (!user) return;
@@ -86,12 +94,14 @@ export default function ResumeEditor() {
     if (data) {
       const loadedData = data.data || DEFAULT_RESUME_DATA;
 
-      // небольшой “мост” между about/summary
+      // мост about/summary
       const profile = loadedData.profile || {};
       const bridgedProfile = {
         ...profile,
         about: profile.about ?? profile.summary ?? "",
         summary: profile.summary ?? profile.about ?? "",
+        email: profile.email ?? "",
+        phone: profile.phone ?? "",
       };
 
       setResumeData({
@@ -102,7 +112,6 @@ export default function ResumeEditor() {
 
       setResumeTitle(data.title || "Моё IT-резюме");
     } else {
-      // если записи нет — оставим дефолт
       setResumeData(DEFAULT_RESUME_DATA);
       setResumeTitle("Моё IT-резюме");
     }
@@ -114,7 +123,6 @@ export default function ResumeEditor() {
 
   const updateSection = (section, newData) => {
     setResumeData((prev) => {
-      // мост about/summary, чтобы шаблоны/экспорт не ломались
       if (section === "profile") {
         const about = newData.about ?? newData.summary ?? "";
         const summary = newData.summary ?? newData.about ?? "";
@@ -124,8 +132,28 @@ export default function ResumeEditor() {
     });
   };
 
+  const failValidation = (showToastPush) => {
+    const msg = formatValidationToast(profileErrors);
+    setSaveStatus("error");
+    setSaveError("validation");
+
+    // Переключим на профиль — там ошибки
+    setActiveTab(0);
+
+    if (showToastPush && msg) {
+      setToast({ open: true, message: msg, severity: "error" });
+    }
+  };
+
   const saveResume = async ({ silent = false } = {}) => {
     if (!user) return;
+
+    // ✅ ВАЛИДАЦИЯ ПЕРЕД ЛЮБЫМ СЕЙВОМ
+    if (!isValidForSave) {
+      // пуш только для ручного сейва, без спама при autosave
+      failValidation(!silent);
+      return;
+    }
 
     try {
       if (!silent) {
@@ -177,7 +205,6 @@ export default function ResumeEditor() {
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
 
     autosaveTimerRef.current = setTimeout(() => {
-      // silent автосейв: без алерта "✅ сохранено" на весь экран
       saveResume({ silent: true });
     }, 1000);
 
@@ -198,10 +225,16 @@ export default function ResumeEditor() {
   }, [resumeData]);
 
   const renderSaveChip = () => {
+    if (!isValidForSave) return <Chip size="small" color="warning" label="Проверьте email/телефон" />;
     if (saveStatus === "saving") return <Chip size="small" label="Сохранение..." />;
     if (saveStatus === "saved") return <Chip size="small" color="success" label="Сохранено" />;
-    if (saveStatus === "error")
-      return <Chip size="small" color="error" label={`Ошибка сохранения${saveError ? `: ${saveError}` : ""}`} />;
+    if (saveStatus === "error") {
+      const label =
+        saveError === "validation"
+          ? "Ошибка: неверные поля"
+          : `Ошибка сохранения${saveError ? `: ${saveError}` : ""}`;
+      return <Chip size="small" color="error" label={label} />;
+    }
     return <Chip size="small" variant="outlined" label="Не сохранено" />;
   };
 
@@ -243,24 +276,29 @@ export default function ResumeEditor() {
 
       <Box sx={{ mb: 3 }}>
         {activeTab === 0 && (
-          <ProfileForm data={resumeData.profile} onChange={(d) => updateSection("profile", d)} />
+          <ProfileForm
+            data={resumeData.profile}
+            errors={profileErrors}
+            onChange={(d) => updateSection("profile", d)}
+          />
         )}
-        {activeTab === 1 && (
-          <SkillsBlock data={resumeData.skills} onChange={(d) => updateSection("skills", d)} />
-        )}
+        {activeTab === 1 && <SkillsBlock data={resumeData.skills} onChange={(d) => updateSection("skills", d)} />}
         {activeTab === 2 && (
           <EducationBlock data={resumeData.education} onChange={(d) => updateSection("education", d)} />
         )}
         {activeTab === 3 && (
           <ExperienceBlock data={resumeData.experience} onChange={(d) => updateSection("experience", d)} />
         )}
-        {activeTab === 4 && (
-          <GitHubBlock data={resumeData.github} onChange={(d) => updateSection("github", d)} />
-        )}
+        {activeTab === 4 && <GitHubBlock data={resumeData.github} onChange={(d) => updateSection("github", d)} />}
       </Box>
 
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <Button variant="contained" size="large" onClick={() => saveResume({ silent: false })} disabled={loading}>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => saveResume({ silent: false })}
+          disabled={loading}
+        >
           {loading ? "Сохранение..." : "💾 Сохранить резюме"}
         </Button>
 
@@ -274,10 +312,26 @@ export default function ResumeEditor() {
       </Box>
 
       {/* DEBUG панель */}
-      <Box sx={{ p: 2, bgcolor: "#f5f5f5", borderRadius: 1, fontSize: 12 }}>
-        <Typography variant="caption">DEBUG:</Typography>
-        <pre style={{ margin: 0 }}>{JSON.stringify({ resumeTitle, resumeData }, null, 2)}</pre>
+      <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, border: "1px solid", borderColor: "divider", fontSize: 12 }}>
+        <Typography variant="caption" color="text.secondary">
+          DEBUG:
+        </Typography>
+        <pre style={{ margin: 0, overflowX: "auto" }}>
+          {JSON.stringify({ resumeTitle, resumeData }, null, 2)}
+        </pre>
       </Box>
+
+      {/* Push уведомления */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3500}
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert severity={toast.severity} sx={{ width: "100%" }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }
