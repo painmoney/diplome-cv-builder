@@ -233,7 +233,11 @@ export default function RecommendationPanel({ recommendations = [], onGoToSectio
 
                             {meta.tab != null && (
                               <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
-                                <Button size="small" onClick={() => go(meta.tab, r.target)}>
+                                <Button
+                                  size="small"
+                                  onClick={() => go(meta.tab, r.target)}
+                                  disabled={typeof onGoToSection !== "function"}
+                                >
                                   Исправить →
                                 </Button>
                               </Box>

@@ -1,6 +1,5 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import { Box } from "@mui/material";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -9,52 +8,46 @@ import Dashboard from "./pages/Dashboard";
 import ResumePreview from "./pages/ResumePreview";
 import ResumeEditor from "./components/ResumeBuilder/ResumeEditor";
 
-import Header from "./components/layout/Header";
-import Footer from "./components/layout/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import LayoutWrapper from "./components/layout/LayoutWrapper";
 
 export default function AppRoutes() {
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Header />
+    <LayoutWrapper>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      {/* MAIN */}
-      <Box component="main" sx={{ flexGrow: 1 }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+        {/* Protected */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/resume-editor"
+          element={
+            <ProtectedRoute>
+              <ResumeEditor />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/resume-editor"
-            element={
-              <ProtectedRoute>
-                <ResumeEditor />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/resume-preview"
-            element={
-              <ProtectedRoute>
-                <ResumePreview />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Box>
-
-      <Footer />
-    </Box>
+        <Route
+          path="/resume-preview"
+          element={
+            <ProtectedRoute>
+              <ResumePreview />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </LayoutWrapper>
   );
 }

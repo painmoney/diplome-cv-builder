@@ -1,45 +1,25 @@
 // src/components/layout/LayoutWrapper.jsx
 import React from "react";
+import { Box, Container } from "@mui/material";
+import { useLocation } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
-import Sidebar from "./Sidebar";
-import { Box } from "@mui/material";
 
 export default function LayoutWrapper({ children }) {
+  const { pathname } = useLocation();
+
+  const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isHome = pathname === "/";
+
+  // auth — узко, home — средне, остальное — широко
+  const maxWidth = isAuthPage ? "md" : isHome ? "md" : "xl";
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh", // чтобы футер был внизу
-      }}
-    >
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header />
 
-      <Box
-        sx={{
-          display: "flex",
-          flex: 1,
-          width: "100%",
-        }}
-      >
-        {/* Sidebar слева, если нужно */}
-        <Sidebar />
-
-        {/* Основной контент */}
-        <Box
-          component="main"
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center", // вертикальное центрирование для коротких страниц
-            p: 3,
-          }}
-        >
-          {children}
-        </Box>
+      <Box component="main" sx={{ flex: 1, py: 4 }}>
+        <Container maxWidth={maxWidth}>{children}</Container>
       </Box>
 
       <Footer />

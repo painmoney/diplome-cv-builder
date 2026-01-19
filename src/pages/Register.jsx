@@ -1,98 +1,119 @@
 import React, { useState } from "react";
-import { Container, TextField, Button, Typography, Box, Snackbar, Alert } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Snackbar,
+  Alert,
+  Paper,
+  Stack,
+} from "@mui/material";
 import { supabase } from "../api/supabaseClient";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-  const handleRegister = async () => {
+  const handleRegister = async (e) => {
+    e?.preventDefault?.();
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({ 
-      email, 
+
+    const { error } = await supabase.auth.signUp({
+      email,
       password,
-      options: {
-        emailRedirectTo: window.location.origin
-      }
+      options: { emailRedirectTo: window.location.origin },
     });
-    
+
     setLoading(false);
-    
+
     if (error) {
-      if (error.message.includes('already registered')) {
-        setSnackbar({ 
-          open: true, 
-          message: 'Этот email уже зарегистрирован. Войдите через Login.', 
-          severity: 'error' 
+      if (error.message.includes("already registered")) {
+        setSnackbar({
+          open: true,
+          message: "Этот email уже зарегистрирован. Войдите через Login.",
+          severity: "error",
         });
       } else {
-        setSnackbar({ open: true, message: error.message, severity: 'error' });
+        setSnackbar({ open: true, message: error.message, severity: "error" });
       }
     } else {
-      setSnackbar({ 
-        open: true, 
-        message: '✅ Проверьте почту для подтверждения регистрации!', 
-        severity: 'success' 
+      setSnackbar({
+        open: true,
+        message: "✅ Проверьте почту для подтверждения регистрации!",
+        severity: "success",
       });
-      setTimeout(() => navigate('/login'), 3000);
+      setTimeout(() => navigate("/login"), 2500);
     }
   };
 
   return (
-    <Container sx={{ mt: 8, maxWidth: 400, textAlign: "center" }}>
-      <Typography variant="h4" gutterBottom>
+    <Paper
+      elevation={0}
+      sx={{
+        p: 3,
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
+    >
+      <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
         Регистрация
       </Typography>
-      <TextField
-        fullWidth
-        label="Email"
-        margin="normal"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <TextField
-        fullWidth
-        label="Пароль"
-        type="password"
-        margin="normal"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <Button
-        variant="contained"
-        fullWidth
-        sx={{ mt: 2 }}
-        onClick={handleRegister}
-        disabled={loading}
-      >
-        Зарегистрироваться
-      </Button>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Создайте аккаунт, чтобы сохранять резюме и экспортировать PDF/Markdown/PNG
+      </Typography>
 
-      <Box sx={{ mt: 2 }}>
-        <Button
-          variant="outlined"
-          component={Link}
-          to="/login"
-          fullWidth
-        >
-          Войти
-        </Button>
+      <Box component="form" onSubmit={handleRegister}>
+        <Stack spacing={2}>
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <TextField
+            fullWidth
+            label="Пароль"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            helperText="Минимум 6 символов"
+          />
+
+          <Button variant="contained" fullWidth onClick={handleRegister} disabled={loading}>
+            {loading ? "Создаём..." : "Зарегистрироваться"}
+          </Button>
+
+          <Button variant="text" fullWidth onClick={() => navigate("/login")}>
+            Уже есть аккаунт? Войти
+          </Button>
+        </Stack>
       </Box>
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        autoHideDuration={5000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Container>
+    </Paper>
   );
 }
