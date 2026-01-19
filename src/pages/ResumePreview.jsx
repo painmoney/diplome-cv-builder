@@ -1,60 +1,106 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Container, Box, Button, Typography, CircularProgress, Snackbar, Alert } from "@mui/material";
-import { Edit, GetApp, ArrowBack } from "@mui/icons-material";
+import {
+  Container,
+  Box,
+  Button,
+  Typography,
+  CircularProgress,
+  Snackbar,
+  Alert,
+} from "@mui/material";
+import { Edit, GetApp, ArrowBack, Description } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
+
 import MinimalistTemplate from "../components/templates/MinimalistTemplate";
 import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
+
 import { exportToPDF } from "../components/export/ExportPDF";
+import { exportToMarkdown } from "../components/export/ExportMarkdown";
 
 export default function ResumePreview() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingMD, setExportingMD] = useState(false);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   useEffect(() => {
-    if (user) {
-      loadResume();
-    }
+    if (user) loadResume();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadResume = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('resumes')
-      .select('*')
-      .eq('user_id', user.id)
+    const { data, error } = await supabase
+      .from("resumes")
+      .select("*")
+      .eq("user_id", user.id)
       .maybeSingle();
-    
-    if (data) {
-      setResume(data);
+
+    if (error) {
+      console.error("Load resume error:", error);
+      setSnackbar({
+        open: true,
+        message: `Ошибка загрузки резюме: ${error.message}`,
+        severity: "error",
+      });
     }
+
+    if (data) setResume(data);
     setLoading(false);
   };
 
   const handleExportPDF = async () => {
     if (!resume) return;
-    setExporting(true);
+    setExportingPDF(true);
     try {
       const result = await exportToPDF(resume.data, resume.template);
       setSnackbar({
         open: true,
         message: result.message,
-        severity: result.success ? 'success' : 'error'
+        severity: result.success ? "success" : "error",
       });
     } catch (error) {
       setSnackbar({
         open: true,
-        message: 'Ошибка при экспорте PDF',
-        severity: 'error'
+        message: "Ошибка при экспорте PDF",
+        severity: "error",
       });
     } finally {
-      setExporting(false);
+      setExportingPDF(false);
+    }
+  };
+
+  const handleExportMarkdown = async () => {
+    if (!resume) return;
+    setExportingMD(true);
+    try {
+      const result = await exportToMarkdown(resume.data);
+      setSnackbar({
+        open: true,
+        message: result.message,
+        severity: result.success ? "success" : "error",
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: "Ошибка при экспорте Markdown",
+        severity: "error",
+      });
+    } finally {
+      setExportingMD(false);
     }
   };
 
@@ -62,11 +108,11 @@ export default function ResumePreview() {
     if (!resume?.data) return null;
 
     switch (resume.template) {
-      case 'academic':
+      case "academic":
         return <AcademicTemplate data={resume.data} />;
-      case 'github':
+      case "github":
         return <GithubTemplate data={resume.data} />;
-      case 'minimalist':
+      case "minimalist":
       default:
         return <MinimalistTemplate data={resume.data} />;
     }
@@ -74,7 +120,14 @@ export default function ResumePreview() {
 
   if (loading) {
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <Container
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
         <CircularProgress />
       </Container>
     );
@@ -82,13 +135,13 @@ export default function ResumePreview() {
 
   if (!resume) {
     return (
-      <Container sx={{ textAlign: 'center', mt: 8 }}>
+      <Container sx={{ textAlign: "center", mt: 8 }}>
         <Typography variant="h5" gutterBottom>
           Резюме не найдено
         </Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => navigate('/resume-editor')}
+        <Button
+          variant="contained"
+          onClick={() => navigate("/resume-editor")}
           sx={{ mt: 2 }}
         >
           Создать резюме
@@ -97,69 +150,84 @@ export default function ResumePreview() {
     );
   }
 
+  const disabled = exportingPDF || exportingMD;
+
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       {/* Панель управления */}
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        mb: 3,
-        p: 2,
-        bgcolor: 'background.paper',
-        borderRadius: 1,
-        boxShadow: 1
-      }}>
-        <Button 
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/dashboard')}
-          disabled={exporting}
-        >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+          p: 2,
+          bgcolor: "background.paper",
+          borderRadius: 1,
+          boxShadow: 1,
+          gap: 2,
+          flexWrap: "wrap",
+        }}
+      >
+        <Button startIcon={<ArrowBack />} onClick={() => navigate("/dashboard")} disabled={disabled}>
           Назад
         </Button>
-        
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button 
-            variant="outlined" 
+
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <Button
+            variant="outlined"
             startIcon={<Edit />}
-            onClick={() => navigate('/resume-editor')}
-            disabled={exporting}
+            onClick={() => navigate("/resume-editor")}
+            disabled={disabled}
           >
             Редактировать
           </Button>
-          <Button 
-            variant="contained" 
+
+          <Button
+            variant="outlined"
+            startIcon={<Description />}
+            onClick={handleExportMarkdown}
+            disabled={disabled}
+          >
+            {exportingMD ? "Экспорт..." : "Скачать Markdown"}
+          </Button>
+
+          <Button
+            variant="contained"
             startIcon={<GetApp />}
             onClick={handleExportPDF}
-            disabled={exporting}
+            disabled={disabled}
           >
-            {exporting ? 'Экспорт...' : 'Скачать PDF'}
+            {exportingPDF ? "Экспорт..." : "Скачать PDF"}
           </Button>
         </Box>
       </Box>
 
       {/* Превью резюме */}
-      <Box sx={{ 
-        bgcolor: '#f5f5f5',
-        p: 4,
-        borderRadius: 2,
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
+      <Box
+        sx={{
+          bgcolor: "#f5f5f5",
+          p: 4,
+          borderRadius: 2,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
         {TemplateComponent}
       </Box>
 
       {/* Информация о шаблоне */}
-      <Box sx={{ mt: 2, textAlign: 'center', color: 'text.secondary' }}>
+      <Box sx={{ mt: 2, textAlign: "center", color: "text.secondary" }}>
         <Typography variant="caption">
-          Шаблон: {resume.template} | Последнее изменение: {new Date(resume.updated_at).toLocaleString('ru-RU')}
+          Шаблон: {resume.template} | Последнее изменение:{" "}
+          {new Date(resume.updated_at).toLocaleString("ru-RU")}
         </Typography>
       </Box>
 
       {/* Snackbar */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={3000} 
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
