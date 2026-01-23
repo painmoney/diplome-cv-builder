@@ -8,13 +8,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Получаем текущую сессию при загрузке
     supabase.auth.getSession().then(({ data }) => {
       setUser(data?.session?.user ?? null);
       setLoading(false);
     });
 
-    // Подписка на изменения состояния аутентификации
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });

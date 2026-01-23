@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Container,
   Box,
   Button,
   Typography,
@@ -9,6 +8,7 @@ import {
   Alert,
   ToggleButtonGroup,
   ToggleButton,
+  Stack,
 } from "@mui/material";
 import {
   Edit,
@@ -17,7 +17,7 @@ import {
   Description,
   Image as ImageIcon,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
 
@@ -30,12 +30,20 @@ import { exportToMarkdown } from "../components/export/ExportMarkdown";
 
 import html2canvas from "html2canvas";
 
+const VALID_TEMPLATES = ["minimalist", "academic", "github"];
+
 export default function ResumePreview() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const templateParam = String(searchParams.get("template") || "").toLowerCase();
+  const templateOverride = VALID_TEMPLATES.includes(templateParam) ? templateParam : null;
 
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [selectedTemplate, setSelectedTemplate] = useState("minimalist");
 
   const [exportingPDF, setExportingPDF] = useState(false);
   const [exportingMD, setExportingMD] = useState(false);
@@ -48,9 +56,11 @@ export default function ResumePreview() {
   });
 
   const captureRef = useRef(null);
+  const appliedOverrideRef = useRef("");
 
   useEffect(() => {
-    if (user) loadResume();
+    if (!user) return;
+    loadResume();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -70,17 +80,96 @@ export default function ResumePreview() {
         message: `Ошибка загрузки резюме: ${error.message}`,
         severity: "error",
       });
+      setLoading(false);
+      return;
     }
 
-    if (data) setResume(data);
+    if (data) {
+      setResume(data);
+
+      const current =
+        String(data.template || data.data?.template || "minimalist").toLowerCase();
+      setSelectedTemplate(
+        templateOverride || (VALID_TEMPLATES.includes(current) ? current : "minimalist")
+      );
+    } else {
+      // если резюме нет — отправим в редактор
+      setSnackbar({
+        open: true,
+        message: "Резюме не найдено. Создайте его в редакторе.",
+        severity: "info",
+      });
+      setTimeout(() => navigate("/resume-editor"), 300);
+    }
+
     setLoading(false);
+  };
+
+  // ✅ применяем override один раз (после загрузки резюме)
+  useEffect(() => {
+    if (!templateOverride) return;
+    if (!resume?.id) return;
+
+    const key = `${resume.id}:${templateOverride}`;
+    if (appliedOverrideRef.current === key) return;
+    appliedOverrideRef.current = key;
+
+    setSelectedTemplate(templateOverride);
+
+    setResume((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        template: templateOverride,
+        data: { ...(prev.data || {}), template: templateOverride },
+      };
+    });
+  }, [templateOverride, resume?.id]);
+
+  const TemplateComponent = useMemo(() => {
+    switch (selectedTemplate) {
+      case "academic":
+        return AcademicTemplate;
+      case "github":
+        return GithubTemplate;
+      default:
+        return MinimalistTemplate;
+    }
+  }, [selectedTemplate]);
+
+  const handleTemplateChange = async (_, value) => {
+    if (!value) return;
+    setSelectedTemplate(value);
+
+    // обновляем локально для экспорта/рендера
+    setResume((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        template: value,
+        data: { ...(prev.data || {}), template: value },
+      };
+    });
+
+    // (опционально) сохраняем выбор в БД
+    if (resume?.id && user?.id) {
+      try {
+        await supabase
+          .from("resumes")
+          .update({ template: value, data: { ...(resume.data || {}), template: value } })
+          .eq("id", resume.id)
+          .eq("user_id", user.id);
+      } catch {
+        // игнор — это только удобство, не критично
+      }
+    }
   };
 
   const handleExportPDF = async () => {
     if (!resume) return;
     setExportingPDF(true);
     try {
-      const result = await exportToPDF(resume.data, resume.template);
+      const result = await exportToPDF(resume.data, selectedTemplate);
       setSnackbar({
         open: true,
         message: result.message,
@@ -119,75 +208,68 @@ export default function ResumePreview() {
   };
 
   const sanitizeFileName = (name) => {
-    const base = String(name || "resume")
+    return String(name || "resume")
       .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
       .replace(/\s+/g, "_")
-      .trim();
-    return base || "resume";
+      .trim() || "resume";
   };
 
-  const handleExportImage = async (format) => {
-    if (!resume) return;
-    if (!captureRef.current) {
-      setSnackbar({
-        open: true,
-        message: "Не удалось найти блок резюме для экспорта",
-        severity: "error",
-      });
-      return;
-    }
+  const handleExportImage = async (fmt) => {
+    if (!captureRef.current || !resume) return;
 
-    setExportingIMG(format);
-
+    setExportingIMG(fmt);
     try {
-      // дождаться загрузки шрифтов (важно для красивого рендера)
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-
-      const scale = Math.max(2, window.devicePixelRatio || 2);
+      await document.fonts?.ready;
 
       const canvas = await html2canvas(captureRef.current, {
-        scale,
+        scale: Math.max(2, window.devicePixelRatio || 2),
         useCORS: true,
-        backgroundColor: null, // сохранить фон как есть
+        backgroundColor: null,
         logging: false,
         scrollX: -window.scrollX,
         scrollY: -window.scrollY,
       });
 
-      const mime = format === "jpg" ? "image/jpeg" : "image/png";
-      const quality = format === "jpg" ? 0.92 : undefined;
+      const mime = fmt === "jpg" ? "image/jpeg" : "image/png";
+      const quality = fmt === "jpg" ? 0.92 : 1;
 
-      const dataUrl = canvas.toDataURL(mime, quality);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            setSnackbar({
+              open: true,
+              message: "Не удалось сформировать изображение",
+              severity: "error",
+            });
+            return;
+          }
+          const name = sanitizeFileName(resume.data?.profile?.name);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${name}_${Date.now()}.${fmt}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
 
-      const fileBase = sanitizeFileName(resume?.data?.profile?.name || "resume");
-      const ext = format === "jpg" ? "jpg" : "png";
-
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `${fileBase}_${resume.template}.${ext}`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      setSnackbar({
-        open: true,
-        message: `✅ ${ext.toUpperCase()} успешно скачан`,
-        severity: "success",
-      });
-    } catch (err) {
-      console.error("Image Export Error:", err);
-
-      const msg = String(err || "").toLowerCase();
-      const corsLikely =
-        msg.includes("tainted") || msg.includes("cors") || msg.includes("cross-origin");
-
+          setSnackbar({
+            open: true,
+            message: `Экспорт ${fmt.toUpperCase()} завершён`,
+            severity: "success",
+          });
+        },
+        mime,
+        quality
+      );
+    } catch (e) {
+      const msg = String(e?.message || e);
+      const corsLikely = msg.toLowerCase().includes("tainted") || msg.toLowerCase().includes("cors");
       setSnackbar({
         open: true,
         message: corsLikely
-          ? "Экспорт изображения заблокирован из-за CORS (внешние картинки). Попробуйте убрать фото/внешние изображения или используйте PDF."
-          : "Ошибка при экспорте PNG/JPG",
+          ? "Экспорт изображения заблокирован из-за CORS. Используйте PDF."
+          : "Ошибка при экспорте изображения",
         severity: "error",
       });
     } finally {
@@ -195,142 +277,83 @@ export default function ResumePreview() {
     }
   };
 
-  const handleChangeTemplate = async (newTemplate) => {
-    if (!resume || !user || !newTemplate || newTemplate === resume.template) return;
-
-    // мгновенно обновим UI
-    const prev = resume.template;
-    setResume((r) => ({ ...r, template: newTemplate }));
-
-    const { error } = await supabase
-      .from("resumes")
-      .update({ template: newTemplate, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
-
-    if (error) {
-      console.error("Template update error:", error);
-      // откат
-      setResume((r) => ({ ...r, template: prev }));
-      setSnackbar({
-        open: true,
-        message: `Ошибка сохранения шаблона: ${error.message}`,
-        severity: "error",
-      });
-      return;
-    }
-
-    setSnackbar({
-      open: true,
-      message: "✅ Шаблон обновлен",
-      severity: "success",
-    });
-  };
-
-  const TemplateComponent = useMemo(() => {
-    if (!resume?.data) return null;
-
-    switch (resume.template) {
-      case "academic":
-        return <AcademicTemplate data={resume.data} />;
-      case "github":
-        return <GithubTemplate data={resume.data} />;
-      case "minimalist":
-      default:
-        return <MinimalistTemplate data={resume.data} />;
-    }
-  }, [resume]);
-
   if (loading) {
     return (
-      <Container
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "60vh",
-        }}
-      >
+      <Box sx={{ py: 6, display: "flex", justifyContent: "center" }}>
         <CircularProgress />
-      </Container>
+      </Box>
     );
   }
 
   if (!resume) {
     return (
-      <Container sx={{ textAlign: "center", mt: 8 }}>
-        <Typography variant="h5" gutterBottom>
+      <Box sx={{ py: 6 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>
           Резюме не найдено
         </Typography>
-        <Button
-          variant="contained"
-          onClick={() => navigate("/resume-editor")}
-          sx={{ mt: 2 }}
-        >
-          Создать резюме
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Перейдите в редактор и создайте резюме.
+        </Typography>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate("/resume-editor")}>
+          Открыть редактор
         </Button>
-      </Container>
+      </Box>
     );
   }
 
-  const disabled = exportingPDF || exportingMD || exportingIMG;
-
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      {/* Панель управления */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-          p: 2,
-          bgcolor: "background.paper",
-          borderRadius: 2,
-          boxShadow: 1,
-          gap: 2,
-          flexWrap: "wrap",
-        }}
+    <Box sx={{ py: 2 }}>
+      {/* Toolbar */}
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={1.5}
+        alignItems={{ xs: "stretch", md: "center" }}
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
       >
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate("/dashboard")}
-          disabled={disabled}
-        >
-          Назад
-        </Button>
-
-        {/* Переключатель шаблонов прямо в превью */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <Typography variant="body2" color="text.secondary">
-            Шаблон:
-          </Typography>
-          <ToggleButtonGroup
-            value={resume.template}
-            exclusive
-            onChange={(_, v) => v && handleChangeTemplate(v)}
-            size="small"
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBack />}
+            onClick={() => navigate("/dashboard")}
           >
-            <ToggleButton value="minimalist">Minimal</ToggleButton>
-            <ToggleButton value="academic">Academic</ToggleButton>
-            <ToggleButton value="github">GitHub</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+            Назад
+          </Button>
           <Button
             variant="outlined"
             startIcon={<Edit />}
             onClick={() => navigate("/resume-editor")}
-            disabled={disabled}
           >
             Редактировать
+          </Button>
+        </Stack>
+
+        <ToggleButtonGroup
+          value={selectedTemplate}
+          exclusive
+          onChange={handleTemplateChange}
+          size="small"
+        >
+          <ToggleButton value="minimalist">Minimalist</ToggleButton>
+          <ToggleButton value="academic">Academic</ToggleButton>
+          <ToggleButton value="github">GitHub</ToggleButton>
+        </ToggleButtonGroup>
+
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button
+            variant="contained"
+            startIcon={<GetApp />}
+            disabled={exportingPDF || exportingMD || exportingIMG}
+            onClick={handleExportPDF}
+          >
+            {exportingPDF ? "Экспорт..." : "PDF"}
           </Button>
 
           <Button
             variant="outlined"
             startIcon={<Description />}
+            disabled={exportingPDF || exportingMD || exportingIMG}
             onClick={handleExportMarkdown}
-            disabled={disabled}
           >
             {exportingMD ? "Экспорт..." : "Markdown"}
           </Button>
@@ -338,8 +361,8 @@ export default function ResumePreview() {
           <Button
             variant="outlined"
             startIcon={<ImageIcon />}
+            disabled={exportingPDF || exportingMD || exportingIMG}
             onClick={() => handleExportImage("png")}
-            disabled={disabled}
           >
             {exportingIMG === "png" ? "Экспорт..." : "PNG"}
           </Button>
@@ -347,55 +370,38 @@ export default function ResumePreview() {
           <Button
             variant="outlined"
             startIcon={<ImageIcon />}
+            disabled={exportingPDF || exportingMD || exportingIMG}
             onClick={() => handleExportImage("jpg")}
-            disabled={disabled}
           >
             {exportingIMG === "jpg" ? "Экспорт..." : "JPG"}
           </Button>
+        </Stack>
+      </Stack>
 
-          <Button
-            variant="contained"
-            startIcon={<GetApp />}
-            onClick={handleExportPDF}
-            disabled={disabled}
-          >
-            {exportingPDF ? "Экспорт..." : "PDF"}
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Превью резюме */}
+      {/* Preview */}
       <Box
+        ref={captureRef}
         sx={{
-          bgcolor: "background.default",
-          p: 4,
+          border: "1px solid",
+          borderColor: "divider",
           borderRadius: 2,
-          display: "flex",
-          justifyContent: "center",
+          overflow: "hidden",
+          bgcolor: "background.paper",
         }}
       >
-        {/* ВАЖНО: экспортируем именно этот блок */}
-        <Box ref={captureRef} sx={{ width: "fit-content" }}>
-          {TemplateComponent}
-        </Box>
+        <TemplateComponent data={resume.data} />
       </Box>
 
-      {/* Информация */}
-      <Box sx={{ mt: 2, textAlign: "center", color: "text.secondary" }}>
-        <Typography variant="caption">
-          Шаблон: {resume.template} | Последнее изменение:{" "}
-          {new Date(resume.updated_at).toLocaleString("ru-RU")}
-        </Typography>
-      </Box>
-
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3500}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+        <Alert severity={snackbar.severity} variant="filled">
+          {snackbar.message}
+        </Alert>
       </Snackbar>
-    </Container>
+    </Box>
   );
 }

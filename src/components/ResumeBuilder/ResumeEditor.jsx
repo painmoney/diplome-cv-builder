@@ -306,7 +306,7 @@ export default function ResumeEditor() {
     }
   };
 
-  // Автосохранение с debounce (сохранено как у тебя)
+  // Автосохранение с debounce
   useEffect(() => {
     if (!user) return;
     if (isHydratingRef.current) return;

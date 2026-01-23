@@ -57,9 +57,7 @@ export function getRecommendations(resumeData) {
 
   const rec = [];
 
-  // -----------------------
   // PROFILE / CONTACTS
-  // -----------------------
   if (!safeText(profile.name)) {
     rec.push({
       type: "profile",
