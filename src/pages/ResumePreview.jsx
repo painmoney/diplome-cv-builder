@@ -25,10 +25,6 @@ import MinimalistTemplate from "../components/templates/MinimalistTemplate";
 import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
 
-import { exportToPDF } from "../components/export/ExportPDF";
-import { exportToDocx } from "../components/export/ExportDocx";
-import { exportToMarkdown } from "../components/export/ExportMarkdown";
-
 import html2canvas from "html2canvas";
 
 const VALID_TEMPLATES = ["minimalist", "academic", "github"];
@@ -170,6 +166,7 @@ export default function ResumePreview() {
     if (!resume) return;
     setExportingPDF(true);
     try {
+      const { exportToPDF } = await import("../components/export/ExportPDF");
       const result = await exportToPDF(resume.data, selectedTemplate);
       setSnackbar({
         open: true,
@@ -191,6 +188,7 @@ export default function ResumePreview() {
     if (!resume) return;
     setExportingDOCX(true);
     try {
+      const { exportToDocx } = await import("../components/export/ExportDocx");
       const result = await exportToDocx(resume.data, selectedTemplate);
       setSnackbar({
         open: true,
@@ -212,6 +210,7 @@ export default function ResumePreview() {
     if (!resume) return;
     setExportingMD(true);
     try {
+      const { exportToMarkdown } = await import("../components/export/ExportMarkdown");
       const result = await exportToMarkdown(resume.data);
       setSnackbar({
         open: true,
