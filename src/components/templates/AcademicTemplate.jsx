@@ -1,28 +1,28 @@
-import React from "react";
+
 import { Box, Typography, Paper, Grid, Divider, Chip } from "@mui/material";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
+
+const SectionTitle = ({ children, color = "#2e7d32" }) => (
+  <Box sx={{ mb: 2 }}>
+    <Typography
+      variant="h5"
+      sx={{
+        color,
+        fontWeight: 800,
+        fontFamily: '"Georgia", serif',
+        fontSize: "1.3rem",
+        mb: 1,
+      }}
+    >
+      {children}
+    </Typography>
+    <Divider sx={{ borderColor: color }} />
+  </Box>
+);
 
 export default function AcademicTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
   const primary = "#2e7d32";
-
-  const SectionTitle = ({ children }) => (
-    <Box sx={{ mb: 2 }}>
-      <Typography
-        variant="h5"
-        sx={{
-          color: primary,
-          fontWeight: 800,
-          fontFamily: '"Georgia", serif',
-          fontSize: "1.3rem",
-          mb: 1,
-        }}
-      >
-        {children}
-      </Typography>
-      <Divider sx={{ borderColor: primary }} />
-    </Box>
-  );
 
   return (
     <Paper

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Box, TextField, Button, Typography, Alert } from "@mui/material";
 import { GitHub, DeleteOutline } from "@mui/icons-material";
 import { fetchGitHubRepos } from "../../api/githubAPI";

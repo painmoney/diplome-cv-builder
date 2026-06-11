@@ -1,40 +1,40 @@
-import React from "react";
+
 import { Box, Typography, Chip, Paper, Divider } from "@mui/material";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
+
+const SectionTitle = ({ children, color = "#1976d2" }) => (
+  <Box sx={{ mb: 2 }}>
+    <Typography
+      variant="h5"
+      sx={{
+        color,
+        fontWeight: 800,
+        fontSize: "1.3rem",
+        mb: 1,
+      }}
+    >
+      {children}
+    </Typography>
+    <Divider sx={{ borderColor: "#d7e3f5" }} />
+  </Box>
+);
+
+const LightChip = ({ label }) => (
+  <Chip
+    label={label}
+    size="small"
+    sx={{
+      bgcolor: "#f8fafc",
+      color: "#111827",
+      border: "1px solid #cbd5e1",
+      fontWeight: 500,
+    }}
+  />
+);
 
 export default function MinimalistTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
   const primary = "#1976d2";
-
-  const SectionTitle = ({ children }) => (
-    <Box sx={{ mb: 2 }}>
-      <Typography
-        variant="h5"
-        sx={{
-          color: primary,
-          fontWeight: 800,
-          fontSize: "1.3rem",
-          mb: 1,
-        }}
-      >
-        {children}
-      </Typography>
-      <Divider sx={{ borderColor: "#d7e3f5" }} />
-    </Box>
-  );
-
-  const LightChip = ({ label }) => (
-    <Chip
-      label={label}
-      size="small"
-      sx={{
-        bgcolor: "#f8fafc",
-        color: "#111827",
-        border: "1px solid #cbd5e1",
-        fontWeight: 500,
-      }}
-    />
-  );
 
   return (
     <Paper

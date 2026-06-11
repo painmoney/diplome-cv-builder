@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import {
@@ -42,60 +42,62 @@ export default function ForgotPassword() {
   };
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.paper",
-      }}
-    >
-      <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
-        Восстановление пароля
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Укажите email, и мы отправим ссылку для сброса пароля
-      </Typography>
+    <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
+          Восстановление пароля
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Укажите email, и мы отправим ссылку для сброса пароля
+        </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {success ? (
-        <>
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Ссылка для сброса пароля отправлена на {email}. Проверьте почту.
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
           </Alert>
-          <Button variant="text" fullWidth onClick={() => navigate("/login")}>
-            Вернуться ко входу
-          </Button>
-        </>
-      ) : (
-        <Box component="form" onSubmit={handleSubmit}>
-          <Stack spacing={2}>
-            <TextField
-              label="Email"
-              type="email"
-              fullWidth
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        )}
 
-            <Button type="submit" variant="contained" fullWidth disabled={loading}>
-              {loading ? "Отправляем..." : "Отправить ссылку"}
-            </Button>
-
+        {success ? (
+          <>
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Ссылка для сброса пароля отправлена на {email}. Проверьте почту.
+            </Alert>
             <Button variant="text" fullWidth onClick={() => navigate("/login")}>
               Вернуться ко входу
             </Button>
-          </Stack>
-        </Box>
-      )}
-    </Paper>
+          </>
+        ) : (
+          <Box component="form" onSubmit={handleSubmit}>
+            <Stack spacing={2}>
+              <TextField
+                label="Email"
+                type="email"
+                fullWidth
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+
+              <Button type="submit" variant="contained" fullWidth disabled={loading}>
+                {loading ? "Отправляем..." : "Отправить ссылку"}
+              </Button>
+
+              <Button variant="text" fullWidth onClick={() => navigate("/login")}>
+                Вернуться ко входу
+              </Button>
+            </Stack>
+          </Box>
+        )}
+      </Paper>
+    </Box>
   );
 }

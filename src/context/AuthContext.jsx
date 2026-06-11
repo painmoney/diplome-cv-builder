@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 
 const AuthContext = createContext();
@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
   const signOut = async (redirect = true) => {
     const { error } = await supabase.auth.signOut();
     if (error) {
+      // signOut failed silently — user will see auth state unchanged
     } else {
       setUser(null);
       if (redirect) window.location.href = "/login";

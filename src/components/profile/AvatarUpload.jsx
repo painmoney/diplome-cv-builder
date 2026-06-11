@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Box,
@@ -96,7 +96,7 @@ export default function AvatarUpload({
   });
 
   useEffect(() => {
-    setPreviewUrl(avatarUrl || "");
+    setPreviewUrl(avatarUrl || ""); // eslint-disable-line react-hooks/set-state-in-effect -- prop-to-state sync
   }, [avatarUrl]);
 
   useEffect(() => {

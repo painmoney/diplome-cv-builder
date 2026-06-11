@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { motion } from "framer-motion";
@@ -32,12 +32,11 @@ export default function SplashScreen({ onFinish, text = "CV Builder" }) {
       document.body.style.overflow = prevOverflow;
       clearTimers();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     clearTimers();
-    setTyped("");
+    setTyped(""); // eslint-disable-line react-hooks/set-state-in-effect -- intentional reset for typewriter
 
     const full = String(text || "");
     const stepMs = 120;

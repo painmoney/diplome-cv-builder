@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Container,
   Tabs,
@@ -69,17 +69,6 @@ export default function ResumeEditor() {
   const profileErrors = useMemo(() => validateProfile(resumeData.profile), [resumeData.profile]);
   const isValidForSave = useMemo(() => Object.keys(profileErrors).length === 0, [profileErrors]);
 
-  useEffect(() => {
-    if (user) {
-      loadResumeData();
-    }
-
-    return () => {
-      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
   const loadResumeData = async () => {
     if (!user) return;
 
@@ -107,6 +96,17 @@ export default function ResumeEditor() {
       isHydratingRef.current = false;
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      loadResumeData(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
+    }
+
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const updateSection = (section, newData) => {
     setResumeData((prev) => {
@@ -181,6 +181,7 @@ export default function ResumeEditor() {
 
     timer = setTimeout(tryFocus, 0);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- focusAndScroll is stable, only need activeTab
   }, [activeTab]);
 
     const handleGoToFromRecommendations = (tabIndex, targetId) => {
@@ -282,6 +283,7 @@ export default function ResumeEditor() {
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- saveResume is recreated each render, avoid loop
   }, [resumeData, resumeTitle, user]);
 
   // Рекомендации

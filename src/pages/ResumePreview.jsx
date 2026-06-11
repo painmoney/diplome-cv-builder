@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -56,12 +56,6 @@ export default function ResumePreview() {
   const captureRef = useRef(null);
   const appliedOverrideRef = useRef("");
 
-  useEffect(() => {
-    if (!user) return;
-    loadResume();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
   const loadResume = async () => {
     setLoading(true);
 
@@ -74,7 +68,7 @@ export default function ResumePreview() {
     if (error) {
       setSnackbar({
         open: true,
-        message: `Ошибка загрузки резюме: ${error.message}`,
+        message: "Ошибка загрузки резюме",
         severity: "error",
       });
       setLoading(false);
@@ -90,7 +84,6 @@ export default function ResumePreview() {
         templateOverride || (VALID_TEMPLATES.includes(current) ? current : "minimalist")
       );
     } else {
-      // если резюме нет — отправим в редактор
       setSnackbar({
         open: true,
         message: "Резюме не найдено. Создайте его в редакторе.",
@@ -101,6 +94,11 @@ export default function ResumePreview() {
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!user) return;
+    loadResume(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps -- loadResume is stable
 
   // применяем override один раз (после загрузки резюме)
   useEffect(() => {
@@ -173,7 +171,7 @@ export default function ResumePreview() {
         message: result.message,
         severity: result.success ? "success" : "error",
       });
-    } catch (error) {
+    } catch {
       setSnackbar({
         open: true,
         message: "Ошибка при экспорте PDF",
@@ -195,7 +193,7 @@ export default function ResumePreview() {
         message: result.message,
         severity: result.success ? "success" : "error",
       });
-    } catch (error) {
+    } catch {
       setSnackbar({
         open: true,
         message: "Ошибка при экспорте DOCX",
@@ -217,7 +215,7 @@ export default function ResumePreview() {
         message: result.message,
         severity: result.success ? "success" : "error",
       });
-    } catch (error) {
+    } catch {
       setSnackbar({
         open: true,
         message: "Ошибка при экспорте Markdown",
@@ -230,7 +228,8 @@ export default function ResumePreview() {
 
   const sanitizeFileName = (name) => {
     return String(name || "resume")
-      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+      // eslint-disable-next-line no-control-regex
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
       .replace(/\s+/g, "_")
       .trim() || "resume";
   };

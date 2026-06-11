@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import {
@@ -51,59 +51,61 @@ export default function UpdatePassword() {
   };
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.paper",
-      }}
-    >
-      <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
-        Новый пароль
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Придумайте новый пароль для аккаунта
-      </Typography>
+    <Box sx={{ width: "100%", maxWidth: 640, mx: "auto" }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
+          Новый пароль
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Придумайте новый пароль для аккаунта
+        </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-      <Box component="form" onSubmit={handleSubmit}>
-        <Stack spacing={2}>
-          <TextField
-            label="Новый пароль"
-            type="password"
-            fullWidth
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            helperText="Минимум 6 символов"
-          />
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2}>
+            <TextField
+              label="Новый пароль"
+              type="password"
+              fullWidth
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              helperText="Минимум 6 символов"
+            />
 
-          <TextField
-            label="Подтвердите пароль"
-            type="password"
-            fullWidth
-            required
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
+            <TextField
+              label="Подтвердите пароль"
+              type="password"
+              fullWidth
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
 
-          <Button type="submit" variant="contained" fullWidth disabled={loading}>
-            {loading ? "Сохраняем..." : "Сохранить пароль"}
-          </Button>
+            <Button type="submit" variant="contained" fullWidth disabled={loading}>
+              {loading ? "Сохраняем..." : "Сохранить пароль"}
+            </Button>
 
-          <Button variant="text" fullWidth onClick={() => navigate("/login")}>
-            Вернуться ко входу
-          </Button>
-        </Stack>
-      </Box>
-    </Paper>
+            <Button variant="text" fullWidth onClick={() => navigate("/login")}>
+              Вернуться ко входу
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

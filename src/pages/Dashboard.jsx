@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Container,
   Typography,
@@ -43,15 +43,6 @@ export default function Dashboard() {
     severity: "success",
   });
 
-  useEffect(() => {
-    if (!user?.id) return;
-
-    loadResume(user.id);
-    setAvatarUrl(getAvatarUrl(user.id));
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
   const loadResume = async (userId) => {
     setLoadingResume(true);
 
@@ -74,6 +65,13 @@ export default function Dashboard() {
     setResume(data || null);
     setLoadingResume(false);
   };
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    loadResume(user.id); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
+    setAvatarUrl(getAvatarUrl(user.id));
+  }, [user?.id]);
 
   const handleExportPDF = async () => {
     if (!resume) {

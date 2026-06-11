@@ -319,7 +319,8 @@ export const exportToDocx = async (resumeData, template = "minimalist") => {
 
     const name =
       (resumeData?.profile?.name || "resume")
-        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "")
+        // eslint-disable-next-line no-control-regex
+        .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
         .replace(/\s+/g, "_")
         .trim() || "resume";
 

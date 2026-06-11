@@ -1,26 +1,26 @@
-import React from "react";
+
 import { Box, Typography, Chip, Paper } from "@mui/material";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import StarIcon from "@mui/icons-material/Star";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
 
+const SectionTitle = ({ children }) => (
+  <Typography
+    variant="h5"
+    sx={{
+      color: "#58a6ff",
+      fontWeight: 900,
+      fontSize: "1.2rem",
+      mb: 2,
+      fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
+    }}
+  >
+    {children}
+  </Typography>
+);
+
 export default function GithubTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
-
-  const SectionTitle = ({ children }) => (
-    <Typography
-      variant="h5"
-      sx={{
-        color: "#58a6ff",
-        fontWeight: 900,
-        fontSize: "1.2rem",
-        mb: 2,
-        fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
-      }}
-    >
-      {children}
-    </Typography>
-  );
 
   return (
     <Paper

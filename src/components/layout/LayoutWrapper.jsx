@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Box, Container } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";

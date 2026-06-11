@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from '../../../utils/helpers';
 
