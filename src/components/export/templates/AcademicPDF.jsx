@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
 
 Font.register({
   family: 'NotoSans',
@@ -101,6 +101,11 @@ const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 9,
+  },
+  repoUrl: {
+    fontSize: 8,
+    color: '#2e7d32',
+    marginBottom: 3,
   },
 });
 
@@ -235,7 +240,16 @@ export default function AcademicPDF({ data }) {
                 <Text style={styles.sectionTitle}>Проекты</Text>
                 {github.map((repo, idx) => (
                   <View key={idx} style={styles.item}>
-                    <Text style={styles.itemTitle}>{repo.name}</Text>
+                    {repo.url ? (
+                      <Link src={repo.url} style={{ ...styles.itemTitle, textDecoration: 'none', color: '#2e7d32' }}>
+                        {repo.name}
+                      </Link>
+                    ) : (
+                      <Text style={styles.itemTitle}>{repo.name}</Text>
+                    )}
+                    {repo.url && (
+                      <Text style={styles.repoUrl}>{repo.url.replace(/^https?:\/\//, '')}</Text>
+                    )}
                     {repo.description && <Text style={styles.text}>{repo.description}</Text>}
                     <Text style={styles.itemYear}>{repo.stars || 0} звезд</Text>
                   </View>

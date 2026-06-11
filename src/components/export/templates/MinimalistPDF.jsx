@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
 
 // Регистрируем шрифт с поддержкой кириллицы
 Font.register({
@@ -97,6 +97,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     borderRadius: 3,
     fontSize: 9,
+  },
+  repoUrl: {
+    fontSize: 9,
+    color: '#1976d2',
+    marginBottom: 3,
   },
 });
 
@@ -241,7 +246,16 @@ export default function MinimalistPDF({ data }) {
             <Text style={styles.sectionTitle}>GitHub Проекты</Text>
             {github.map((repo, idx) => (
               <View key={idx} style={styles.item}>
-                <Text style={styles.itemTitle}>{repo.name}</Text>
+                {repo.url ? (
+                  <Link src={repo.url} style={{ ...styles.itemTitle, textDecoration: 'none', color: '#1976d2' }}>
+                    {repo.name}
+                  </Link>
+                ) : (
+                  <Text style={styles.itemTitle}>{repo.name}</Text>
+                )}
+                {repo.url && (
+                  <Text style={styles.repoUrl}>{repo.url.replace(/^https?:\/\//, '')}</Text>
+                )}
                 {repo.description && (
                   <Text style={styles.text}>{repo.description}</Text>
                 )}

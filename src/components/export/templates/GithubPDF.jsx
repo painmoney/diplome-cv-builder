@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
 
 Font.register({
   family: 'NotoSans',
@@ -126,6 +126,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#30363d',
   },
+  repoUrl: {
+    fontSize: 8,
+    color: '#58a6ff',
+    marginBottom: 4,
+  },
+  skillsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
 });
 
 export default function GithubPDF({ data }) {
@@ -201,7 +211,16 @@ export default function GithubPDF({ data }) {
             <Text style={styles.sectionTitle}>repositories</Text>
             {github.map((repo, idx) => (
               <View key={idx} style={styles.repoBox}>
-                <Text style={styles.repoName}>{repo.name}</Text>
+                {repo.url ? (
+                  <Link src={repo.url} style={{ ...styles.repoName, textDecoration: 'none' }}>
+                    {repo.name}
+                  </Link>
+                ) : (
+                  <Text style={styles.repoName}>{repo.name}</Text>
+                )}
+                {repo.url && (
+                  <Text style={styles.repoUrl}>{repo.url.replace(/^https?:\/\//, '')}</Text>
+                )}
                 {repo.description && (
                   <Text style={styles.repoDesc}>{repo.description}</Text>
                 )}
