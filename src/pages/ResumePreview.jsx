@@ -76,7 +76,6 @@ export default function ResumePreview() {
       .maybeSingle();
 
     if (error) {
-      console.error("Load resume error:", error);
       setSnackbar({
         open: true,
         message: `Ошибка загрузки резюме: ${error.message}`,

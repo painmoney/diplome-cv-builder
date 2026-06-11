@@ -23,17 +23,21 @@ export default function ForgotPassword() {
     setError("");
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/update-password`,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (error) {
-      console.error("Ошибка восстановления:", error);
-      setError("Не удалось отправить ссылку. Проверьте email и попробуйте ещё раз.");
-    } else {
-      setSuccess(true);
+      if (error) {
+        setError("Не удалось отправить ссылку. Проверьте email и попробуйте ещё раз.");
+      } else {
+        setSuccess(true);
+      }
+    } catch {
+      setLoading(false);
+      setError("Ошибка сети. Проверьте подключение к интернету.");
     }
   };
 

@@ -11,6 +11,9 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data?.session?.user ?? null);
       setLoading(false);
+    }).catch(() => {
+      setUser(null);
+      setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -26,7 +29,6 @@ export function AuthProvider({ children }) {
   const signOut = async (redirect = true) => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error("Ошибка выхода:", error.message);
     } else {
       setUser(null);
       if (redirect) window.location.href = "/login";

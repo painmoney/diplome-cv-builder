@@ -75,33 +75,39 @@ export default function Register() {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (error) {
-      console.error("Ошибка регистрации:", error);
+      if (error) {
+        setSnackbar({
+          open: true,
+          message: getRegisterErrorMessage(error),
+          severity: "error",
+        });
+        return;
+      }
 
       setSnackbar({
         open: true,
-        message: getRegisterErrorMessage(error),
-        severity: "error",
+        message: "Проверьте почту для подтверждения регистрации!",
+        severity: "success",
       });
 
-      return;
+      setTimeout(() => navigate("/login"), 2500);
+    } catch {
+      setLoading(false);
+      setSnackbar({
+        open: true,
+        message: "Ошибка сети. Проверьте подключение к интернету.",
+        severity: "error",
+      });
     }
-
-    setSnackbar({
-      open: true,
-      message: "Проверьте почту для подтверждения регистрации!",
-      severity: "success",
-    });
-
-    setTimeout(() => navigate("/login"), 2500);
   };
 
   return (

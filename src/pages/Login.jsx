@@ -51,19 +51,22 @@ export default function Login() {
     setError("");
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (error) {
-      console.error("Ошибка входа:", error);
-      setError(getAuthErrorMessage(error));
-    } else {
-      console.log("Успешный вход:", data);
-      navigate("/dashboard");
+      if (error) {
+        setError(getAuthErrorMessage(error));
+      } else {
+        navigate("/dashboard");
+      }
+    } catch {
+      setLoading(false);
+      setError("Ошибка сети. Проверьте подключение к интернету.");
     }
   };
 

@@ -34,15 +34,19 @@ export default function UpdatePassword() {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({ password });
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (error) {
-      console.error("Ошибка обновления пароля:", error);
-      setError("Не удалось обновить пароль. Попробуйте запросить ссылку снова.");
-    } else {
-      setTimeout(() => navigate("/login"), 2000);
+      if (error) {
+        setError("Не удалось обновить пароль. Попробуйте запросить ссылку снова.");
+      } else {
+        setTimeout(() => navigate("/login"), 2000);
+      }
+    } catch {
+      setLoading(false);
+      setError("Ошибка сети. Проверьте подключение к интернету.");
     }
   };
 

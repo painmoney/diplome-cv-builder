@@ -326,8 +326,7 @@ export const exportToDocx = async (resumeData, template = "minimalist") => {
     saveAs(blob, `${name}_${Date.now()}.docx`);
 
     return { success: true, message: "DOCX успешно сохранён!" };
-  } catch (error) {
-    console.error("DOCX Export Error:", error);
+  } catch {
     return { success: false, message: "Ошибка при создании DOCX" };
   }
 };

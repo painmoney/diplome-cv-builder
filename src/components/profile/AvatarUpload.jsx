@@ -170,8 +170,6 @@ export default function AvatarUpload({
         severity: "success",
       });
     } catch (error) {
-      console.error("Avatar crop error:", error);
-
       setSnackbar({
         open: true,
         message: `Ошибка обработки изображения: ${error.message}`,
@@ -227,8 +225,6 @@ export default function AvatarUpload({
         severity: "success",
       });
     } catch (error) {
-      console.error("Avatar upload error:", error);
-
       setSnackbar({
         open: true,
         message: `Ошибка загрузки: ${error.message}`,

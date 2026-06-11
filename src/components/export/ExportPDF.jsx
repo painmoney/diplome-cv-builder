@@ -1,4 +1,3 @@
-import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import MinimalistPDF from './templates/MinimalistPDF';
@@ -27,8 +26,7 @@ export const exportToPDF = async (resumeData, template = 'minimalist') => {
     saveAs(blob, fileName);
     
     return { success: true, message: 'PDF успешно сохранен!' };
-  } catch (error) {
-    console.error('PDF Export Error:', error);
+  } catch {
     return { success: false, message: 'Ошибка при создании PDF' };
   }
 };

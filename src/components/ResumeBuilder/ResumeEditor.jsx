@@ -101,7 +101,6 @@ export default function ResumeEditor() {
       setSaveStatus("idle");
       setSaveError("");
     } catch (error) {
-      console.error("❌ Load error:", error);
       setMessage(`Ошибка загрузки: ${error.message}`);
     } finally {
       setLoading(false);
@@ -258,7 +257,6 @@ export default function ResumeEditor() {
       setSaveStatus("saved");
       if (!silent) setMessage("Резюме сохранено!");
     } catch (e) {
-      console.error("❌ Save exception:", e);
       setSaveStatus("error");
       setSaveError(e?.message || "Неизвестная ошибка");
 
@@ -290,8 +288,7 @@ export default function ResumeEditor() {
   const recommendations = useMemo(() => {
     try {
       return getRecommendations(resumeData);
-    } catch (e) {
-      console.error("Recommendations error:", e);
+    } catch {
       return [];
     }
   }, [resumeData]);

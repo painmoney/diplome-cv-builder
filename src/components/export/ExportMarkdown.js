@@ -129,8 +129,7 @@ export const exportToMarkdown = async (resumeData) => {
     const name = (resumeData?.profile?.name || "resume").replace(/\s+/g, "_");
     saveAs(blob, `${name}_${Date.now()}.md`);
     return { success: true, message: "Markdown успешно сохранён!" };
-  } catch (e) {
-    console.error("Markdown Export Error:", e);
+  } catch {
     return { success: false, message: "Ошибка при создании Markdown" };
   }
 };

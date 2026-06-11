@@ -3,6 +3,12 @@ dist/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 .mimocode/
 все коды.txt
 .vscode/
+*.log
+.DS_Store
+Thumbs.db
+supabase/.temp/

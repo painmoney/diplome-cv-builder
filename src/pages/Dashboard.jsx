@@ -62,7 +62,6 @@ export default function Dashboard() {
       .maybeSingle();
 
     if (error) {
-      console.error("Load resume error:", error);
       setSnackbar({
         open: true,
         message: `Ошибка загрузки резюме: ${error.message}`,
@@ -97,8 +96,7 @@ export default function Dashboard() {
         message: result.message,
         severity: result.success ? "success" : "error",
       });
-    } catch (e) {
-      console.error("PDF export error:", e);
+    } catch {
       setSnackbar({
         open: true,
         message: "Ошибка при экспорте PDF",
@@ -130,8 +128,7 @@ export default function Dashboard() {
         message: result.message,
         severity: result.success ? "success" : "error",
       });
-    } catch (e) {
-      console.error("DOCX export error:", e);
+    } catch {
       setSnackbar({
         open: true,
         message: "Ошибка при экспорте DOCX",
@@ -163,8 +160,7 @@ export default function Dashboard() {
         message: result.message,
         severity: result.success ? "success" : "error",
       });
-    } catch (e) {
-      console.error("Markdown export error:", e);
+    } catch {
       setSnackbar({
         open: true,
         message: "Ошибка при экспорте Markdown",
