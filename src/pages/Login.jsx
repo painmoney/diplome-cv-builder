@@ -115,6 +115,12 @@ export default function Login() {
             {loading ? "Входим..." : "Войти"}
           </Button>
 
+          <Box sx={{ textAlign: "center" }}>
+            <Button variant="text" size="small" onClick={() => navigate("/forgot-password")}>
+              Забыли пароль?
+            </Button>
+          </Box>
+
           <Button variant="text" fullWidth onClick={() => navigate("/register")}>
             Нет аккаунта? Зарегистрироваться
           </Button>
