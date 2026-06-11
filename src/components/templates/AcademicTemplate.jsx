@@ -1,43 +1,10 @@
 import React from "react";
 import { Box, Typography, Paper, Grid, Divider, Chip } from "@mui/material";
+import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
 
 export default function AcademicTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
   const primary = "#2e7d32";
-
-  const getSkillName = (skill) => {
-    if (typeof skill === "string") return skill;
-    if (skill && typeof skill === "object") return skill.name || "";
-    return "";
-  };
-
-  const getSkillLevel = (skill) => {
-    if (skill && typeof skill === "object" && skill.level) return skill.level;
-    return "";
-  };
-
-  const getEducationYear = (edu) => {
-    if (edu.years) return edu.years;
-    if (edu.year) return edu.year;
-    if (edu.graduationYear) return edu.graduationYear;
-    if (edu.period) return edu.period;
-    if (edu.startYear && edu.endYear) return `${edu.startYear}–${edu.endYear}`;
-    return "";
-  };
-
-  const getWorkPeriod = (exp) => {
-    if (exp.period) return exp.period;
-
-    const start = exp.startDate || exp.start || exp.from || "";
-    const end = exp.endDate || exp.end || exp.to || "";
-
-    if (start && end) return `${start} – ${end}`;
-    if (start && exp.current) return `${start} – настоящее время`;
-    if (start) return start;
-    if (end) return end;
-
-    return "";
-  };
 
   const SectionTitle = ({ children }) => (
     <Box sx={{ mb: 2 }}>
@@ -122,7 +89,7 @@ export default function AcademicTemplate({ data }) {
               <SectionTitle>Образование</SectionTitle>
 
               {education.map((edu, idx) => {
-                const year = getEducationYear(edu);
+                const year = getEducationYears(edu);
 
                 return (
                   <Box

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
+import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from '../../../utils/helpers';
 
 // Регистрируем шрифт с поддержкой кириллицы
 Font.register({
@@ -108,42 +109,6 @@ const styles = StyleSheet.create({
 export default function MinimalistPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
 
-  const getSkillName = (skill) => {
-    if (typeof skill === 'string') return skill;
-    if (skill && typeof skill === 'object') return skill.name || '';
-    return '';
-  };
-
-  const getSkillLevel = (skill) => {
-    if (skill && typeof skill === 'object' && skill.level) return skill.level;
-    return '';
-  };
-
-  const getEducationYear = (edu) => {
-    // Все возможные варианты полей
-    if (edu.year) return edu.year;
-    if (edu.graduationYear) return edu.graduationYear;
-    if (edu.years) return edu.years;
-    if (edu.period) return edu.period;
-    if (edu.startYear && edu.endYear) return `${edu.startYear}-${edu.endYear}`;
-    return '';
-  };
-
-  const getWorkPeriod = (exp) => {
-    // Все возможные варианты
-    if (exp.period) return exp.period;
-    
-    const start = exp.startDate || exp.start || exp.from || '';
-    const end = exp.endDate || exp.end || exp.to || '';
-    
-    if (!start && !end) return '';
-    if (start && end) return `${start} - ${end}`;
-    if (start && exp.current) return `${start} - Настоящее время`;
-    if (start) return start;
-    if (end) return end;
-    return '';
-  };
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -209,7 +174,7 @@ export default function MinimalistPDF({ data }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Образование</Text>
             {education.map((edu, idx) => {
-              const year = getEducationYear(edu);
+              const year = getEducationYears(edu);
 
               return (
                 <View key={idx} style={styles.item}>

@@ -20,23 +20,22 @@ export const getSkillLevel = (skill) => {
 };
 
 export const getEducationYears = (edu = {}) => {
-  // текущий формат: years
   if (edu.years) return safeText(edu.years);
-  // старые форматы
   if (edu.year) return safeText(edu.year);
+  if (edu.graduationYear) return safeText(edu.graduationYear);
+  if (edu.period) return safeText(edu.period);
   if (edu.startYear && edu.endYear) return `${safeText(edu.startYear)}-${safeText(edu.endYear)}`;
   if (edu.startYear) return safeText(edu.startYear);
   return "";
 };
 
 export const getWorkPeriod = (exp = {}) => {
-  // текущий формат: period
   if (exp.period) return safeText(exp.period);
 
-  // старый формат: startDate/endDate
-  const start = safeText(exp.startDate);
-  const end = safeText(exp.endDate || (exp.current ? "Настоящее время" : ""));
+  const start = safeText(exp.startDate || exp.start || exp.from || "");
+  const end = safeText(exp.endDate || exp.end || exp.to || (exp.current ? "Настоящее время" : ""));
   if (start && end) return `${start} - ${end}`;
+  if (start && exp.current) return `${start} - Настоящее время`;
   return start || end || "";
 };
 

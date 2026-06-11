@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
+import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from '../../../utils/helpers';
 
 Font.register({
   family: 'NotoSans',
@@ -151,32 +152,6 @@ const styles = StyleSheet.create({
 export default function GithubPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
 
-  const getSkillName = (skill) => {
-    if (typeof skill === 'string') return skill;
-    if (skill?.name) return skill.name;
-    return '';
-  };
-
-  const getSkillLevel = (skill) => {
-    if (skill && typeof skill === 'object' && skill.level) return skill.level;
-    return '';
-  };
-
-  const getEducationYear = (edu) => {
-    if (edu.years) return edu.years;
-    if (edu.year) return edu.year;
-    if (edu.startYear && edu.endYear) return `${edu.startYear}-${edu.endYear}`;
-    return '';
-  };
-
-  const getWorkPeriod = (exp) => {
-    if (exp.period) return exp.period;
-    const start = exp.startDate || '';
-    const end = exp.endDate || '';
-    if (start && end) return `${start} - ${end}`;
-    return start || '';
-  };
-
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -271,7 +246,7 @@ export default function GithubPDF({ data }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>education.md</Text>
             {education.map((edu, idx) => {
-              const year = getEducationYear(edu);
+              const year = getEducationYears(edu);
 
               return (
                 <View key={idx} style={styles.item}>
