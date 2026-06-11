@@ -6,7 +6,7 @@
 
 - **Редактор резюме** — 5 вкладок: профиль, навыки, образование, опыт работы, GitHub-проекты
 - **3 шаблона** — Minimalist, Academic, GitHub-стиль; переключаются в реальном времени
-- **Рекомендации** — движок проверяет резюме по 20+ критериям и подсказывает, что улучшить
+- **Рекомендации** — анализ заполненности резюме и подсказки по улучшению разделов
 - **Экспорт** — PDF, DOCX, Markdown, PNG, JPG
 - **GitHub интеграция** — импорт репозиториев по username через GitHub REST API
 - **Автосохранение** — debounce 1 секунда, индикатор статуса
@@ -24,8 +24,8 @@
 | Экспорт PDF | @react-pdf/renderer |
 | Экспорт DOCX | docx.js |
 | Экспорт изображений | html2canvas |
-| Экспорт Markdown | file-saver |
-| GitHub API | REST API (unauthenticated) + Supabase Edge Function |
+| Экспорт Markdown | Blob / file-saver |
+| GitHub API | REST API (unauthenticated) + предусмотрена Supabase Edge Function для серверного запроса |
 | Тестирование | k6 (нагрузочные тесты) |
 
 ## Структура проекта
@@ -74,7 +74,7 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Supabase Anon Key — публичный по дизайну. Безопасность данных обеспечивается Row Level Security (RLS) на стороне базы данных.
+Supabase Anon Key используется на клиенте и не является service_role-ключом. Доступ к пользовательским данным ограничивается политиками Row Level Security на стороне Supabase.
 
 ## Основные сценарии
 
