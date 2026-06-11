@@ -1,25 +1,74 @@
 import React, { useState } from "react";
-import { Box, TextField, Button, Card, CardContent, IconButton, Typography } from "@mui/material";
-import { Add, Delete } from "@mui/icons-material";
+import {
+  Box,
+  TextField,
+  Button,
+  Card,
+  CardContent,
+  IconButton,
+  Typography,
+} from "@mui/material";
+import { Add, Delete, Edit, Save, Close } from "@mui/icons-material";
+
+const emptyExp = {
+  company: "",
+  position: "",
+  period: "",
+  description: "",
+};
 
 export default function ExperienceBlock({ data = [], onChange }) {
-  const [newExp, setNewExp] = useState({
-    company: "",
-    position: "",
-    period: "",
-    description: "",
-  });
+  const [newExp, setNewExp] = useState(emptyExp);
+  const [editingIndex, setEditingIndex] = useState(null);
 
-  const addExperience = () => {
-    if (newExp.company.trim()) {
-      const exp = { ...newExp, id: Date.now() };
-      onChange([...data, exp]);
-      setNewExp({ company: "", position: "", period: "", description: "" });
-    }
+  const resetForm = () => {
+    setNewExp(emptyExp);
+    setEditingIndex(null);
   };
 
-  const removeExperience = (id) => {
-    onChange(data.filter((item) => item.id !== id));
+  const saveExperience = () => {
+    if (!newExp.company.trim()) return;
+
+    if (editingIndex !== null) {
+      const updated = data.map((item, index) =>
+        index === editingIndex
+          ? {
+              ...item,
+              ...newExp,
+              id: item.id || Date.now(),
+            }
+          : item
+      );
+
+      onChange(updated);
+      resetForm();
+      return;
+    }
+
+    const exp = { ...newExp, id: Date.now() };
+    onChange([...data, exp]);
+    resetForm();
+  };
+
+  const editExperience = (index) => {
+    const exp = data[index];
+
+    setNewExp({
+      company: exp.company || "",
+      position: exp.position || "",
+      period: exp.period || "",
+      description: exp.description || "",
+    });
+
+    setEditingIndex(index);
+  };
+
+  const removeExperience = (index) => {
+    onChange(data.filter((_, itemIndex) => itemIndex !== index));
+
+    if (editingIndex === index) {
+      resetForm();
+    }
   };
 
   return (
@@ -34,24 +83,32 @@ export default function ExperienceBlock({ data = [], onChange }) {
             id="experience-company"
             label="Компания"
             value={newExp.company}
-            onChange={(e) => setNewExp({ ...newExp, company: e.target.value })}
+            onChange={(e) =>
+              setNewExp({ ...newExp, company: e.target.value })
+            }
             size="small"
             sx={{ flex: 1, minWidth: 220 }}
           />
+
           <TextField
             id="experience-position"
             label="Должность"
             value={newExp.position}
-            onChange={(e) => setNewExp({ ...newExp, position: e.target.value })}
+            onChange={(e) =>
+              setNewExp({ ...newExp, position: e.target.value })
+            }
             size="small"
             sx={{ flex: 1, minWidth: 220 }}
           />
+
           <TextField
             id="experience-period"
             label="Период"
             value={newExp.period}
             placeholder="2022-2024"
-            onChange={(e) => setNewExp({ ...newExp, period: e.target.value })}
+            onChange={(e) =>
+              setNewExp({ ...newExp, period: e.target.value })
+            }
             size="small"
             sx={{ minWidth: 160 }}
           />
@@ -61,42 +118,83 @@ export default function ExperienceBlock({ data = [], onChange }) {
           id="experience-description"
           label="Описание (проекты, достижения)"
           value={newExp.description}
-          onChange={(e) => setNewExp({ ...newExp, description: e.target.value })}
+          onChange={(e) =>
+            setNewExp({ ...newExp, description: e.target.value })
+          }
           multiline
           rows={2}
           size="small"
         />
 
-        <Button
-          variant="contained"
-          onClick={addExperience}
-          startIcon={<Add />}
-          sx={{ alignSelf: "flex-start" }}
-        >
-          Добавить опыт
-        </Button>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button
+            variant="contained"
+            onClick={saveExperience}
+            startIcon={editingIndex !== null ? <Save /> : <Add />}
+            sx={{ alignSelf: "flex-start" }}
+          >
+            {editingIndex !== null ? "Сохранить опыт" : "Добавить опыт"}
+          </Button>
+
+          {editingIndex !== null && (
+            <Button
+              variant="outlined"
+              onClick={resetForm}
+              startIcon={<Close />}
+              sx={{ alignSelf: "flex-start" }}
+            >
+              Отмена
+            </Button>
+          )}
+        </Box>
       </Box>
 
-      {data.map((exp) => (
-        <Card key={exp.id} sx={{ mb: 2 }}>
+      {data.map((exp, index) => (
+        <Card key={exp.id || index} sx={{ mb: 2 }}>
           <CardContent>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 2,
+              }}
+            >
               <Box>
                 <Typography variant="subtitle1">
-                  {exp.position} • {exp.company}
+                  {exp.position || "Должность не указана"} • {exp.company}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {exp.period}
-                </Typography>
+
+                {exp.period && (
+                  <Typography variant="body2" color="text.secondary">
+                    {exp.period}
+                  </Typography>
+                )}
+
                 {exp.description && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
                     {exp.description}
                   </Typography>
                 )}
               </Box>
-              <IconButton onClick={() => removeExperience(exp.id)} size="small">
-                <Delete />
-              </IconButton>
+
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <IconButton
+                  onClick={() => editExperience(index)}
+                  size="small"
+                  aria-label="Редактировать опыт"
+                >
+                  <Edit />
+                </IconButton>
+
+                <IconButton
+                  onClick={() => removeExperience(index)}
+                  size="small"
+                  aria-label="Удалить опыт"
+                >
+                  <Delete />
+                </IconButton>
+              </Box>
             </Box>
           </CardContent>
         </Card>

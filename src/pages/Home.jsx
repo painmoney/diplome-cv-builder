@@ -88,7 +88,7 @@ export default function Home() {
     []
   );
 
-  // ✅ добавили template ключ (именно он будет улетать в query param)
+  // добавили template ключ (именно он будет улетать в query param)
   const templates = useMemo(
     () => [
       {
@@ -460,7 +460,7 @@ export default function Home() {
                     {t.caption}
                   </Typography>
 
-                  {/* ✅ передаём выбранный шаблон */}
+                  {/* передаём выбранный шаблон */}
                   <Button
                     variant="text"
                     sx={{ mt: 1.5, px: 0 }}
@@ -479,7 +479,6 @@ export default function Home() {
         </Grid>
       </Box>
 
-      {/* HOW IT WORKS */}
       <Box sx={{ mt: { xs: 6, md: 8 } }}>
         <Typography variant="h4" sx={{ fontWeight: 900 }}>
           Как это работает

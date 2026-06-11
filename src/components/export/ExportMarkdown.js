@@ -84,13 +84,23 @@ export const buildMarkdown = (resumeData) => {
   // Education
   if (education.length) {
     lines.push(`## Образование`);
+
     education.forEach((edu) => {
-      const inst = safeText(edu.institution);
+      const institution = safeText(edu.institution);
+      const institute = safeText(edu.institute);
+      const department = safeText(edu.department);
+      const program = safeText(edu.program);
       const degree = safeText(edu.degree);
       const years = getEducationYears(edu);
 
-      lines.push(`- **${degree || "Обучение"}**${inst ? `, ${inst}` : ""}${years ? ` (${years})` : ""}`);
+      lines.push(`- **${institution || "Учебное заведение"}**${years ? ` (${years})` : ""}`);
+
+      if (institute) lines.push(`  - Институт: ${institute}`);
+      if (department) lines.push(`  - Кафедра: ${department}`);
+      if (program) lines.push(`  - Направление подготовки/специальности: ${program}`);
+      if (degree) lines.push(`  - Степень/сертификат: ${degree}`);
     });
+
     lines.push("");
   }
 

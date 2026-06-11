@@ -109,9 +109,6 @@ export function getRecommendations(resumeData) {
     });
   }
 
-  // -----------------------
-  // SKILLS
-  // -----------------------
   if (skills.length < 5) {
     rec.push({
       type: "skills",

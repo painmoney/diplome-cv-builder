@@ -11,6 +11,34 @@ import {
   Stack,
 } from "@mui/material";
 
+function getAuthErrorMessage(error) {
+  if (!error) return "";
+
+  const message = String(error.message || "").toLowerCase();
+  const code = String(error.code || "").toLowerCase();
+  const status = error.status;
+
+  if (
+    message.includes("email not confirmed") ||
+    code === "email_not_confirmed"
+  ) {
+    return "Email ещё не подтверждён. Проверьте почту и перейдите по ссылке подтверждения.";
+  }
+
+  if (
+    message.includes("invalid login credentials") ||
+    code === "invalid_credentials"
+  ) {
+    return "Неверный email или пароль. Если аккаунта ещё нет, зарегистрируйтесь.";
+  }
+
+  if (status === 429 || code === "over_request_rate_limit") {
+    return "Слишком много попыток входа. Попробуйте позже.";
+  }
+
+  return "Не удалось войти. Проверьте данные и попробуйте ещё раз.";
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -31,8 +59,8 @@ export default function Login() {
     setLoading(false);
 
     if (error) {
-      console.error("Ошибка входа:", error.message);
-      setError(error.message);
+      console.error("Ошибка входа:", error);
+      setError(getAuthErrorMessage(error));
     } else {
       console.log("Успешный вход:", data);
       navigate("/dashboard");

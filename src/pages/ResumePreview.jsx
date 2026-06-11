@@ -26,6 +26,7 @@ import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
 
 import { exportToPDF } from "../components/export/ExportPDF";
+import { exportToDocx } from "../components/export/ExportDocx";
 import { exportToMarkdown } from "../components/export/ExportMarkdown";
 
 import html2canvas from "html2canvas";
@@ -47,6 +48,7 @@ export default function ResumePreview() {
 
   const [exportingPDF, setExportingPDF] = useState(false);
   const [exportingMD, setExportingMD] = useState(false);
+  const [exportingDOCX, setExportingDOCX] = useState(false);
   const [exportingIMG, setExportingIMG] = useState(null); // "png" | "jpg" | null
 
   const [snackbar, setSnackbar] = useState({
@@ -105,7 +107,7 @@ export default function ResumePreview() {
     setLoading(false);
   };
 
-  // ✅ применяем override один раз (после загрузки резюме)
+  // применяем override один раз (после загрузки резюме)
   useEffect(() => {
     if (!templateOverride) return;
     if (!resume?.id) return;
@@ -183,6 +185,27 @@ export default function ResumePreview() {
       });
     } finally {
       setExportingPDF(false);
+    }
+  };
+
+  const handleExportDocx = async () => {
+    if (!resume) return;
+    setExportingDOCX(true);
+    try {
+      const result = await exportToDocx(resume.data, selectedTemplate);
+      setSnackbar({
+        open: true,
+        message: result.message,
+        severity: result.success ? "success" : "error",
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: "Ошибка при экспорте DOCX",
+        severity: "error",
+      });
+    } finally {
+      setExportingDOCX(false);
     }
   };
 
@@ -343,7 +366,7 @@ export default function ResumePreview() {
           <Button
             variant="contained"
             startIcon={<GetApp />}
-            disabled={exportingPDF || exportingMD || exportingIMG}
+            disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={handleExportPDF}
           >
             {exportingPDF ? "Экспорт..." : "PDF"}
@@ -352,7 +375,7 @@ export default function ResumePreview() {
           <Button
             variant="outlined"
             startIcon={<Description />}
-            disabled={exportingPDF || exportingMD || exportingIMG}
+            disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={handleExportMarkdown}
           >
             {exportingMD ? "Экспорт..." : "Markdown"}
@@ -360,8 +383,17 @@ export default function ResumePreview() {
 
           <Button
             variant="outlined"
+            startIcon={<Description />}
+            disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
+            onClick={handleExportDocx}
+          >
+            {exportingDOCX ? "Экспорт..." : "DOCX"}
+          </Button>
+
+          <Button
+            variant="outlined"
             startIcon={<ImageIcon />}
-            disabled={exportingPDF || exportingMD || exportingIMG}
+            disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={() => handleExportImage("png")}
           >
             {exportingIMG === "png" ? "Экспорт..." : "PNG"}
@@ -370,7 +402,7 @@ export default function ResumePreview() {
           <Button
             variant="outlined"
             startIcon={<ImageIcon />}
-            disabled={exportingPDF || exportingMD || exportingIMG}
+            disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={() => handleExportImage("jpg")}
           >
             {exportingIMG === "jpg" ? "Экспорт..." : "JPG"}

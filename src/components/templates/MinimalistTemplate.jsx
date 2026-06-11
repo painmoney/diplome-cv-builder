@@ -1,48 +1,73 @@
 import React from "react";
-import { Box, Typography, Chip, Paper } from "@mui/material";
+import { Box, Typography, Chip, Paper, Divider } from "@mui/material";
 
 export default function MinimalistTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const primary = "#1976d2";
 
-  // ---------- helpers ----------
-  const safe = (v) => (typeof v === "string" ? v.trim() : v ?? "");
   const getSkillName = (skill) => {
     if (typeof skill === "string") return skill;
     if (skill && typeof skill === "object") return skill.name || "";
     return "";
   };
 
-  const getEducationYear = (edu = {}) => {
-    if (safe(edu.years)) return edu.years; // ✅ новые данные
-    if (safe(edu.year)) return edu.year;
-    if (safe(edu.startYear) && safe(edu.endYear)) return `${edu.startYear}-${edu.endYear}`;
-    if (safe(edu.startYear)) return edu.startYear;
+  const getSkillLevel = (skill) => {
+    if (skill && typeof skill === "object" && skill.level) return skill.level;
     return "";
   };
 
-  const getWorkPeriod = (exp = {}) => {
-    if (safe(exp.period)) return exp.period; // ✅ новые данные
-    const start = safe(exp.startDate);
-    const end = safe(exp.endDate) || (exp.current ? "Настоящее время" : "");
-    if (start && end) return `${start} - ${end}`;
+  const getEducationYear = (edu) => {
+    if (edu.years) return edu.years;
+    if (edu.year) return edu.year;
+    if (edu.graduationYear) return edu.graduationYear;
+    if (edu.period) return edu.period;
+    if (edu.startYear && edu.endYear) return `${edu.startYear}–${edu.endYear}`;
+    return "";
+  };
+
+  const getWorkPeriod = (exp) => {
+    if (exp.period) return exp.period;
+
+    const start = exp.startDate || exp.start || exp.from || "";
+    const end = exp.endDate || exp.end || exp.to || "";
+
+    if (start && end) return `${start} – ${end}`;
+    if (start && exp.current) return `${start} – настоящее время`;
     if (start) return start;
     if (end) return end;
+
     return "";
   };
 
-  const Hr = ({ mb = 2 }) => (
-    <Box
+  const SectionTitle = ({ children }) => (
+    <Box sx={{ mb: 2 }}>
+      <Typography
+        variant="h5"
+        sx={{
+          color: primary,
+          fontWeight: 800,
+          fontSize: "1.3rem",
+          mb: 1,
+        }}
+      >
+        {children}
+      </Typography>
+      <Divider sx={{ borderColor: "#d7e3f5" }} />
+    </Box>
+  );
+
+  const LightChip = ({ label }) => (
+    <Chip
+      label={label}
+      size="small"
       sx={{
-        width: "100%",
-        height: "1px",
-        bgcolor: "#d0d7de",
-        mb,
+        bgcolor: "#f8fafc",
+        color: "#111827",
+        border: "1px solid #cbd5e1",
+        fontWeight: 500,
       }}
     />
   );
-
-  // ---------- styles ----------
-  const primary = "#1976d2";
 
   return (
     <Paper
@@ -52,44 +77,57 @@ export default function MinimalistTemplate({ data }) {
         minHeight: "297mm",
         margin: "0 auto",
         padding: "20mm",
-        backgroundColor: "white",
-        color: "#111", // ✅ фикс для dark mode
+        backgroundColor: "#ffffff",
+        color: "#111827",
         boxSizing: "border-box",
-        border: "1px solid #eaeaea",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+        fontFamily: '"Roboto", "Arial", sans-serif',
       }}
     >
       {/* Header */}
-      <Box sx={{ mb: 4, pb: 2, borderBottom: `3px solid ${primary}` }}>
+      <Box
+        sx={{
+          mb: 4,
+          pb: 2,
+          borderBottom: `3px solid ${primary}`,
+        }}
+      >
         <Typography
           variant="h3"
           sx={{
             color: primary,
-            fontWeight: 800,
-            mb: 1.5,
+            fontWeight: 900,
             fontSize: "2rem",
-            lineHeight: 1.1,
+            mb: 1,
           }}
         >
           {profile?.name || "Имя не указано"}
         </Typography>
 
         {profile?.about && (
-          <Typography variant="body1" sx={{ mb: 2, lineHeight: 1.6, color: "#222" }}>
+          <Typography
+            variant="body1"
+            sx={{
+              color: "#374151",
+              lineHeight: 1.7,
+              mb: 1.5,
+              textAlign: "justify",
+            }}
+          >
             {profile.about}
           </Typography>
         )}
 
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, color: "#555" }}>
-          {profile?.email && (
-            <Typography variant="body2">
-              <strong>Email:</strong> {profile.email}
-            </Typography>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          {profile?.email && <LightChip label={`Email: ${profile.email}`} />}
+
+          {profile?.phone && <LightChip label={`Телефон: ${profile.phone}`} />}
+
+          {profile?.githubUrl && (
+            <LightChip label={`GitHub: ${profile.githubUrl}`} />
           )}
-          {profile?.phone && (
-            <Typography variant="body2">
-              <strong>Телефон:</strong> {profile.phone}
-            </Typography>
+
+          {profile?.website && (
+            <LightChip label={`Website: ${profile.website}`} />
           )}
         </Box>
       </Box>
@@ -97,33 +135,26 @@ export default function MinimalistTemplate({ data }) {
       {/* Skills */}
       {skills && skills.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h5"
-            sx={{
-              color: primary,
-              fontWeight: 800,
-              mb: 1,
-              fontSize: "1.25rem",
-            }}
-          >
-            Навыки
-          </Typography>
-          <Hr />
+          <SectionTitle>Навыки</SectionTitle>
+
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-            {skills.map((skill, idx) => (
-              <Chip
-                key={idx}
-                label={getSkillName(skill)}
-                size="medium"
-                sx={{
-                  bgcolor: "#dbeafe",
-                  color: "#0f172a",
-                  border: "1px solid #bfdbfe",
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                }}
-              />
-            ))}
+            {skills.map((skill, idx) => {
+              const name = getSkillName(skill);
+              const level = getSkillLevel(skill);
+
+              return (
+                <Chip
+                  key={idx}
+                  label={level ? `${name} — ${level}/5` : name}
+                  sx={{
+                    bgcolor: "#e3f2fd",
+                    color: "#0d47a1",
+                    border: "1px solid #bbdefb",
+                    fontWeight: 700,
+                  }}
+                />
+              );
+            })}
           </Box>
         </Box>
       )}
@@ -131,39 +162,50 @@ export default function MinimalistTemplate({ data }) {
       {/* Experience */}
       {experience && experience.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h5"
-            sx={{
-              color: primary,
-              fontWeight: 800,
-              mb: 1,
-              fontSize: "1.25rem",
-            }}
-          >
-            Опыт работы
-          </Typography>
-          <Hr />
+          <SectionTitle>Опыт работы</SectionTitle>
+
           {experience.map((exp, idx) => {
             const period = getWorkPeriod(exp);
+
             return (
-              <Box key={idx} sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5, color: "#111" }}>
+              <Box key={idx} sx={{ mb: 2.5 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: "1.05rem",
+                    color: "#111827",
+                  }}
+                >
                   {exp.position || "Должность"}
                 </Typography>
 
-                <Typography variant="body2" sx={{ color: "#555", mb: 1 }}>
-                  {exp.company || "Компания"}
-                  {period ? ` | ${period}` : ""}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#4b5563",
+                    fontWeight: 600,
+                    mb: 0.75,
+                  }}
+                >
+                  {[exp.company, period].filter(Boolean).join(" | ")}
                 </Typography>
 
                 {exp.description && (
-                  <Typography variant="body2" sx={{ lineHeight: 1.7, color: "#222" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#374151",
+                      lineHeight: 1.7,
+                      textAlign: "justify",
+                    }}
+                  >
                     {exp.description}
                   </Typography>
                 )}
 
                 {idx !== experience.length - 1 && (
-                  <Box sx={{ mt: 2, width: "100%", height: "1px", bgcolor: "#eef2f6" }} />
+                  <Divider sx={{ mt: 2, borderColor: "#eef2f7" }} />
                 )}
               </Box>
             );
@@ -174,32 +216,73 @@ export default function MinimalistTemplate({ data }) {
       {/* Education */}
       {education && education.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h5"
-            sx={{
-              color: primary,
-              fontWeight: 800,
-              mb: 1,
-              fontSize: "1.25rem",
-            }}
-          >
-            Образование
-          </Typography>
-          <Hr />
+          <SectionTitle>Образование</SectionTitle>
+
           {education.map((edu, idx) => {
             const year = getEducationYear(edu);
+
             return (
-              <Box key={idx} sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5, color: "#111" }}>
-                  {edu.degree || "Степень"}
-                </Typography>
-                <Typography variant="body2" sx={{ color: "#555" }}>
+              <Box
+                key={idx}
+                sx={{
+                  mb: 2.5,
+                  p: 2,
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 2,
+                  bgcolor: "#fafafa",
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 900,
+                    fontSize: "1.05rem",
+                    color: "#111827",
+                    mb: 0.75,
+                  }}
+                >
                   {edu.institution || "Учебное заведение"}
-                  {year ? ` | ${year}` : ""}
                 </Typography>
 
-                {idx !== education.length - 1 && (
-                  <Box sx={{ mt: 2, width: "100%", height: "1px", bgcolor: "#eef2f6" }} />
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1 }}>
+                  {edu.degree && (
+                    <Chip
+                      label={edu.degree}
+                      size="small"
+                      sx={{
+                        bgcolor: "#e3f2fd",
+                        color: "#0d47a1",
+                        border: "1px solid #bbdefb",
+                        fontWeight: 700,
+                      }}
+                    />
+                  )}
+
+                  {year && <LightChip label={year} />}
+                </Box>
+
+                {edu.institute && (
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "#374151", mb: 0.4 }}
+                  >
+                    <b>Институт:</b> {edu.institute}
+                  </Typography>
+                )}
+
+                {edu.department && (
+                  <Typography
+                    variant="body2"
+                    sx={{ color: "#374151", mb: 0.4 }}
+                  >
+                    <b>Кафедра:</b> {edu.department}
+                  </Typography>
+                )}
+
+                {edu.program && (
+                  <Typography variant="body2" sx={{ color: "#374151" }}>
+                    <b>Направление подготовки/специальности:</b> {edu.program}
+                  </Typography>
                 )}
               </Box>
             );
@@ -210,37 +293,42 @@ export default function MinimalistTemplate({ data }) {
       {/* GitHub Projects */}
       {github && github.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <Typography
-            variant="h5"
-            sx={{
-              color: primary,
-              fontWeight: 800,
-              mb: 1,
-              fontSize: "1.25rem",
-            }}
-          >
-            GitHub проекты
-          </Typography>
-          <Hr />
+          <SectionTitle>GitHub проекты</SectionTitle>
 
           {github.map((repo, idx) => (
-            <Box key={idx} sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5, color: "#111" }}>
-                {repo.name}
+            <Box key={idx} sx={{ mb: 2.5 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: "1.05rem",
+                  color: "#111827",
+                  mb: 0.5,
+                }}
+              >
+                {repo.name || "Репозиторий"}
               </Typography>
 
               {repo.description && (
-                <Typography variant="body2" sx={{ mb: 0.5, lineHeight: 1.6, color: "#222" }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#374151",
+                    lineHeight: 1.6,
+                    mb: 0.5,
+                  }}
+                >
                   {repo.description}
                 </Typography>
               )}
 
-              <Typography variant="body2" sx={{ color: "#555" }}>
+              <Typography variant="body2" sx={{ color: "#4b5563" }}>
                 ⭐ {repo.stars || 0} stars
+                {repo.url ? ` | ${repo.url}` : ""}
               </Typography>
 
               {idx !== github.length - 1 && (
-                <Box sx={{ mt: 2, width: "100%", height: "1px", bgcolor: "#eef2f6" }} />
+                <Divider sx={{ mt: 2, borderColor: "#eef2f7" }} />
               )}
             </Box>
           ))}

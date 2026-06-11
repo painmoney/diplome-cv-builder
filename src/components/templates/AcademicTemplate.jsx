@@ -1,33 +1,61 @@
-import React from 'react';
-import { Box, Typography, Chip, Divider, Paper, Grid } from '@mui/material';
-import SchoolIcon from '@mui/icons-material/School';
-import WorkIcon from '@mui/icons-material/Work';
-import CodeIcon from '@mui/icons-material/Code';
+import React from "react";
+import { Box, Typography, Paper, Grid, Divider, Chip } from "@mui/material";
 
 export default function AcademicTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const primary = "#2e7d32";
 
   const getSkillName = (skill) => {
-    if (typeof skill === 'string') return skill;
-    if (skill && typeof skill === 'object') return skill.name || '';
-    return '';
+    if (typeof skill === "string") return skill;
+    if (skill && typeof skill === "object") return skill.name || "";
+    return "";
+  };
+
+  const getSkillLevel = (skill) => {
+    if (skill && typeof skill === "object" && skill.level) return skill.level;
+    return "";
   };
 
   const getEducationYear = (edu) => {
     if (edu.years) return edu.years;
     if (edu.year) return edu.year;
-    if (edu.startYear && edu.endYear) return `${edu.startYear}-${edu.endYear}`;
-    return '';
+    if (edu.graduationYear) return edu.graduationYear;
+    if (edu.period) return edu.period;
+    if (edu.startYear && edu.endYear) return `${edu.startYear}–${edu.endYear}`;
+    return "";
   };
 
   const getWorkPeriod = (exp) => {
     if (exp.period) return exp.period;
-    const start = exp.startDate || '';
-    const end = exp.endDate || '';
-    if (start && end) return `${start} - ${end}`;
+
+    const start = exp.startDate || exp.start || exp.from || "";
+    const end = exp.endDate || exp.end || exp.to || "";
+
+    if (start && end) return `${start} – ${end}`;
+    if (start && exp.current) return `${start} – настоящее время`;
     if (start) return start;
-    return '';
+    if (end) return end;
+
+    return "";
   };
+
+  const SectionTitle = ({ children }) => (
+    <Box sx={{ mb: 2 }}>
+      <Typography
+        variant="h5"
+        sx={{
+          color: primary,
+          fontWeight: 800,
+          fontFamily: '"Georgia", serif',
+          fontSize: "1.3rem",
+          mb: 1,
+        }}
+      >
+        {children}
+      </Typography>
+      <Divider sx={{ borderColor: primary }} />
+    </Box>
+  );
 
   return (
     <Paper
@@ -36,101 +64,113 @@ export default function AcademicTemplate({ data }) {
         width: "210mm",
         minHeight: "297mm",
         margin: "0 auto",
-        padding: "20mm",
-        backgroundColor: "white",
-        color: "#111", // ✅
+        padding: "18mm",
+        backgroundColor: "#ffffff",
+        color: "#1f2933",
         boxSizing: "border-box",
-        fontFamily: '"Georgia", "Times New Roman", serif',
+        fontFamily: '"Roboto", "Arial", sans-serif',
       }}
     >
-
-      {/* Header - Academic Style */}
-      <Box sx={{ 
-        textAlign: 'center', 
-        mb: 4, 
-        pb: 3,
-        borderBottom: '3px double #2e7d32'
-      }}>
-        <Typography 
-          variant="h3" 
-          sx={{ 
+      {/* Header */}
+      <Box
+        sx={{
+          textAlign: "center",
+          mb: 4,
+          pb: 2.5,
+          borderBottom: `3px solid ${primary}`,
+        }}
+      >
+        <Typography
+          variant="h3"
+          sx={{
+            color: primary,
+            fontWeight: 900,
             fontFamily: '"Georgia", serif',
-            color: '#2e7d32', 
-            fontWeight: 'bold', 
+            fontSize: "2rem",
             mb: 1,
-            fontSize: '2.2rem',
-            textTransform: 'uppercase',
-            letterSpacing: 2
           }}
         >
-          {profile?.name || 'Имя не указано'}
+          {profile?.name || "Имя не указано"}
         </Typography>
-        
+
         {profile?.about && (
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              mb: 2, 
-              lineHeight: 1.8,
-              fontStyle: 'italic',
-              color: '#555',
-              maxWidth: '80%',
-              mx: 'auto'
+          <Typography
+            variant="body1"
+            sx={{
+              color: "#4b5563",
+              lineHeight: 1.7,
+              maxWidth: "90%",
+              margin: "0 auto",
+              mb: 1.5,
             }}
           >
             {profile.about}
           </Typography>
         )}
-        
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, color: '#666', mt: 2 }}>
-          {profile?.email && (
-            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-              {profile.email}
-            </Typography>
-          )}
-          {profile?.phone && (
-            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-              {profile.phone}
-            </Typography>
-          )}
-        </Box>
+
+        <Typography variant="body2" sx={{ color: "#6b7280" }}>
+          {[profile?.email, profile?.phone].filter(Boolean).join(" | ")}
+        </Typography>
       </Box>
 
-      {/* Two-column layout */}
-      <Grid container spacing={3}>
+      <Grid container spacing={4}>
         {/* Left Column */}
         <Grid item xs={7}>
           {/* Education */}
           {education && education.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <SchoolIcon sx={{ color: '#2e7d32', mr: 1 }} />
-                <Typography 
-                  variant="h5" 
-                  sx={{ 
-                    color: '#2e7d32', 
-                    fontWeight: 'bold',
-                    fontFamily: '"Georgia", serif',
-                    fontSize: '1.3rem'
-                  }}
-                >
-                  Образование
-                </Typography>
-              </Box>
-              <Divider sx={{ mb: 2, borderColor: '#2e7d32' }} />
+              <SectionTitle>Образование</SectionTitle>
+
               {education.map((edu, idx) => {
                 const year = getEducationYear(edu);
+
                 return (
-                  <Box key={idx} sx={{ mb: 3, pl: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                      {edu.degree || 'Степень'}
+                  <Box
+                    key={idx}
+                    sx={{
+                      mb: 2.5,
+                      pl: 2,
+                      borderLeft: `4px solid ${primary}`,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 900,
+                        fontSize: "1.05rem",
+                        color: "#111827",
+                        mb: 0.5,
+                      }}
+                    >
+                      {edu.institution || "Учебное заведение"}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#2e7d32', fontWeight: 500 }}>
-                      {edu.institution || 'Учебное заведение'}
+
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: primary,
+                        fontWeight: 700,
+                        mb: 0.75,
+                      }}
+                    >
+                      {[edu.degree, year].filter(Boolean).join(" | ")}
                     </Typography>
-                    {year && (
-                      <Typography variant="body2" sx={{ color: '#666', fontStyle: 'italic' }}>
-                        {year}
+
+                    {edu.institute && (
+                      <Typography variant="body2" sx={{ color: "#374151", mb: 0.35 }}>
+                        <b>Институт:</b> {edu.institute}
+                      </Typography>
+                    )}
+
+                    {edu.department && (
+                      <Typography variant="body2" sx={{ color: "#374151", mb: 0.35 }}>
+                        <b>Кафедра:</b> {edu.department}
+                      </Typography>
+                    )}
+
+                    {edu.program && (
+                      <Typography variant="body2" sx={{ color: "#374151" }}>
+                        <b>Направление подготовки/специальности:</b> {edu.program}
                       </Typography>
                     )}
                   </Box>
@@ -142,38 +182,57 @@ export default function AcademicTemplate({ data }) {
           {/* Experience */}
           {experience && experience.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <WorkIcon sx={{ color: '#2e7d32', mr: 1 }} />
-                <Typography 
-                  variant="h5" 
-                  sx={{ 
-                    color: '#2e7d32', 
-                    fontWeight: 'bold',
-                    fontFamily: '"Georgia", serif',
-                    fontSize: '1.3rem'
-                  }}
-                >
-                  Опыт работы
-                </Typography>
-              </Box>
-              <Divider sx={{ mb: 2, borderColor: '#2e7d32' }} />
+              <SectionTitle>Опыт работы</SectionTitle>
+
               {experience.map((exp, idx) => {
                 const period = getWorkPeriod(exp);
+
                 return (
-                  <Box key={idx} sx={{ mb: 3, pl: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                      {exp.position || 'Должность'}
+                  <Box key={idx} sx={{ mb: 2.5 }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 900,
+                        fontSize: "1.05rem",
+                        color: "#111827",
+                      }}
+                    >
+                      {exp.position || "Должность"}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#2e7d32', fontWeight: 500 }}>
-                      {exp.company || 'Компания'}
+
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: primary,
+                        fontWeight: 700,
+                        mb: 0.5,
+                      }}
+                    >
+                      {exp.company || "Компания"}
                     </Typography>
+
                     {period && (
-                      <Typography variant="body2" sx={{ color: '#666', fontStyle: 'italic', mb: 1 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "#6b7280",
+                          fontStyle: "italic",
+                          mb: 0.75,
+                        }}
+                      >
                         {period}
                       </Typography>
                     )}
+
                     {exp.description && (
-                      <Typography variant="body2" sx={{ lineHeight: 1.7, textAlign: 'justify' }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "#374151",
+                          lineHeight: 1.7,
+                          textAlign: "justify",
+                        }}
+                      >
                         {exp.description}
                       </Typography>
                     )}
@@ -189,36 +248,28 @@ export default function AcademicTemplate({ data }) {
           {/* Skills */}
           {skills && skills.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <CodeIcon sx={{ color: '#2e7d32', mr: 1 }} />
-                <Typography 
-                  variant="h5" 
-                  sx={{ 
-                    color: '#2e7d32', 
-                    fontWeight: 'bold',
-                    fontFamily: '"Georgia", serif',
-                    fontSize: '1.3rem'
-                  }}
-                >
-                  Навыки
-                </Typography>
-              </Box>
-              <Divider sx={{ mb: 2, borderColor: '#2e7d32' }} />
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {skills.map((skill, idx) => (
-                  <Box 
-                    key={idx} 
-                    sx={{ 
-                      bgcolor: '#f1f8e9',
-                      p: 1,
-                      borderLeft: '3px solid #2e7d32'
-                    }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {getSkillName(skill)}
-                    </Typography>
-                  </Box>
-                ))}
+              <SectionTitle>Навыки</SectionTitle>
+
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {skills.map((skill, idx) => {
+                  const name = getSkillName(skill);
+                  const level = getSkillLevel(skill);
+
+                  return (
+                    <Box
+                      key={idx}
+                      sx={{
+                        bgcolor: "#f1f8e9",
+                        p: 1,
+                        borderLeft: `4px solid ${primary}`,
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        {level ? `${name} — ${level}/5` : name}
+                      </Typography>
+                    </Box>
+                  );
+                })}
               </Box>
             </Box>
           )}
@@ -226,32 +277,51 @@ export default function AcademicTemplate({ data }) {
           {/* GitHub Projects */}
           {github && github.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              <Typography 
-                variant="h5" 
-                sx={{ 
-                  color: '#2e7d32', 
-                  fontWeight: 'bold',
-                  fontFamily: '"Georgia", serif',
-                  fontSize: '1.3rem',
-                  mb: 2
-                }}
-              >
-                Проекты
-              </Typography>
-              <Divider sx={{ mb: 2, borderColor: '#2e7d32' }} />
+              <SectionTitle>Проекты</SectionTitle>
+
               {github.map((repo, idx) => (
-                <Box key={idx} sx={{ mb: 2, pl: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                    {repo.name}
+                <Box
+                  key={idx}
+                  sx={{
+                    mb: 2,
+                    p: 1.5,
+                    bgcolor: "#f9fafb",
+                    borderRadius: 1,
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 900, color: "#111827" }}
+                  >
+                    {repo.name || "Репозиторий"}
                   </Typography>
+
                   {repo.description && (
-                    <Typography variant="caption" sx={{ display: 'block', color: '#666' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "block",
+                        color: "#4b5563",
+                        lineHeight: 1.5,
+                        mt: 0.5,
+                      }}
+                    >
                       {repo.description}
                     </Typography>
                   )}
-                  <Typography variant="caption" sx={{ color: '#2e7d32' }}>
-                    ⭐ {repo.stars || 0}
-                  </Typography>
+
+                  <Box sx={{ mt: 0.75 }}>
+                    <Chip
+                      label={`⭐ ${repo.stars || 0}`}
+                      size="small"
+                      sx={{
+                        bgcolor: "#e8f5e9",
+                        color: primary,
+                        fontWeight: 700,
+                      }}
+                    />
+                  </Box>
                 </Box>
               ))}
             </Box>

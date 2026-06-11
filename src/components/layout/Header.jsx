@@ -66,6 +66,7 @@ export default function Header() {
               >
                 Dashboard
               </Button>
+
               <Button
                 color="inherit"
                 onClick={() => navigate("/resume-editor")}
@@ -77,6 +78,19 @@ export default function Header() {
                 }}
               >
                 Редактор
+              </Button>
+
+              <Button
+                color="inherit"
+                onClick={() => navigate("/resume-preview")}
+                sx={{
+                  borderBottom:
+                    location.pathname === "/resume-preview"
+                      ? "2px solid white"
+                      : "none",
+                }}
+              >
+                Просмотр
               </Button>
             </>
           )}

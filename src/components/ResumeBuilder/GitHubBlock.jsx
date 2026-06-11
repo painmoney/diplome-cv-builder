@@ -1,34 +1,36 @@
 import React, { useState } from "react";
 import { Box, TextField, Button, Typography, Alert } from "@mui/material";
-import { GitHub } from "@mui/icons-material";
+import { GitHub, DeleteOutline } from "@mui/icons-material";
+import { fetchGitHubRepos } from "../../api/githubAPI";
 
 export default function GitHubBlock({ data = [], onChange }) {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const fetchRepos = async () => {
     if (!username.trim()) return;
+
     setLoading(true);
     setError("");
+    setSuccess("");
 
     try {
-      const response = await fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=5`);
-      if (!response.ok) throw new Error("Пользователь не найден");
-      const repos = await response.json();
-
-      onChange(
-        repos.map((r) => ({
-          name: r.name,
-          description: r.description,
-          url: r.html_url,
-          stars: r.stargazers_count,
-        }))
-      );
+      const repos = await fetchGitHubRepos(username);
+      onChange(repos);
+      setSuccess(`Загружено репозиториев: ${repos.length}`);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Ошибка загрузки репозиториев");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const clearRepos = () => {
+    onChange([]);
+    setError("");
+    setSuccess("Список GitHub-проектов очищен");
   };
 
   return (
@@ -46,29 +48,73 @@ export default function GitHubBlock({ data = [], onChange }) {
           size="small"
           sx={{ flex: 1, minWidth: 220 }}
         />
-        <Button variant="contained" onClick={fetchRepos} disabled={loading} startIcon={<GitHub />}>
-          {loading ? "Загрузка..." : "Подключить"}
+
+        <Button
+          variant="contained"
+          onClick={fetchRepos}
+          disabled={loading || !username.trim()}
+          startIcon={<GitHub />}
+        >
+          {loading ? "Загрузка..." : data.length > 0 ? "Обновить" : "Подключить"}
+        </Button>
+
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={clearRepos}
+          disabled={loading || data.length === 0}
+          startIcon={<DeleteOutline />}
+        >
+          Очистить
         </Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-      {data.length > 0 && (
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      {data.length > 0 ? (
         <Box>
           <Typography variant="body2" color="text.secondary">
             Найдено {data.length} репозиториев
           </Typography>
+
           {data.map((repo, i) => (
-            <Box key={i} sx={{ py: 1, borderBottom: "1px solid #eee" }}>
+            <Box
+              key={`${repo.url || repo.name}-${i}`}
+              sx={{ py: 1, borderBottom: "1px solid #eee" }}
+            >
               <Typography variant="body1">
-                {repo.name} ⭐ {repo.stars}
+                {repo.name} ⭐ {repo.stars || 0}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {repo.description}
-              </Typography>
+
+              {repo.description && (
+                <Typography variant="body2" color="text.secondary">
+                  {repo.description}
+                </Typography>
+              )}
+
+              {repo.url && (
+                <Typography variant="caption" color="text.secondary">
+                  {repo.url}
+                </Typography>
+              )}
             </Box>
           ))}
         </Box>
+      ) : (
+        <Alert severity="info">
+          GitHub-проекты пока не загружены. Введите username и нажмите
+          «Подключить».
+        </Alert>
       )}
     </Box>
   );

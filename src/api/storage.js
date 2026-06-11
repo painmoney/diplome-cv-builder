@@ -6,10 +6,14 @@ import { supabase } from "./supabaseClient";
 
 // Загрузка аватара пользователя
 export async function uploadAvatar(userId, file) {
-  const filePath = `${userId}/avatar.png`;
+  const filePath = `${userId}/avatar.webp`;
+
   const { data, error } = await supabase.storage
     .from("avatars")
-    .upload(filePath, file, { upsert: true });
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: file.type || "image/webp",
+    });
 
   if (error) throw error;
   return data;
@@ -19,7 +23,8 @@ export async function uploadAvatar(userId, file) {
 export function getAvatarUrl(userId) {
   const { data } = supabase.storage
     .from("avatars")
-    .getPublicUrl(`${userId}/avatar.png`);
+    .getPublicUrl(`${userId}/avatar.webp`);
+
   return data.publicUrl;
 }
 
@@ -27,7 +32,7 @@ export function getAvatarUrl(userId) {
 export async function deleteAvatar(userId) {
   const { data, error } = await supabase.storage
     .from("avatars")
-    .remove([`${userId}/avatar.png`]);
+    .remove([`${userId}/avatar.webp`]);
 
   if (error) throw error;
   return data;
@@ -40,6 +45,7 @@ export async function deleteAvatar(userId) {
 // Загрузка резюме (pdf, md, docx)
 export async function uploadResume(userId, resumeId, file, ext = "pdf") {
   const filePath = `${userId}/resume_${resumeId}.${ext}`;
+
   const { data, error } = await supabase.storage
     .from("resumes")
     .upload(filePath, file, { upsert: true });
@@ -49,7 +55,12 @@ export async function uploadResume(userId, resumeId, file, ext = "pdf") {
 }
 
 // Получение signed URL для скачивания резюме
-export async function getResumeSignedUrl(userId, resumeId, ext = "pdf", expiresIn = 60) {
+export async function getResumeSignedUrl(
+  userId,
+  resumeId,
+  ext = "pdf",
+  expiresIn = 60
+) {
   const { data, error } = await supabase.storage
     .from("resumes")
     .createSignedUrl(`${userId}/resume_${resumeId}.${ext}`, expiresIn);

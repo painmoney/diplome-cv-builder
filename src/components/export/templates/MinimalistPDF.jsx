@@ -109,6 +109,11 @@ export default function MinimalistPDF({ data }) {
     return '';
   };
 
+  const getSkillLevel = (skill) => {
+    if (skill && typeof skill === 'object' && skill.level) return skill.level;
+    return '';
+  };
+
   const getEducationYear = (edu) => {
     // Все возможные варианты полей
     if (edu.year) return edu.year;
@@ -156,11 +161,16 @@ export default function MinimalistPDF({ data }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Навыки</Text>
             <View style={styles.skillsContainer}>
-              {skills.map((skill, idx) => (
-                <Text key={idx} style={styles.skill}>
-                  {getSkillName(skill)}
-                </Text>
-              ))}
+              {skills.map((skill, idx) => {
+                const name = getSkillName(skill);
+                const level = getSkillLevel(skill);
+
+                return (
+                  <Text key={idx} style={styles.skill}>
+                    {level ? `${name} — ${level}/5` : name}
+                  </Text>
+                );
+              })}
             </View>
           </View>
         )}
@@ -195,15 +205,30 @@ export default function MinimalistPDF({ data }) {
             <Text style={styles.sectionTitle}>Образование</Text>
             {education.map((edu, idx) => {
               const year = getEducationYear(edu);
+
               return (
                 <View key={idx} style={styles.item}>
                   <Text style={styles.itemTitle}>
-                    {edu.degree || 'Степень'}
-                  </Text>
-                  <Text style={styles.itemSubtitle}>
                     {edu.institution || 'Учебное заведение'}
-                    {year && ` | ${year}`}
                   </Text>
+
+                  <Text style={styles.itemSubtitle}>
+                    {[year, edu.degree].filter(Boolean).join(' | ')}
+                  </Text>
+
+                  {edu.institute && (
+                    <Text style={styles.text}>Институт: {edu.institute}</Text>
+                  )}
+
+                  {edu.department && (
+                    <Text style={styles.text}>Кафедра: {edu.department}</Text>
+                  )}
+
+                  {edu.program && (
+                    <Text style={styles.text}>
+                      Направление подготовки/специальности: {edu.program}
+                    </Text>
+                  )}
                 </View>
               );
             })}

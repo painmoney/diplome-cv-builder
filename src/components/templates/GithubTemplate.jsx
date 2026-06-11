@@ -1,206 +1,209 @@
-import React from 'react';
-import { Box, Typography, Chip, Paper } from '@mui/material';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import StarIcon from '@mui/icons-material/Star';
+import React from "react";
+import { Box, Typography, Chip, Paper } from "@mui/material";
+import GitHubIcon from "@mui/icons-material/GitHub";
+import StarIcon from "@mui/icons-material/Star";
 
 export default function GithubTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
 
   const getSkillName = (skill) => {
-    if (typeof skill === 'string') return skill;
-    if (skill && typeof skill === 'object') return skill.name || '';
-    return '';
+    if (typeof skill === "string") return skill;
+    if (skill && typeof skill === "object") return skill.name || "";
+    return "";
+  };
+
+  const getSkillLevel = (skill) => {
+    if (skill && typeof skill === "object" && skill.level) return skill.level;
+    return "";
   };
 
   const getEducationYear = (edu) => {
     if (edu.years) return edu.years;
     if (edu.year) return edu.year;
-    if (edu.startYear && edu.endYear) return `${edu.startYear}-${edu.endYear}`;
-    return '';
+    if (edu.graduationYear) return edu.graduationYear;
+    if (edu.period) return edu.period;
+    if (edu.startYear && edu.endYear) return `${edu.startYear}–${edu.endYear}`;
+    return "";
   };
 
   const getWorkPeriod = (exp) => {
     if (exp.period) return exp.period;
-    const start = exp.startDate || '';
-    const end = exp.endDate || '';
-    if (start && end) return `${start} - ${end}`;
+
+    const start = exp.startDate || exp.start || exp.from || "";
+    const end = exp.endDate || exp.end || exp.to || "";
+
+    if (start && end) return `${start} – ${end}`;
+    if (start && exp.current) return `${start} – настоящее время`;
     if (start) return start;
-    return '';
+    if (end) return end;
+
+    return "";
   };
 
-  return (
-    <Paper 
-      elevation={0} 
-      sx={{ 
-        width: '210mm',
-        minHeight: '297mm',
-        margin: '0 auto',
-        padding: '20mm',
-        backgroundColor: '#0d1117',
-        color: '#c9d1d9',
-        boxSizing: 'border-box',
-        fontFamily: '"Consolas", "Monaco", "Courier New", monospace'
+  const SectionTitle = ({ children }) => (
+    <Typography
+      variant="h5"
+      sx={{
+        color: "#58a6ff",
+        fontWeight: 900,
+        fontSize: "1.2rem",
+        mb: 2,
+        fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
       }}
     >
-      {/* Header - GitHub Style */}
-      <Box sx={{ mb: 4, pb: 3, borderBottom: '1px solid #30363d' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <GitHubIcon sx={{ fontSize: 48, color: '#58a6ff' }} />
-          <Typography 
-            variant="h3" 
-            sx={{ 
-              fontFamily: '"Consolas", monospace',
-              color: '#58a6ff', 
-              fontWeight: 'bold', 
-              fontSize: '2rem'
+      {children}
+    </Typography>
+  );
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        width: "210mm",
+        minHeight: "297mm",
+        margin: "0 auto",
+        padding: "18mm",
+        backgroundColor: "#0d1117",
+        color: "#c9d1d9",
+        boxSizing: "border-box",
+        fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
+      }}
+    >
+      {/* Header */}
+      <Box
+        sx={{
+          mb: 4,
+          pb: 3,
+          borderBottom: "1px solid #30363d",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+          <GitHubIcon sx={{ color: "#58a6ff", fontSize: 34 }} />
+          <Typography
+            variant="h3"
+            sx={{
+              color: "#58a6ff",
+              fontWeight: 900,
+              fontSize: "2rem",
             }}
           >
-            {profile?.name || 'username'}
+            {profile?.name || "username"}
           </Typography>
         </Box>
-        
+
         {profile?.about && (
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              mb: 2, 
-              lineHeight: 1.6,
-              color: '#8b949e',
-              fontFamily: '"Consolas", monospace',
-              fontSize: '0.95rem'
+          <Typography
+            variant="body2"
+            sx={{
+              color: "#8b949e",
+              lineHeight: 1.7,
+              mb: 1.5,
             }}
           >
-            <span style={{ color: '#58a6ff' }}>{'$ '}</span>
-            {profile.about}
+            $ {profile.about}
           </Typography>
         )}
-        
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 3, 
-          color: '#8b949e', 
-          fontFamily: '"Consolas", monospace', 
-          fontSize: '0.85rem' 
-        }}>
+
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
           {profile?.email && (
-            <Typography variant="body2">
-              <span style={{ color: '#58a6ff' }}>{'@ '}</span>
-              {profile.email}
+            <Typography variant="body2" sx={{ color: "#8b949e" }}>
+              @ {profile.email}
             </Typography>
           )}
+
           {profile?.phone && (
-            <Typography variant="body2">
-              <span style={{ color: '#58a6ff' }}>{'# '}</span>
-              {profile.phone}
+            <Typography variant="body2" sx={{ color: "#8b949e" }}>
+              # {profile.phone}
+            </Typography>
+          )}
+
+          {profile?.githubUrl && (
+            <Typography variant="body2" sx={{ color: "#8b949e" }}>
+              git: {profile.githubUrl}
+            </Typography>
+          )}
+
+          {profile?.website && (
+            <Typography variant="body2" sx={{ color: "#8b949e" }}>
+              web: {profile.website}
             </Typography>
           )}
         </Box>
       </Box>
 
-      {/* Skills - как теги GitHub */}
+      {/* Skills */}
       {skills && skills.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: '#58a6ff', 
-              fontWeight: 'bold',
-              fontFamily: '"Consolas", monospace',
-              mb: 2,
-              fontSize: '1.1rem'
-            }}
-          >
-            <span style={{ color: '#8b949e' }}>{'<'}</span>
-            skills
-            <span style={{ color: '#8b949e' }}>{' />'}</span>
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {skills.map((skill, idx) => (
-              <Chip 
-                key={idx} 
-                label={getSkillName(skill)} 
-                size="small" 
-                sx={{ 
-                  bgcolor: '#161b22',
-                  color: '#58a6ff',
-                  border: '1px solid #30363d',
-                  fontFamily: '"Consolas", monospace',
-                  fontSize: '0.75rem',
-                  '&:hover': {
-                    borderColor: '#58a6ff'
-                  }
-                }} 
-              />
-            ))}
+          <SectionTitle>skills</SectionTitle>
+
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {skills.map((skill, idx) => {
+              const name = getSkillName(skill);
+              const level = getSkillLevel(skill);
+
+              return (
+                <Chip
+                  key={idx}
+                  label={level ? `${name} ${level}/5` : name}
+                  sx={{
+                    bgcolor: "#161b22",
+                    color: "#58a6ff",
+                    border: "1px solid #30363d",
+                    fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
+                  }}
+                />
+              );
+            })}
           </Box>
         </Box>
       )}
 
-      {/* GitHub Projects - главный фокус */}
+      {/* GitHub Projects */}
       {github && github.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: '#58a6ff', 
-              fontWeight: 'bold',
-              fontFamily: '"Consolas", monospace',
-              mb: 2,
-              fontSize: '1.1rem'
-            }}
-          >
-            <GitHubIcon sx={{ fontSize: 20, verticalAlign: 'middle', mr: 1 }} />
-            repositories
-          </Typography>
+          <SectionTitle>repositories</SectionTitle>
+
           {github.map((repo, idx) => (
-            <Box 
-              key={idx} 
-              sx={{ 
+            <Box
+              key={idx}
+              sx={{
                 mb: 2,
                 p: 2,
-                bgcolor: '#161b22',
-                border: '1px solid #30363d',
-                borderRadius: 1,
-                transition: 'border-color 0.2s',
-                '&:hover': {
-                  borderColor: '#58a6ff'
-                }
+                bgcolor: "#161b22",
+                border: "1px solid #30363d",
+                borderRadius: 2,
               }}
             >
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  fontWeight: 'bold',
-                  color: '#58a6ff',
-                  fontFamily: '"Consolas", monospace',
-                  mb: 0.5
+              <Typography
+                variant="h6"
+                sx={{
+                  color: "#58a6ff",
+                  fontWeight: 900,
+                  fontSize: "1rem",
+                  mb: 0.75,
                 }}
               >
-                {repo.name}
+                {repo.name || "repository"}
               </Typography>
+
               {repo.description && (
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    mb: 1, 
-                    color: '#8b949e',
-                    fontFamily: '"Consolas", monospace',
-                    fontSize: '0.85rem'
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#8b949e",
+                    lineHeight: 1.6,
+                    mb: 1,
                   }}
                 >
                   {repo.description}
                 </Typography>
               )}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <StarIcon sx={{ fontSize: 14, color: '#f1e05a' }} />
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: '#8b949e',
-                    fontFamily: '"Consolas", monospace'
-                  }}
-                >
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <StarIcon sx={{ color: "#8b949e", fontSize: 16 }} />
+                <Typography variant="body2" sx={{ color: "#8b949e" }}>
                   {repo.stars || 0} stars
+                  {repo.url ? ` | ${repo.url}` : ""}
                 </Typography>
               </Box>
             </Box>
@@ -208,73 +211,64 @@ export default function GithubTemplate({ data }) {
         </Box>
       )}
 
-      {/* Experience - как коммиты */}
+      {/* Experience */}
       {experience && experience.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: '#58a6ff', 
-              fontWeight: 'bold',
-              fontFamily: '"Consolas", monospace',
-              mb: 2,
-              fontSize: '1.1rem'
-            }}
-          >
-            work.log
-          </Typography>
+          <SectionTitle>work.log</SectionTitle>
+
           {experience.map((exp, idx) => {
             const period = getWorkPeriod(exp);
+
             return (
-              <Box 
-                key={idx} 
-                sx={{ 
-                  mb: 2,
+              <Box
+                key={idx}
+                sx={{
+                  mb: 2.5,
                   pl: 2,
-                  borderLeft: '2px solid #30363d'
+                  borderLeft: "3px solid #30363d",
                 }}
               >
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    fontWeight: 'bold',
-                    color: '#c9d1d9',
-                    fontFamily: '"Consolas", monospace'
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: "#c9d1d9",
+                    fontWeight: 900,
+                    fontSize: "1rem",
+                    mb: 0.5,
                   }}
                 >
-                  {exp.position || 'Position'}
+                  {exp.position || "Должность"}
                 </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: '#58a6ff',
-                    fontFamily: '"Consolas", monospace',
-                    fontSize: '0.85rem'
+
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#58a6ff",
+                    fontWeight: 700,
+                    mb: 0.5,
                   }}
                 >
-                  {exp.company || 'Company'}
+                  {exp.company || "Компания"}
                 </Typography>
+
                 {period && (
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: '#8b949e',
-                      fontFamily: '"Consolas", monospace',
-                      display: 'block',
-                      mb: 0.5
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#8b949e",
+                      mb: 0.75,
                     }}
                   >
                     {period}
                   </Typography>
                 )}
+
                 {exp.description && (
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      color: '#8b949e',
-                      fontFamily: '"Consolas", monospace',
-                      fontSize: '0.85rem',
-                      lineHeight: 1.5
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#8b949e",
+                      lineHeight: 1.6,
                     }}
                   >
                     {exp.description}
@@ -289,43 +283,57 @@ export default function GithubTemplate({ data }) {
       {/* Education */}
       {education && education.length > 0 && (
         <Box sx={{ mb: 4 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: '#58a6ff', 
-              fontWeight: 'bold',
-              fontFamily: '"Consolas", monospace',
-              mb: 2,
-              fontSize: '1.1rem'
-            }}
-          >
-            education.md
-          </Typography>
+          <SectionTitle>education.md</SectionTitle>
+
           {education.map((edu, idx) => {
             const year = getEducationYear(edu);
+
             return (
-              <Box key={idx} sx={{ mb: 2, pl: 2 }}>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    fontWeight: 'bold',
-                    color: '#c9d1d9',
-                    fontFamily: '"Consolas", monospace'
+              <Box
+                key={idx}
+                sx={{
+                  mb: 2.5,
+                  p: 2,
+                  bgcolor: "#161b22",
+                  border: "1px solid #30363d",
+                  borderRadius: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: "#58a6ff",
+                    fontWeight: 900,
+                    fontSize: "1rem",
+                    mb: 0.75,
                   }}
                 >
-                  {edu.degree || 'Degree'}
+                  ## {edu.institution || "Учебное заведение"}
                 </Typography>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: '#8b949e',
-                    fontFamily: '"Consolas", monospace',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  {edu.institution || 'Institution'}
-                  {year && ` • ${year}`}
-                </Typography>
+
+                {(edu.degree || year) && (
+                  <Typography variant="body2" sx={{ color: "#c9d1d9", mb: 0.75 }}>
+                    - qualification: {[edu.degree, year].filter(Boolean).join(" | ")}
+                  </Typography>
+                )}
+
+                {edu.institute && (
+                  <Typography variant="body2" sx={{ color: "#8b949e", mb: 0.5 }}>
+                    - institute: {edu.institute}
+                  </Typography>
+                )}
+
+                {edu.department && (
+                  <Typography variant="body2" sx={{ color: "#8b949e", mb: 0.5 }}>
+                    - department: {edu.department}
+                  </Typography>
+                )}
+
+                {edu.program && (
+                  <Typography variant="body2" sx={{ color: "#8b949e" }}>
+                    - program: {edu.program}
+                  </Typography>
+                )}
               </Box>
             );
           })}

@@ -12,13 +12,18 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { Edit, Visibility, GetApp, Description } from "@mui/icons-material";
+import {
+  Edit,
+  Visibility,
+  GetApp,
+  Description,
+  PictureAsPdf,
+  Article,
+} from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
 import { getAvatarUrl } from "../api/storage";
-import { exportToPDF } from "../components/export/ExportPDF.jsx";
-import { exportToMarkdown } from "../components/export/ExportMarkdown";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -26,8 +31,10 @@ export default function Dashboard() {
 
   const [resume, setResume] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [loadingResume, setLoadingResume] = useState(true);
 
   const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingDOCX, setExportingDOCX] = useState(false);
   const [exportingMD, setExportingMD] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
@@ -37,18 +44,21 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if (user) {
-      loadResume();
-      setAvatarUrl(getAvatarUrl(user.id));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    if (!user?.id) return;
 
-  const loadResume = async () => {
+    loadResume(user.id);
+    setAvatarUrl(getAvatarUrl(user.id));
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const loadResume = async (userId) => {
+    setLoadingResume(true);
+
     const { data, error } = await supabase
       .from("resumes")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (error) {
@@ -58,62 +68,132 @@ export default function Dashboard() {
         message: `Ошибка загрузки резюме: ${error.message}`,
         severity: "error",
       });
+      setLoadingResume(false);
       return;
     }
 
-    if (data) setResume(data);
+    setResume(data || null);
+    setLoadingResume(false);
   };
 
   const handleExportPDF = async () => {
     if (!resume) {
-      setSnackbar({ open: true, message: "Сначала создайте резюме", severity: "warning" });
+      setSnackbar({
+        open: true,
+        message: "Сначала создайте резюме",
+        severity: "warning",
+      });
       return;
     }
+
     setExportingPDF(true);
+
     try {
+      const { exportToPDF } = await import("../components/export/ExportPDF.jsx");
       const result = await exportToPDF(resume.data, resume.template);
+
       setSnackbar({
         open: true,
         message: result.message,
         severity: result.success ? "success" : "error",
       });
     } catch (e) {
-      setSnackbar({ open: true, message: "Ошибка при экспорте PDF", severity: "error" });
+      console.error("PDF export error:", e);
+      setSnackbar({
+        open: true,
+        message: "Ошибка при экспорте PDF",
+        severity: "error",
+      });
     } finally {
       setExportingPDF(false);
     }
   };
 
-  const handleExportMarkdown = async () => {
+  const handleExportDocx = async () => {
     if (!resume) {
-      setSnackbar({ open: true, message: "Сначала создайте резюме", severity: "warning" });
+      setSnackbar({
+        open: true,
+        message: "Сначала создайте резюме",
+        severity: "warning",
+      });
       return;
     }
-    setExportingMD(true);
+
+    setExportingDOCX(true);
+
     try {
-      const result = await exportToMarkdown(resume.data);
+      const { exportToDocx } = await import("../components/export/ExportDocx");
+      const result = await exportToDocx(resume.data, resume.template);
+
       setSnackbar({
         open: true,
         message: result.message,
         severity: result.success ? "success" : "error",
       });
     } catch (e) {
-      setSnackbar({ open: true, message: "Ошибка при экспорте Markdown", severity: "error" });
+      console.error("DOCX export error:", e);
+      setSnackbar({
+        open: true,
+        message: "Ошибка при экспорте DOCX",
+        severity: "error",
+      });
+    } finally {
+      setExportingDOCX(false);
+    }
+  };
+
+  const handleExportMarkdown = async () => {
+    if (!resume) {
+      setSnackbar({
+        open: true,
+        message: "Сначала создайте резюме",
+        severity: "warning",
+      });
+      return;
+    }
+
+    setExportingMD(true);
+
+    try {
+      const { exportToMarkdown } = await import("../components/export/ExportMarkdown");
+      const result = await exportToMarkdown(resume.data);
+
+      setSnackbar({
+        open: true,
+        message: result.message,
+        severity: result.success ? "success" : "error",
+      });
+    } catch (e) {
+      console.error("Markdown export error:", e);
+      setSnackbar({
+        open: true,
+        message: "Ошибка при экспорте Markdown",
+        severity: "error",
+      });
     } finally {
       setExportingMD(false);
     }
   };
 
-  const disabled = exportingPDF || exportingMD;
+  const disabled = loadingResume || exportingPDF || exportingMD || exportingDOCX;
+  const profileName = resume?.data?.profile?.name || "";
+  const userInitial = user?.email?.[0]?.toUpperCase() || "U";
 
   return (
     <Container sx={{ mt: 4, maxWidth: 900 }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}>
-        <Avatar src={avatarUrl} sx={{ width: 80, height: 80 }}>
-          {resume?.data?.profile?.name?.[0] || user.email[0].toUpperCase()}
+        <Avatar
+          src={avatarUrl || ""}
+          imgProps={{ alt: "Аватар пользователя" }}
+          sx={{ width: 80, height: 80 }}
+        >
+          {profileName?.[0]?.toUpperCase() || userInitial}
         </Avatar>
+
         <Box>
-          <Typography variant="h4">{resume?.data?.profile?.name || "Добро пожаловать!"}</Typography>
+          <Typography variant="h4" component="h1">
+            {profileName || "Добро пожаловать!"}
+          </Typography>
           <Typography variant="body2" color="text.secondary">
             {user.email}
           </Typography>
@@ -121,12 +201,36 @@ export default function Dashboard() {
       </Box>
 
       {/* Карточка резюме */}
-      {resume ? (
-        <Card sx={{ mb: 3 }}>
+      {loadingResume ? (
+        <Card sx={{ mb: 3, textAlign: "center", p: 4, minHeight: 220 }}>
+          <Typography variant="h6" component="h2" gutterBottom>
+            Загрузка резюме...
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Получение данных из Supabase
+          </Typography>
+        </Card>
+      ) : resume ? (
+        <Card sx={{ mb: 3, minHeight: 220 }}>
           <CardContent>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Typography variant="h6">{resume.title}</Typography>
-              <Chip label={`Шаблон: ${resume.template}`} color="primary" size="small" />
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+                gap: 2,
+                flexWrap: "wrap",
+              }}
+            >
+              <Typography variant="h6" component="h2">
+                {resume.title}
+              </Typography>
+              <Chip
+                label={`Шаблон: ${resume.template}`}
+                color="primary"
+                size="small"
+              />
             </Box>
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -138,71 +242,121 @@ export default function Dashboard() {
                 <Typography variant="caption" color="text.secondary">
                   Навыки
                 </Typography>
-                <Typography variant="h6">{resume.data?.skills?.length || 0}</Typography>
+                <Typography variant="h6" component="p">
+                  {resume.data?.skills?.length || 0}
+                </Typography>
               </Grid>
+
               <Grid item xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary">
                   Образование
                 </Typography>
-                <Typography variant="h6">{resume.data?.education?.length || 0}</Typography>
+                <Typography variant="h6" component="p">
+                  {resume.data?.education?.length || 0}
+                </Typography>
               </Grid>
+
               <Grid item xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary">
                   Опыт
                 </Typography>
-                <Typography variant="h6">{resume.data?.experience?.length || 0}</Typography>
+                <Typography variant="h6" component="p">
+                  {resume.data?.experience?.length || 0}
+                </Typography>
               </Grid>
+
               <Grid item xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary">
                   GitHub
                 </Typography>
-                <Typography variant="h6">{resume.data?.github?.length || 0}</Typography>
+                <Typography variant="h6" component="p">
+                  {resume.data?.github?.length || 0}
+                </Typography>
               </Grid>
             </Grid>
 
             <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              <Button variant="contained" startIcon={<Edit />} onClick={() => navigate("/resume-editor")} disabled={disabled}>
+              <Button
+                variant="contained"
+                startIcon={<Edit />}
+                onClick={() => navigate("/resume-editor")}
+                disabled={disabled}
+              >
                 Редактировать
               </Button>
 
-              <Button variant="outlined" startIcon={<Visibility />} onClick={() => navigate("/resume-preview")} disabled={disabled}>
+              <Button
+                variant="outlined"
+                startIcon={<Visibility />}
+                onClick={() => navigate("/resume-preview")}
+                disabled={disabled}
+              >
                 Просмотр
               </Button>
 
-              <Button variant="outlined" startIcon={<Description />} onClick={handleExportMarkdown} disabled={disabled}>
+              <Button
+                variant="outlined"
+                startIcon={<Description />}
+                onClick={handleExportMarkdown}
+                disabled={disabled}
+              >
                 {exportingMD ? "Экспорт..." : "Скачать Markdown"}
               </Button>
 
-              <Button variant="outlined" startIcon={<GetApp />} onClick={handleExportPDF} disabled={disabled}>
+              <Button
+                variant="outlined"
+                startIcon={<Description />}
+                onClick={handleExportDocx}
+                disabled={disabled}
+              >
+                {exportingDOCX ? "Экспорт..." : "Скачать DOCX"}
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<GetApp />}
+                onClick={handleExportPDF}
+                disabled={disabled}
+              >
                 {exportingPDF ? "Экспорт..." : "Скачать PDF"}
               </Button>
             </Box>
           </CardContent>
         </Card>
       ) : (
-        <Card sx={{ mb: 3, textAlign: "center", p: 4 }}>
-          <Typography variant="h6" gutterBottom>
+        <Card sx={{ mb: 3, textAlign: "center", p: 4, minHeight: 220 }}>
+          <Typography variant="h6" component="h2" gutterBottom>
             Резюме ещё не создано
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Создайте своё первое IT-резюме прямо сейчас
           </Typography>
-          <Button variant="contained" size="large" onClick={() => navigate("/resume-editor")}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => navigate("/resume-editor")}
+          >
             Создать резюме
           </Button>
         </Card>
       )}
 
       {/* Быстрые действия */}
-      <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+      <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
         Быстрые действия
       </Typography>
+
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
-          <Card sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }} onClick={() => navigate("/resume-editor")}>
+          <Card
+            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+            onClick={() => navigate("/resume-editor")}
+          >
             <CardContent>
               <Edit color="primary" sx={{ mb: 1 }} />
-              <Typography variant="h6">Редактор резюме</Typography>
+              <Typography variant="h6" component="h3">
+                Редактор резюме
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 Добавьте навыки, опыт и проекты
               </Typography>
@@ -211,10 +365,15 @@ export default function Dashboard() {
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <Card sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }} onClick={handleExportPDF}>
+          <Card
+            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+            onClick={handleExportPDF}
+          >
             <CardContent>
-              <GetApp color="primary" sx={{ mb: 1 }} />
-              <Typography variant="h6">Экспорт в PDF</Typography>
+              <PictureAsPdf color="primary" sx={{ mb: 1 }} />
+              <Typography variant="h6" component="h3">
+                Экспорт в PDF
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 Скачайте готовое резюме
               </Typography>
@@ -223,12 +382,34 @@ export default function Dashboard() {
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <Card sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }} onClick={handleExportMarkdown}>
+          <Card
+            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+            onClick={handleExportMarkdown}
+          >
             <CardContent>
               <Description color="primary" sx={{ mb: 1 }} />
-              <Typography variant="h6">Экспорт в Markdown</Typography>
+              <Typography variant="h6" component="h3">
+                Экспорт в Markdown
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 Для GitHub / GitLab / README.md
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <Card
+            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+            onClick={handleExportDocx}
+          >
+            <CardContent>
+              <Article color="primary" sx={{ mb: 1 }} />
+              <Typography variant="h6" component="h3">
+                Экспорт в DOCX
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Для редактирования в Microsoft Word
               </Typography>
             </CardContent>
           </Card>

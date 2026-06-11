@@ -20,106 +20,111 @@ const styles = StyleSheet.create({
     padding: 40,
     fontSize: 10,
     fontFamily: 'NotoSans',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#0d1117',
+    color: '#c9d1d9',
   },
   header: {
     marginBottom: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#24292e',
+    borderBottomColor: '#30363d',
   },
+
   name: {
     fontSize: 24,
     fontWeight: 700,
-    color: '#0969da',
+    color: '#58a6ff',
     marginBottom: 5,
   },
+
   about: {
     fontSize: 10,
-    color: '#57606a',
+    color: '#8b949e',
     marginBottom: 10,
     lineHeight: 1.5,
   },
+
   contactInfo: {
     fontSize: 9,
-    color: '#57606a',
+    color: '#8b949e',
     marginTop: 5,
   },
-  contactLine: {
-    marginBottom: 2,
-  },
-  section: {
-    marginBottom: 15,
-  },
+
   sectionTitle: {
     fontSize: 13,
     fontWeight: 700,
-    color: '#0969da',
+    color: '#58a6ff',
     marginBottom: 8,
   },
+
   repoBox: {
     marginBottom: 10,
     padding: 10,
-    backgroundColor: '#f6f8fa',
+    backgroundColor: '#161b22',
     borderWidth: 1,
-    borderColor: '#d0d7de',
+    borderColor: '#30363d',
   },
+
   repoName: {
     fontSize: 11,
     fontWeight: 700,
-    color: '#0969da',
+    color: '#58a6ff',
     marginBottom: 3,
   },
+
   repoDesc: {
     fontSize: 9,
-    color: '#57606a',
+    color: '#8b949e',
     marginBottom: 5,
     lineHeight: 1.4,
   },
+
   repoStars: {
     fontSize: 8,
-    color: '#57606a',
+    color: '#8b949e',
   },
+
   item: {
     marginBottom: 10,
     paddingLeft: 8,
     borderLeftWidth: 2,
-    borderLeftColor: '#d0d7de',
+    borderLeftColor: '#30363d',
   },
+
   itemTitle: {
     fontSize: 11,
     fontWeight: 700,
     marginBottom: 2,
+    color: '#c9d1d9',
   },
+
   itemSubtitle: {
     fontSize: 10,
-    color: '#0969da',
+    color: '#58a6ff',
     marginBottom: 2,
   },
+
   itemPeriod: {
     fontSize: 8,
-    color: '#57606a',
+    color: '#8b949e',
     marginBottom: 3,
   },
+
   text: {
     fontSize: 9,
     lineHeight: 1.5,
-    color: '#57606a',
+    color: '#8b949e',
   },
-  skillsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 10,
-  },
+
   skill: {
-    backgroundColor: '#ddf4ff',
-    color: '#0969da',
+    backgroundColor: '#161b22',
+    color: '#58a6ff',
     padding: 5,
     marginRight: 5,
     marginBottom: 5,
     fontSize: 8,
     borderWidth: 1,
-    borderColor: '#54aeff',
+    borderColor: '#30363d',
   },
 });
 
@@ -129,6 +134,11 @@ export default function GithubPDF({ data }) {
   const getSkillName = (skill) => {
     if (typeof skill === 'string') return skill;
     if (skill?.name) return skill.name;
+    return '';
+  };
+
+  const getSkillLevel = (skill) => {
+    if (skill && typeof skill === 'object' && skill.level) return skill.level;
     return '';
   };
 
@@ -171,11 +181,16 @@ export default function GithubPDF({ data }) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>skills</Text>
             <View style={styles.skillsContainer}>
-              {skills.map((skill, idx) => (
-                <Text key={idx} style={styles.skill}>
-                  {getSkillName(skill)}
-                </Text>
-              ))}
+              {skills.map((skill, idx) => {
+                const name = getSkillName(skill);
+                const level = getSkillLevel(skill);
+
+                return (
+                  <Text key={idx} style={styles.skill}>
+                    {level ? `${name} — ${level}/5` : name}
+                  </Text>
+                );
+              })}
             </View>
           </View>
         )}
@@ -228,15 +243,30 @@ export default function GithubPDF({ data }) {
             <Text style={styles.sectionTitle}>education.md</Text>
             {education.map((edu, idx) => {
               const year = getEducationYear(edu);
+
               return (
                 <View key={idx} style={styles.item}>
                   <Text style={styles.itemTitle}>
-                    {edu.degree || 'Степень'}
-                  </Text>
-                  <Text style={styles.text}>
                     {edu.institution || 'Учебное заведение'}
-                    {year && ` • ${year}`}
                   </Text>
+
+                  <Text style={styles.text}>
+                    {[edu.degree, year].filter(Boolean).join(' • ')}
+                  </Text>
+
+                  {edu.institute && (
+                    <Text style={styles.text}>Институт: {edu.institute}</Text>
+                  )}
+
+                  {edu.department && (
+                    <Text style={styles.text}>Кафедра: {edu.department}</Text>
+                  )}
+
+                  {edu.program && (
+                    <Text style={styles.text}>
+                      Направление подготовки/специальности: {edu.program}
+                    </Text>
+                  )}
                 </View>
               );
             })}

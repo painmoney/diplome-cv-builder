@@ -12,6 +12,53 @@ import {
 import { supabase } from "../api/supabaseClient";
 import { useNavigate } from "react-router-dom";
 
+function getRegisterErrorMessage(error) {
+  if (!error) return "";
+
+  const message = String(error.message || "").toLowerCase();
+  const code = String(error.code || "").toLowerCase();
+  const status = error.status;
+
+  if (
+    message.includes("email address") &&
+    message.includes("is invalid")
+  ) {
+    return "Некорректный email. Проверьте адрес почты и попробуйте ещё раз.";
+  }
+
+  if (
+    message.includes("invalid email") ||
+    code === "validation_failed"
+  ) {
+    return "Некорректный email. Проверьте адрес почты и попробуйте ещё раз.";
+  }
+
+  if (
+    message.includes("already registered") ||
+    message.includes("user already registered") ||
+    code === "user_already_exists"
+  ) {
+    return "Этот email уже зарегистрирован. Попробуйте войти в аккаунт.";
+  }
+
+  if (
+    message.includes("password") &&
+    (message.includes("6") || message.includes("short"))
+  ) {
+    return "Пароль слишком короткий. Укажите пароль минимум из 6 символов.";
+  }
+
+  if (status === 429 || code === "over_request_rate_limit") {
+    return "Слишком много попыток регистрации. Попробуйте позже.";
+  }
+
+  if (status >= 500) {
+    return "Сервис регистрации временно недоступен. Попробуйте позже.";
+  }
+
+  return "Не удалось зарегистрироваться. Проверьте данные и попробуйте ещё раз.";
+}
+
 export default function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -24,11 +71,12 @@ export default function Register() {
   });
 
   const handleRegister = async (e) => {
-    e?.preventDefault?.();
+    e.preventDefault();
+
     setLoading(true);
 
     const { error } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: { emailRedirectTo: window.location.origin },
     });
@@ -36,23 +84,24 @@ export default function Register() {
     setLoading(false);
 
     if (error) {
-      if (error.message.includes("already registered")) {
-        setSnackbar({
-          open: true,
-          message: "Этот email уже зарегистрирован. Войдите через Login.",
-          severity: "error",
-        });
-      } else {
-        setSnackbar({ open: true, message: error.message, severity: "error" });
-      }
-    } else {
+      console.error("Ошибка регистрации:", error);
+
       setSnackbar({
         open: true,
-        message: "✅ Проверьте почту для подтверждения регистрации!",
-        severity: "success",
+        message: getRegisterErrorMessage(error),
+        severity: "error",
       });
-      setTimeout(() => navigate("/login"), 2500);
+
+      return;
     }
+
+    setSnackbar({
+      open: true,
+      message: "Проверьте почту для подтверждения регистрации!",
+      severity: "success",
+    });
+
+    setTimeout(() => navigate("/login"), 2500);
   };
 
   return (
@@ -94,7 +143,12 @@ export default function Register() {
             helperText="Минимум 6 символов"
           />
 
-          <Button variant="contained" fullWidth onClick={handleRegister} disabled={loading}>
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            disabled={loading}
+          >
             {loading ? "Создаём..." : "Зарегистрироваться"}
           </Button>
 

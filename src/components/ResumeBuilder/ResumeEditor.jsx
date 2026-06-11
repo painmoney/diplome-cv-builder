@@ -11,7 +11,13 @@ import {
   Chip,
   Snackbar,
 } from "@mui/material";
-import { supabase } from "../../api/supabaseClient";
+
+import {
+  loadUserResume,
+  saveResumeFull,
+  normalizeLoadedResumeData,
+} from "../../api/resumeService";
+
 import { useAuth } from "../../context/AuthContext";
 
 import ProfileForm from "../profile/ProfileForm";
@@ -81,49 +87,26 @@ export default function ResumeEditor() {
     setLoading(true);
     setMessage("");
 
-    const { data, error } = await supabase
-      .from("resumes")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    try {
+      const resume = await loadUserResume(user.id);
 
-    setLoading(false);
+      if (resume) {
+        setResumeData(normalizeLoadedResumeData(resume.data || DEFAULT_RESUME_DATA));
+        setResumeTitle(resume.title || "Моё IT-резюме");
+      } else {
+        setResumeData(DEFAULT_RESUME_DATA);
+        setResumeTitle("Моё IT-резюме");
+      }
 
-    if (error) {
+      setSaveStatus("idle");
+      setSaveError("");
+    } catch (error) {
       console.error("❌ Load error:", error);
       setMessage(`Ошибка загрузки: ${error.message}`);
+    } finally {
+      setLoading(false);
       isHydratingRef.current = false;
-      return;
     }
-
-    if (data) {
-      const loadedData = data.data || DEFAULT_RESUME_DATA;
-
-      // мост about/summary
-      const profile = loadedData.profile || {};
-      const bridgedProfile = {
-        ...profile,
-        about: profile.about ?? profile.summary ?? "",
-        summary: profile.summary ?? profile.about ?? "",
-        email: profile.email ?? "",
-        phone: profile.phone ?? "",
-      };
-
-      setResumeData({
-        ...DEFAULT_RESUME_DATA,
-        ...loadedData,
-        profile: bridgedProfile,
-      });
-
-      setResumeTitle(data.title || "Моё IT-резюме");
-    } else {
-      setResumeData(DEFAULT_RESUME_DATA);
-      setResumeTitle("Моё IT-резюме");
-    }
-
-    setSaveStatus("idle");
-    setSaveError("");
-    isHydratingRef.current = false;
   };
 
   const updateSection = (section, newData) => {
@@ -273,35 +256,19 @@ export default function ResumeEditor() {
       setSaveStatus("saving");
       setSaveError("");
 
-      const payload = {
-        user_id: user.id,
-        title: resumeTitle,
-        template: resumeData.template,
-        data: resumeData,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase
-        .from("resumes")
-        .upsert(payload, { onConflict: "user_id" });
-
-      if (!silent) setLoading(false);
-
-      if (error) {
-        console.error("❌ Save error:", error);
-        setSaveStatus("error");
-        setSaveError(error.message);
-        if (!silent) setMessage(`Ошибка: ${error.message}`);
-        return;
-      }
+      await saveResumeFull(user.id, resumeTitle, resumeData);
 
       setSaveStatus("saved");
-      if (!silent) setMessage("✅ Резюме сохранено!");
+      if (!silent) setMessage("Резюме сохранено!");
     } catch (e) {
       console.error("❌ Save exception:", e);
       setSaveStatus("error");
       setSaveError(e?.message || "Неизвестная ошибка");
-      if (!silent) setMessage(`Ошибка: ${e?.message || "Неизвестная ошибка"}`);
+
+      if (!silent) {
+        setMessage(`Ошибка: ${e?.message || "Неизвестная ошибка"}`);
+      }
+    } finally {
       if (!silent) setLoading(false);
     }
   };
@@ -320,7 +287,6 @@ export default function ResumeEditor() {
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumeData, resumeTitle, user]);
 
   // Рекомендации
@@ -406,11 +372,7 @@ export default function ResumeEditor() {
 
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <Button variant="contained" size="large" onClick={() => saveResume({ silent: false })} disabled={loading}>
-          {loading ? "Сохранение..." : "💾 Сохранить резюме"}
-        </Button>
-
-        <Button variant="text" size="large" onClick={loadResumeData} disabled={loading}>
-          🔄 Перезагрузить из базы
+          {loading ? "Сохранение..." : "Сохранить резюме"}
         </Button>
       </Box>
 
