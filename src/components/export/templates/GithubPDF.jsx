@@ -50,6 +50,16 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 
+  contactLine: {
+    fontSize: 9,
+    color: '#8b949e',
+    marginBottom: 3,
+  },
+
+  section: {
+    marginBottom: 15,
+  },
+
   sectionTitle: {
     fontSize: 13,
     fontWeight: 700,

@@ -211,9 +211,6 @@ export default function ResumeEditor() {
   setActiveTab(tabIndex);
   pendingFocusRef.current = { tab: tabIndex, target: finalTarget };
   focusTriesRef.current = 0;
-
-    pendingFocusRef.current = { tab: tabIndex, target: targetId || fallbackByTab[tabIndex] };
-    focusTriesRef.current = 0;
   };
 
   const failValidation = ({ silent }) => {
