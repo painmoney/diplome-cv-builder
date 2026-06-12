@@ -27,6 +27,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
 import { getAvatarUrl } from "../api/storage";
 import { getResumeCompleteness } from "../utils/helpers";
+import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -470,6 +471,12 @@ export default function Dashboard() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Backdrop экспорта */}
+      <ExportProgressBackdrop
+        open={exportingPDF || exportingDOCX || exportingMD}
+        format={exportingPDF ? "PDF" : exportingDOCX ? "DOCX" : "Markdown"}
+      />
 
       {/* Snackbar */}
       <Snackbar

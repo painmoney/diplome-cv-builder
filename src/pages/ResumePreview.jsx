@@ -26,6 +26,7 @@ import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
 
 import html2canvas from "html2canvas";
+import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
 
 const VALID_TEMPLATES = ["minimalist", "academic", "github"];
 
@@ -420,6 +421,12 @@ export default function ResumePreview() {
       >
         <TemplateComponent data={resume.data} />
       </Box>
+
+      {/* Backdrop экспорта */}
+      <ExportProgressBackdrop
+        open={!!exportingPDF || !!exportingDOCX || !!exportingIMG}
+        format={exportingPDF ? "PDF" : exportingDOCX ? "DOCX" : exportingIMG?.toUpperCase() || "PDF"}
+      />
 
       <Snackbar
         open={snackbar.open}
