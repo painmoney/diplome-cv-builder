@@ -3,13 +3,19 @@ import { Box, TextField, Button, Chip, Typography } from "@mui/material";
 import { Add, Delete, Code } from "@mui/icons-material";
 import EmptyState from "../common/EmptyState";
 
+export function clampSkillLevel(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 3;
+  return Math.min(5, Math.max(1, Math.round(n)));
+}
+
 export default function SkillsBlock({ data = [], onChange }) {
   const [newSkill, setNewSkill] = useState("");
   const [level, setLevel] = useState(3);
 
   const addSkill = () => {
     if (newSkill.trim()) {
-      const skill = { name: newSkill, level: parseInt(level, 10), id: Date.now() };
+      const skill = { name: newSkill, level: clampSkillLevel(level), id: Date.now() };
       onChange([...data, skill]);
       setNewSkill("");
       setLevel(3);
@@ -41,6 +47,7 @@ export default function SkillsBlock({ data = [], onChange }) {
           type="number"
           value={level}
           onChange={(e) => setLevel(e.target.value)}
+          onBlur={() => setLevel(clampSkillLevel(level))}
           inputProps={{ min: 1, max: 5 }}
           size="small"
           sx={{ width: 150 }}

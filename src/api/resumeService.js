@@ -139,11 +139,15 @@ async function syncSkills(resumeId, skills = []) {
   const rows = skills
     .map((skill) => {
       const name = typeof skill === "string" ? skill : skill?.name;
+      const rawLevel = Number(skill?.level);
+      const level = Number.isFinite(rawLevel)
+        ? Math.min(5, Math.max(1, Math.round(rawLevel)))
+        : null;
 
       return {
         resume_id: resumeId,
         skill_name: cleanText(name),
-        level: toNumberOrNull(skill?.level),
+        level,
       };
     })
     .filter((row) => row.skill_name);
