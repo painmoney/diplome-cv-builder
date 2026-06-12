@@ -11,6 +11,8 @@ import {
   Chip,
   Snackbar,
   Alert,
+  LinearProgress,
+  Stack,
 } from "@mui/material";
 import {
   Edit,
@@ -24,6 +26,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
 import { getAvatarUrl } from "../api/storage";
+import { getResumeCompleteness } from "../utils/helpers";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -334,6 +337,64 @@ export default function Dashboard() {
           </Button>
         </Card>
       )}
+
+      {/* Заполненность резюме */}
+      {resume && (() => {
+        const c = getResumeCompleteness(resume.data);
+        const statusColors = { low: "error", medium: "warning", high: "success", complete: "success" };
+        const statusLabels = { low: "Начните заполнять", medium: "Есть над чем поработать", high: "Почти готово", complete: "Отлично!" };
+
+        return (
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                <Typography variant="h6" component="h2">
+                  Заполненность резюме
+                </Typography>
+                <Chip
+                  size="small"
+                  label={`${statusLabels[c.status]} · ${c.score}%`}
+                  color={statusColors[c.status]}
+                />
+              </Box>
+
+              <LinearProgress
+                variant="determinate"
+                value={c.score}
+                sx={{
+                  height: 8,
+                  borderRadius: 999,
+                  bgcolor: "action.hover",
+                  mb: 2,
+                  "& .MuiLinearProgress-bar": { borderRadius: 999 },
+                }}
+              />
+
+              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mb: 2 }}>
+                {c.sections.map((s) => (
+                  <Chip
+                    key={s.key}
+                    size="small"
+                    label={s.label}
+                    color={s.completed ? "success" : "warning"}
+                    variant={s.completed ? "filled" : "outlined"}
+                    title={s.helperText}
+                  />
+                ))}
+              </Stack>
+
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => navigate("/resume-editor")}
+                disabled={disabled}
+              >
+                Продолжить редактирование
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Быстрые действия */}
       <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>

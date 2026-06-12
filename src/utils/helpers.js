@@ -72,3 +72,76 @@ export const formatMarkdownLink = (text, url) => {
 
 export const hasNumbers = (text) => /\d/.test(safeText(text));
 export const wordCount = (text) => safeText(text).split(/\s+/).filter(Boolean).length;
+
+export function getResumeCompleteness(data = {}) {
+  const d = normalizeResumeData(data);
+  const { profile, skills, education, experience, github } = d;
+
+  const sections = [
+    {
+      key: "profile",
+      label: "Профиль",
+      completed: !!safeText(profile.name),
+      helperText: safeText(profile.name) ? "ФИО заполнено" : "Добавьте ФИО",
+    },
+    {
+      key: "contacts",
+      label: "Контакты",
+      completed: !!safeText(profile.email) || !!safeText(profile.phone),
+      helperText: safeText(profile.email) || safeText(profile.phone)
+        ? `${safeText(profile.email) && "email"}${safeText(profile.email) && safeText(profile.phone) ? " · " : ""}${safeText(profile.phone) && "телефон"}`
+        : "Добавьте email или телефон",
+    },
+    {
+      key: "about",
+      label: "О себе",
+      completed: wordCount(profile.about) >= 12,
+      helperText: wordCount(profile.about) >= 12
+        ? `${wordCount(profile.about)} слов`
+        : `Нужно 12+ слов (сейчас ${wordCount(profile.about)})`,
+    },
+    {
+      key: "skills",
+      label: "Навыки",
+      completed: skills.length >= 3,
+      helperText: skills.length > 0
+        ? `${skills.length} навыков`
+        : "Добавьте хотя бы 3 навыка",
+    },
+    {
+      key: "experience",
+      label: "Опыт",
+      completed: experience.length >= 1,
+      helperText: experience.length > 0
+        ? `${experience.length} записей`
+        : "Добавьте опыт или проекты",
+    },
+    {
+      key: "education",
+      label: "Образование",
+      completed: education.length >= 1,
+      helperText: education.length > 0
+        ? `${education.length} записей`
+        : "Добавьте образование",
+    },
+    {
+      key: "github",
+      label: "GitHub",
+      completed: github.length >= 1,
+      helperText: github.length > 0
+        ? `${github.length} проектов`
+        : "Подключите GitHub",
+    },
+  ];
+
+  const completedCount = sections.filter((s) => s.completed).length;
+  const score = Math.round((completedCount / sections.length) * 100);
+
+  let status;
+  if (score >= 100) status = "complete";
+  else if (score >= 70) status = "high";
+  else if (score >= 40) status = "medium";
+  else status = "low";
+
+  return { score, status, sections };
+}
