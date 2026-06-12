@@ -12,6 +12,7 @@ import {
   Snackbar,
 } from "@mui/material";
 import { useLocation } from "react-router-dom";
+import WorkIcon from "@mui/icons-material/Work";
 
 import {
   loadUserResume,
@@ -27,6 +28,7 @@ import SkillsBlock from "./SkillsBlock";
 import ExperienceBlock from "./ExperienceBlock";
 import GitHubBlock from "./GitHubBlock";
 import TemplateSelector from "./TemplateSelector";
+import JobMatchTab from "./JobMatchTab";
 
 import RecommendationPanel from "./RecommendationPanel";
 import { getRecommendations } from "../../utils/recommendationLogic";
@@ -48,13 +50,19 @@ export default function ResumeEditor() {
   const initialTarget = location.state?.target;
 
   const [activeTab, setActiveTab] = useState(() => {
-    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 4 ? initialTab : 0;
+    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 5 ? initialTab : 0;
   });
   const [resumeTitle, setResumeTitle] = useState("Моё IT-резюме");
   const [resumeData, setResumeData] = useState(DEFAULT_RESUME_DATA);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // job match state (persisted across tab switches)
+  const [jobMatchText, setJobMatchText] = useState("");
+  const [jobMatchResult, setJobMatchResult] = useState(null);
+  const [jobMatchError, setJobMatchError] = useState("");
+  const [jobMatchAnalyzing, setJobMatchAnalyzing] = useState(false);
 
   // статус сохранения
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
@@ -228,6 +236,21 @@ export default function ResumeEditor() {
   focusTriesRef.current = 0;
   };
 
+  const handleNavigateToTarget = (tabIndex, targetId) => {
+    if (activeTab === tabIndex) {
+      pendingFocusRef.current = null;
+      focusTriesRef.current = 0;
+      setTimeout(() => {
+        focusAndScroll(targetId);
+      }, 0);
+      return;
+    }
+
+    setActiveTab(tabIndex);
+    pendingFocusRef.current = { tab: tabIndex, target: targetId };
+    focusTriesRef.current = 0;
+  };
+
   const failValidation = ({ silent }) => {
     setSaveStatus("error");
     setSaveError("validation");
@@ -357,6 +380,7 @@ export default function ResumeEditor() {
         <Tab label="Образование" />
         <Tab label="Опыт работы" />
         <Tab label="GitHub" />
+        <Tab label="Анализ вакансии" icon={<WorkIcon fontSize="small" />} iconPosition="start" />
       </Tabs>
 
       <Box sx={{ mb: 3 }}>
@@ -378,6 +402,20 @@ export default function ResumeEditor() {
         )}
         {activeTab === 4 && (
           <GitHubBlock data={resumeData.github} onChange={(d) => updateSection("github", d)} />
+        )}
+        {activeTab === 5 && (
+          <JobMatchTab
+            resumeData={resumeData}
+            jdText={jobMatchText}
+            setJdText={setJobMatchText}
+            result={jobMatchResult}
+            setResult={setJobMatchResult}
+            error={jobMatchError}
+            setError={setJobMatchError}
+            isAnalyzing={jobMatchAnalyzing}
+            setIsAnalyzing={setJobMatchAnalyzing}
+            onNavigateToTarget={handleNavigateToTarget}
+          />
         )}
       </Box>
 
