@@ -1,4 +1,3 @@
-import { saveAs } from "file-saver";
 import {
   Document,
   Packer,
@@ -324,7 +323,20 @@ export const exportToDocx = async (resumeData, template = "minimalist") => {
         .replace(/\s+/g, "_")
         .trim() || "resume";
 
-    saveAs(blob, `${name}_${Date.now()}.docx`);
+    const filename = `${name}_${Date.now()}.docx`;
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 100);
 
     return { success: true, message: "DOCX успешно сохранён!" };
   } catch {
