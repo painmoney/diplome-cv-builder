@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -11,10 +12,17 @@ import {
   Collapse,
   Alert,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import WorkIcon from "@mui/icons-material/Work";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS } from "../../utils/jobMatchUtils";
+import { isAIAvailable, generateCoverLetter } from "../../utils/aiService";
 import EmptyState from "../common/EmptyState";
 
 export default function JobMatchTab({
@@ -29,6 +37,10 @@ export default function JobMatchTab({
   setIsAnalyzing,
   onNavigateToTarget,
 }) {
+  const [clLoading, setClLoading] = useState(false);
+  const [clError, setClError] = useState("");
+  const [clPreviewOpen, setClPreviewOpen] = useState(false);
+  const [clPreviewText, setClPreviewText] = useState("");
   const handleAnalyze = () => {
     const trimmed = jdText.trim();
     if (!trimmed || trimmed.split(/\s+/).length < 5) return;
@@ -54,8 +66,55 @@ export default function JobMatchTab({
     setError("");
   };
 
+  const handleGenerateCoverLetter = async () => {
+    setClLoading(true);
+    setClError("");
+    try {
+      const text = await generateCoverLetter({
+        jdText,
+        name: resumeData.profile?.name || "",
+        about: resumeData.profile?.about || resumeData.profile?.summary || "",
+        skills: resumeData.skills || [],
+        experience: resumeData.experience || [],
+        found: result?.found || [],
+        missing: result?.missingTechnical || [],
+        companyName: result?.companyName || "",
+        positionName: result?.positionName || "",
+      });
+      setClPreviewText(text);
+      setClPreviewOpen(true);
+    } catch (err) {
+      setClError(err.message || "Ошибка AI-сервиса");
+    } finally {
+      setClLoading(false);
+    }
+  };
+
+  const handleCopyCoverLetter = async () => {
+    try {
+      await navigator.clipboard.writeText(clPreviewText);
+    } catch {
+      // fallback: select text in textarea
+    }
+  };
+
+  const handleDownloadCoverLetter = () => {
+    const blob = new Blob([clPreviewText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cover-letter.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const wordCount = jdText.trim() ? jdText.trim().split(/\s+/).length : 0;
   const canAnalyze = wordCount >= 5 && !isAnalyzing;
+
+  const hasIncompleteResume =
+    (resumeData.skills || []).length < 3 ||
+    (resumeData.experience || []).length === 0 ||
+    !(resumeData.profile?.about || resumeData.profile?.summary || "").trim();
 
   const scoreColor = (pct) => {
     if (pct >= 70) return "success";
@@ -256,6 +315,43 @@ export default function JobMatchTab({
               </CardContent>
             </Card>
           )}
+
+          {result.totalKeywords > 0 && isAIAvailable() && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                  <DescriptionIcon fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    AI Сопроводительное письмо
+                  </Typography>
+                </Box>
+                <Alert severity="info" sx={{ mb: 1.5 }}>
+                  Перед генерацией заполните навыки, опыт и блок «О себе».
+                  AI использует только данные из резюме и текст вакансии.
+                  Если технология не указана в резюме, она может быть определена как зона развития.
+                </Alert>
+                {hasIncompleteResume && (
+                  <Alert severity="warning" sx={{ mb: 1.5 }}>
+                    Резюме заполнено не полностью — письмо может получиться неточным.
+                  </Alert>
+                )}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleGenerateCoverLetter}
+                  disabled={clLoading}
+                  startIcon={clLoading ? <CircularProgress size={16} /> : <DescriptionIcon />}
+                >
+                  {clLoading ? "Генерация..." : "Сгенерировать письмо"}
+                </Button>
+                {clError && (
+                  <Alert severity="warning" sx={{ mt: 1.5 }} onClose={() => setClError("")}>
+                    {clError}
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </Collapse>
       )}
 
@@ -267,6 +363,36 @@ export default function JobMatchTab({
           compact
         />
       )}
+
+      <Dialog
+        open={clPreviewOpen}
+        onClose={() => setClPreviewOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Сопроводительное письмо</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Проверьте текст. Письмо можно скопировать или скачать.
+          </Alert>
+          <TextField
+            multiline
+            fullWidth
+            minRows={8}
+            maxRows={20}
+            value={clPreviewText}
+            onChange={(e) => setClPreviewText(e.target.value)}
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDownloadCoverLetter}>Скачать .txt</Button>
+          <Button onClick={handleCopyCoverLetter}>Копировать</Button>
+          <Button onClick={() => setClPreviewOpen(false)} variant="contained">
+            Закрыть
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
