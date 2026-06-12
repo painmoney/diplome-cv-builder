@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, TextField, Button, Chip, Typography } from "@mui/material";
-import { Add, Delete } from "@mui/icons-material";
+import { Add, Delete, Code } from "@mui/icons-material";
+import EmptyState from "../common/EmptyState";
 
 export default function SkillsBlock({ data = [], onChange }) {
   const [newSkill, setNewSkill] = useState("");
@@ -49,17 +50,28 @@ export default function SkillsBlock({ data = [], onChange }) {
         </Button>
       </Box>
 
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-        {data.map((skill) => (
-          <Chip
-            key={skill.id}
-            label={`${skill.name} (${skill.level}/5)`}
-            color="primary"
-            onDelete={() => removeSkill(skill.id)}
-            deleteIcon={<Delete fontSize="small" />}
-          />
-        ))}
-      </Box>
+      {data.length === 0 ? (
+        <EmptyState
+          icon={<Code sx={{ fontSize: 40 }} />}
+          title="Навыки пока не добавлены"
+          description="Добавьте языки, фреймворки и инструменты, чтобы резюме лучше проходило первичный отбор."
+          actionLabel="Добавить навык"
+          onAction={() => document.getElementById("skills-skill")?.focus()}
+          compact
+        />
+      ) : (
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {data.map((skill) => (
+            <Chip
+              key={skill.id}
+              label={`${skill.name} (${skill.level}/5)`}
+              color="primary"
+              onDelete={() => removeSkill(skill.id)}
+              deleteIcon={<Delete fontSize="small" />}
+            />
+          ))}
+        </Box>
+      )}
     </Box>
   );
 }

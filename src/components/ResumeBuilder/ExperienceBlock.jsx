@@ -8,7 +8,8 @@ import {
   IconButton,
   Typography,
 } from "@mui/material";
-import { Add, Delete, Edit, Save, Close } from "@mui/icons-material";
+import { Add, Delete, Edit, Save, Close, Work } from "@mui/icons-material";
+import EmptyState from "../common/EmptyState";
 
 const emptyExp = {
   company: "",
@@ -149,56 +150,67 @@ export default function ExperienceBlock({ data = [], onChange }) {
         </Box>
       </Box>
 
-      {data.map((exp, index) => (
-        <Card key={exp.id || index} sx={{ mb: 2 }}>
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 2,
-              }}
-            >
-              <Box>
-                <Typography variant="subtitle1">
-                  {exp.position || "Должность не указана"} • {exp.company}
-                </Typography>
-
-                {exp.period && (
-                  <Typography variant="body2" color="text.secondary">
-                    {exp.period}
+      {data.length === 0 ? (
+        <EmptyState
+          icon={<Work sx={{ fontSize: 40 }} />}
+          title="Опыт работы пока не добавлен"
+          description="Добавьте работу, стажировку, фриланс или учебный проект с описанием результата."
+          actionLabel="Добавить опыт"
+          onAction={() => document.getElementById("experience-company")?.focus()}
+          compact
+        />
+      ) : (
+        data.map((exp, index) => (
+          <Card key={exp.id || index} sx={{ mb: 2 }}>
+            <CardContent>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle1">
+                    {exp.position || "Должность не указана"} • {exp.company}
                   </Typography>
-                )}
 
-                {exp.description && (
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    {exp.description}
-                  </Typography>
-                )}
+                  {exp.period && (
+                    <Typography variant="body2" color="text.secondary">
+                      {exp.period}
+                    </Typography>
+                  )}
+
+                  {exp.description && (
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      {exp.description}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <IconButton
+                    onClick={() => editExperience(index)}
+                    size="small"
+                    aria-label="Редактировать опыт"
+                  >
+                    <Edit />
+                  </IconButton>
+
+                  <IconButton
+                    onClick={() => removeExperience(index)}
+                    size="small"
+                    aria-label="Удалить опыт"
+                  >
+                    <Delete />
+                  </IconButton>
+                </Box>
               </Box>
-
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <IconButton
-                  onClick={() => editExperience(index)}
-                  size="small"
-                  aria-label="Редактировать опыт"
-                >
-                  <Edit />
-                </IconButton>
-
-                <IconButton
-                  onClick={() => removeExperience(index)}
-                  size="small"
-                  aria-label="Удалить опыт"
-                >
-                  <Delete />
-                </IconButton>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        ))
+      )}
     </Box>
   );
 }

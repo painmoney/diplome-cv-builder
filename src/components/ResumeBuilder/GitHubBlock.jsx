@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Box, TextField, Button, Typography, Alert } from "@mui/material";
-import { GitHub, DeleteOutline } from "@mui/icons-material";
+import { GitHub, DeleteOutline, InsertDriveFile } from "@mui/icons-material";
 import { fetchGitHubRepos } from "../../api/githubAPI";
+import EmptyState from "../common/EmptyState";
 
 export default function GitHubBlock({ data = [], onChange }) {
   const [username, setUsername] = useState("");
@@ -111,10 +112,12 @@ export default function GitHubBlock({ data = [], onChange }) {
           ))}
         </Box>
       ) : (
-        <Alert severity="info">
-          GitHub-проекты пока не загружены. Введите username и нажмите
-          «Подключить».
-        </Alert>
+        <EmptyState
+          icon={<InsertDriveFile sx={{ fontSize: 40 }} />}
+          title="GitHub-репозитории пока не импортированы"
+          description="Введите username GitHub, чтобы добавить репозитории."
+          compact
+        />
       )}
     </Box>
   );

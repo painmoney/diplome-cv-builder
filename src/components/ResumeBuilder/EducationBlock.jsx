@@ -8,7 +8,8 @@ import {
   IconButton,
   Typography,
 } from "@mui/material";
-import { Add, Delete, Edit, Save, Close } from "@mui/icons-material";
+import { Add, Delete, Edit, Save, Close, School } from "@mui/icons-material";
+import EmptyState from "../common/EmptyState";
 
 const emptyEdu = {
   institution: "",
@@ -170,67 +171,78 @@ export default function EducationBlock({ data = [], onChange }) {
         )}
       </Box>
 
-      {data.map((edu, index) => (
-        <Card key={edu.id || index} sx={{ mb: 2 }}>
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 2,
-              }}
-            >
-              <Box>
-                <Typography variant="subtitle1">
-                  {edu.institution}
-                </Typography>
-
-                {edu.institute && (
-                  <Typography variant="body2" color="text.secondary">
-                    Институт: {edu.institute}
+      {data.length === 0 ? (
+        <EmptyState
+          icon={<School sx={{ fontSize: 40 }} />}
+          title="Образование пока не добавлено"
+          description="Укажите учебное заведение, направление подготовки или курсы."
+          actionLabel="Добавить образование"
+          onAction={() => document.getElementById("education-institution")?.focus()}
+          compact
+        />
+      ) : (
+        data.map((edu, index) => (
+          <Card key={edu.id || index} sx={{ mb: 2 }}>
+            <CardContent>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle1">
+                    {edu.institution}
                   </Typography>
-                )}
 
-                {edu.department && (
-                  <Typography variant="body2" color="text.secondary">
-                    Кафедра: {edu.department}
+                  {edu.institute && (
+                    <Typography variant="body2" color="text.secondary">
+                      Институт: {edu.institute}
+                    </Typography>
+                  )}
+
+                  {edu.department && (
+                    <Typography variant="body2" color="text.secondary">
+                      Кафедра: {edu.department}
+                    </Typography>
+                  )}
+
+                  {edu.program && (
+                    <Typography variant="body2" color="text.secondary">
+                      Направление подготовки/специальности: {edu.program}
+                    </Typography>
+                  )}
+
+                  <Typography variant="body2">
+                    {edu.degree}
+                    {edu.years ? ` (${edu.years})` : ""}
                   </Typography>
-                )}
+                </Box>
 
-                {edu.program && (
-                  <Typography variant="body2" color="text.secondary">
-                    Направление подготовки/специальности: {edu.program}
-                  </Typography>
-                )}
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <IconButton
+                    onClick={() => editEducation(index)}
+                    size="small"
+                    aria-label="Редактировать образование"
+                  >
+                    <Edit />
+                  </IconButton>
 
-                <Typography variant="body2">
-                  {edu.degree}
-                  {edu.years ? ` (${edu.years})` : ""}
-                </Typography>
+                  <IconButton
+                    onClick={() => removeEducation(index)}
+                    size="small"
+                    aria-label="Удалить образование"
+                  >
+                    <Delete />
+                  </IconButton>
+                </Box>
               </Box>
-
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <IconButton
-                  onClick={() => editEducation(index)}
-                  size="small"
-                  aria-label="Редактировать образование"
-                >
-                  <Edit />
-                </IconButton>
-
-                <IconButton
-                  onClick={() => removeEducation(index)}
-                  size="small"
-                  aria-label="Удалить образование"
-                >
-                  <Delete />
-                </IconButton>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        ))
+      )}
     </Box>
   );
 }
