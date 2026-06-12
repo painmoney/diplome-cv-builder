@@ -11,6 +11,7 @@ import {
   Chip,
   Snackbar,
 } from "@mui/material";
+import { useLocation } from "react-router-dom";
 
 import {
   loadUserResume,
@@ -42,8 +43,13 @@ const DEFAULT_RESUME_DATA = {
 
 export default function ResumeEditor() {
   const { user } = useAuth();
+  const location = useLocation();
+  const initialTab = location.state?.tab;
+  const initialTarget = location.state?.target;
 
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(() => {
+    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 4 ? initialTab : 0;
+  });
   const [resumeTitle, setResumeTitle] = useState("Моё IT-резюме");
   const [resumeData, setResumeData] = useState(DEFAULT_RESUME_DATA);
 
@@ -68,6 +74,15 @@ export default function ResumeEditor() {
 
   const profileErrors = useMemo(() => validateProfile(resumeData.profile), [resumeData.profile]);
   const isValidForSave = useMemo(() => Object.keys(profileErrors).length === 0, [profileErrors]);
+
+  // переход из Dashboard completeness chips
+  useEffect(() => {
+    if (initialTarget) {
+      pendingFocusRef.current = { tab: initialTab ?? 0, target: initialTarget };
+      focusTriesRef.current = 0;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialTarget is stable from location.state
+  }, []);
 
   const loadResumeData = async () => {
     if (!user) return;

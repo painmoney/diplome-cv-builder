@@ -6,6 +6,7 @@ import {
   Box,
   Card,
   CardContent,
+  CardActionArea,
   Avatar,
   Grid,
   Chip,
@@ -28,6 +29,65 @@ import { supabase } from "../api/supabaseClient";
 import { getAvatarUrl } from "../api/storage";
 import { getResumeCompleteness } from "../utils/helpers";
 import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
+
+const CARD_HOVER_SX = {
+  transition: "transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease",
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow: 4,
+    borderColor: "primary.main",
+  },
+};
+
+function QuickActionCard({ icon, title, description, onClick, disabled, loadingText }) {
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        ...CARD_HOVER_SX,
+        opacity: disabled ? 0.6 : 1,
+        pointerEvents: disabled ? "none" : "auto",
+      }}
+    >
+      <CardActionArea onClick={onClick} disabled={disabled} sx={{ p: 0 }}>
+        <CardContent sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+          <Box
+            sx={{
+              p: 1.25,
+              borderRadius: 2,
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
+              {loadingText || title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+              {description}
+            </Typography>
+          </Box>
+        </CardContent>
+      </CardActionArea>
+    </Card>
+  );
+}
+
+const TAB_MAP = {
+  profile: { tab: 0, target: "profile-name" },
+  contacts: { tab: 0, target: "profile-email" },
+  about: { tab: 0, target: "profile-about" },
+  skills: { tab: 1, target: "skills-skill" },
+  education: { tab: 2, target: "education-institution" },
+  experience: { tab: 3, target: "experience-company" },
+  github: { tab: 4, target: "github-username" },
+};
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -372,16 +432,21 @@ export default function Dashboard() {
               />
 
               <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mb: 2 }}>
-                {c.sections.map((s) => (
-                  <Chip
-                    key={s.key}
-                    size="small"
-                    label={s.label}
-                    color={s.completed ? "success" : "warning"}
-                    variant={s.completed ? "filled" : "outlined"}
-                    title={s.helperText}
-                  />
-                ))}
+                {c.sections.map((s) => {
+                  const t = TAB_MAP[s.key] || TAB_MAP.profile;
+                  return (
+                    <Chip
+                      key={s.key}
+                      size="small"
+                      label={s.label}
+                      color={s.completed ? "success" : "warning"}
+                      variant={s.completed ? "filled" : "outlined"}
+                      title={s.helperText}
+                      onClick={() => navigate("/resume-editor", { state: { tab: t.tab, target: t.target } })}
+                      sx={{ cursor: "pointer" }}
+                    />
+                  );
+                })}
               </Stack>
 
               <Button
@@ -404,71 +469,46 @@ export default function Dashboard() {
 
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6}>
-          <Card
-            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+          <QuickActionCard
+            icon={<Edit />}
+            title="Редактор резюме"
+            description="Добавьте навыки, опыт и проекты"
             onClick={() => navigate("/resume-editor")}
-          >
-            <CardContent>
-              <Edit color="primary" sx={{ mb: 1 }} />
-              <Typography variant="h6" component="h3">
-                Редактор резюме
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Добавьте навыки, опыт и проекты
-              </Typography>
-            </CardContent>
-          </Card>
+            disabled={disabled}
+          />
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <Card
-            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+          <QuickActionCard
+            icon={<PictureAsPdf />}
+            title="Экспорт в PDF"
+            description="Скачайте готовое резюме"
             onClick={handleExportPDF}
-          >
-            <CardContent>
-              <PictureAsPdf color="primary" sx={{ mb: 1 }} />
-              <Typography variant="h6" component="h3">
-                Экспорт в PDF
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Скачайте готовое резюме
-              </Typography>
-            </CardContent>
-          </Card>
+            disabled={disabled}
+            loadingText={exportingPDF ? "Экспорт PDF..." : undefined}
+          />
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <Card
-            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+          <QuickActionCard
+            icon={<Description />}
+            title="Экспорт в Markdown"
+            description="Для GitHub / GitLab / README.md"
             onClick={handleExportMarkdown}
-          >
-            <CardContent>
-              <Description color="primary" sx={{ mb: 1 }} />
-              <Typography variant="h6" component="h3">
-                Экспорт в Markdown
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Для GitHub / GitLab / README.md
-              </Typography>
-            </CardContent>
-          </Card>
+            disabled={disabled}
+            loadingText={exportingMD ? "Экспорт Markdown..." : undefined}
+          />
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <Card
-            sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
+          <QuickActionCard
+            icon={<Article />}
+            title="Экспорт в DOCX"
+            description="Для редактирования в Microsoft Word"
             onClick={handleExportDocx}
-          >
-            <CardContent>
-              <Article color="primary" sx={{ mb: 1 }} />
-              <Typography variant="h6" component="h3">
-                Экспорт в DOCX
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Для редактирования в Microsoft Word
-              </Typography>
-            </CardContent>
-          </Card>
+            disabled={disabled}
+            loadingText={exportingDOCX ? "Экспорт DOCX..." : undefined}
+          />
         </Grid>
       </Grid>
 
