@@ -236,6 +236,7 @@ export default function GithubTemplate({ data }) {
                     sx={{
                       color: "#8b949e",
                       lineHeight: 1.6,
+                      whiteSpace: "pre-line",
                     }}
                   >
                     {exp.description}

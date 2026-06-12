@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -7,9 +7,16 @@ import {
   CardContent,
   IconButton,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
-import { Add, Delete, Edit, Save, Close, Work } from "@mui/icons-material";
+import { Add, Delete, Edit, Save, Close, Work, AutoFixHigh } from "@mui/icons-material";
 import EmptyState from "../common/EmptyState";
+import { isAIAvailable, improveExperienceDescription } from "../../utils/aiService";
 
 const emptyExp = {
   company: "",
@@ -21,6 +28,31 @@ const emptyExp = {
 export default function ExperienceBlock({ data = [], onChange }) {
   const [newExp, setNewExp] = useState(emptyExp);
   const [editingIndex, setEditingIndex] = useState(null);
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiPreviewOpen, setAiPreviewOpen] = useState(false);
+  const [aiPreviewText, setAiPreviewText] = useState("");
+  const [aiAvailable, setAiAvailable] = useState(false);
+
+  useEffect(() => {
+    if (isAIAvailable()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- async script detection
+      setAiAvailable(true);
+      return;
+    }
+    const interval = setInterval(() => {
+      if (isAIAvailable()) {
+        setAiAvailable(true);
+        clearInterval(interval);
+      }
+    }, 500);
+    const timeout = setTimeout(() => clearInterval(interval), 10000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const resetForm = () => {
     setNewExp(emptyExp);
@@ -70,6 +102,35 @@ export default function ExperienceBlock({ data = [], onChange }) {
     if (editingIndex === index) {
       resetForm();
     }
+  };
+
+  const handleImproveDescription = async () => {
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const improved = await improveExperienceDescription({
+        description: newExp.description,
+        position: newExp.position,
+        company: newExp.company,
+      });
+      setAiPreviewText(improved);
+      setAiPreviewOpen(true);
+    } catch (err) {
+      setAiError(err.message || "Ошибка AI-сервиса");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleApplyAI = () => {
+    setNewExp({ ...newExp, description: aiPreviewText });
+    setAiPreviewOpen(false);
+    setAiPreviewText("");
+  };
+
+  const handleCancelAI = () => {
+    setAiPreviewOpen(false);
+    setAiPreviewText("");
   };
 
   return (
@@ -126,6 +187,33 @@ export default function ExperienceBlock({ data = [], onChange }) {
           rows={2}
           size="small"
         />
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          {aiAvailable && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="secondary"
+              onClick={handleImproveDescription}
+              disabled={aiLoading || !newExp.description?.trim()}
+              startIcon={aiLoading ? <CircularProgress size={16} /> : <AutoFixHigh />}
+            >
+              {aiLoading ? "AI улучшает..." : "AI Улучшить описание"}
+            </Button>
+          )}
+        </Box>
+
+        {aiError && (
+          <Alert severity="warning" sx={{ mt: -1 }} onClose={() => setAiError("")}>
+            {aiError}
+          </Alert>
+        )}
+
+        {aiAvailable && newExp.description?.trim() && !aiLoading && (
+          <Typography variant="caption" color="text.secondary">
+            AI обработает текст через внешний сервис. Не отправляйте конфиденциальные данные.
+          </Typography>
+        )}
 
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Button
@@ -211,6 +299,35 @@ export default function ExperienceBlock({ data = [], onChange }) {
           </Card>
         ))
       )}
+
+      <Dialog
+        open={aiPreviewOpen}
+        onClose={handleCancelAI}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Улучшенное описание (AI)</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Проверьте текст. Нажмите «Применить», чтобы подставить в поле описания.
+          </Alert>
+          <TextField
+            multiline
+            fullWidth
+            minRows={4}
+            maxRows={12}
+            value={aiPreviewText}
+            onChange={(e) => setAiPreviewText(e.target.value)}
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelAI}>Отмена</Button>
+          <Button onClick={handleApplyAI} variant="contained">
+            Применить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

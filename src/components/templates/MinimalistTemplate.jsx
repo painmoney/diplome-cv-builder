@@ -165,6 +165,7 @@ export default function MinimalistTemplate({ data }) {
                       color: "#374151",
                       lineHeight: 1.7,
                       textAlign: "justify",
+                      whiteSpace: "pre-line",
                     }}
                   >
                     {exp.description}
