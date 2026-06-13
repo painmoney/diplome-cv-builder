@@ -767,7 +767,7 @@ ${description}
   return extractAIText(response).trim();
 }
 
-export async function generateCoverLetter({ jdText, name, about, skills, experience, found, missing, companyName, positionName }) {
+export async function generateCoverLetter({ jdText, name, about, skills, experience, found, missing, companyName, positionName, confirmedExperience, confirmedProjects, declaredOnly, missingEvidence }) {
   if (!isAIAvailable()) {
     throw new Error("AI-сервис недоступен");
   }
@@ -819,6 +819,12 @@ ${hasPosition ? `ДОЛЖНОСТЬ: ${positionName}` : "ДОЛЖНОСТЬ: н�
 
 СОВПАДАЮЩИЕ НАВЫКИ КАНДИДАТА С ВАКАНСИЕЙ: ${found?.join(", ") || "Нет"}
 ОТСУТСТВУЮЩИЕ НАВЫКИ: ${missing?.join(", ") || "Нет"}
+
+EVIDENCE-BASED КЛАССИФИКАЦИЯ (если предоставлена):
+- Подтверждено опытом (МОЖНО писать "опыт работы с X"): ${confirmedExperience?.join(", ") || "Нет"}
+- Подтверждено проектами/GitHub (МОЖНО упомянуть как проектный опыт): ${confirmedProjects?.join(", ") || "Нет"}
+- Есть только в навыках (ПИСАТЬ как "имею навыки работы с X", НЕ как опыт): ${declaredOnly?.join(", ") || "Нет"}
+- Отсутствует в резюме (НЕ упоминать как опыт, НЕ выдумывать): ${missingEvidence?.join(", ") || "Нет"}
 
 ЖЁСТКИЕ ПРАВИЛА:
 1. Используй ТОЛЬКО факты из резюме. НЕ выдумывай опыт, проекты, достижения, метрики, должности.

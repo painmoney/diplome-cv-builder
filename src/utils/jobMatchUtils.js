@@ -153,6 +153,80 @@ export function extractResumeText(resumeData) {
   return normalizeText(parts.join(" "));
 }
 
+export function buildResumeEvidenceMap(resumeData) {
+  const data = normalizeResumeData(resumeData);
+
+  const experienceParts = [];
+  for (const exp of data.experience) {
+    if (exp.position) experienceParts.push(exp.position);
+    if (exp.company) experienceParts.push(exp.company);
+    if (exp.description) experienceParts.push(exp.description);
+  }
+
+  const skillsParts = [];
+  for (const skill of data.skills) {
+    const name = getSkillName(skill);
+    if (name) skillsParts.push(name);
+  }
+
+  const projectsParts = [];
+  const githubParts = [];
+  for (const repo of data.github) {
+    if (repo.name) projectsParts.push(repo.name);
+    if (repo.description) projectsParts.push(repo.description);
+    if (repo.url) githubParts.push(repo.url);
+    if (Array.isArray(repo.languages)) {
+      projectsParts.push(repo.languages.join(" "));
+    }
+  }
+
+  const profileParts = [];
+  if (data.profile.about) profileParts.push(data.profile.about);
+  if (data.profile.summary) profileParts.push(data.profile.summary);
+
+  return {
+    experienceText: normalizeText(experienceParts.join(" ")),
+    skillsText: normalizeText(skillsParts.join(" ")),
+    projectsText: normalizeText(projectsParts.join(" ")),
+    githubText: normalizeText(githubParts.join(" ")),
+    profileText: normalizeText(profileParts.join(" ")),
+    allResumeText: extractResumeText(resumeData),
+  };
+}
+
+export function classifyKeywordEvidence(keyword, evidenceMap) {
+  const kwLower = keyword.toLowerCase();
+  let status = "missing";
+  let source = "none";
+
+  if (evidenceMap.experienceText.includes(kwLower)) {
+    status = "confirmed_experience";
+    source = "experience";
+  } else if (evidenceMap.projectsText.includes(kwLower) || evidenceMap.githubText.includes(kwLower)) {
+    status = "confirmed_project";
+    source = evidenceMap.projectsText.includes(kwLower) ? "projects" : "github";
+  } else if (evidenceMap.skillsText.includes(kwLower)) {
+    status = "declared_skill";
+    source = "skills";
+  } else if (evidenceMap.profileText.includes(kwLower)) {
+    status = "weak_match";
+    source = "profile";
+  }
+
+  let recommendationLevel = "do_not_add_without_experience";
+  if (status === "confirmed_experience") {
+    recommendationLevel = "safe_to_use";
+  } else if (status === "confirmed_project") {
+    recommendationLevel = "safe_to_use";
+  } else if (status === "declared_skill") {
+    recommendationLevel = "use_as_skill_only";
+  } else if (status === "weak_match") {
+    recommendationLevel = "use_as_skill_only";
+  }
+
+  return { keyword, status, source, recommendationLevel };
+}
+
 function calculateCategoryBreakdown(found, missing, categoryMap) {
   const categories = {};
 
@@ -177,17 +251,77 @@ function calculateCategoryBreakdown(found, missing, categoryMap) {
   return categories;
 }
 
-function generateJobMatchRecommendations(missing, resumeData, categoryMap, totalKeywords) {
+function generateJobMatchRecommendations(missing, resumeData, categoryMap, totalKeywords, evidenceMatches = []) {
   const recs = [];
   const data = normalizeResumeData(resumeData);
 
   if (totalKeywords === 0) return recs;
 
+  // Evidence-based recommendations
+  const confirmedExp = evidenceMatches.filter((e) => e.status === "confirmed_experience");
+  if (confirmedExp.length > 0) {
+    const names = confirmedExp.slice(0, 3).map((e) => getKeywordLabel(e.keyword)).join(", ");
+    const suffix = confirmedExp.length > 3 ? ` и ещё ${confirmedExp.length - 3}` : "";
+    const isPlural = confirmedExp.length > 1;
+    const verb = isPlural ? "подтверждены" : "подтверждён";
+    recs.push({
+      type: "evidence_confirmed",
+      target: "",
+      tab: -1,
+      text: `${names}${suffix} ${verb} в опыте и соответствуют требованиям вакансии.`,
+    });
+  }
+
+  const confirmedProj = evidenceMatches.filter((e) => e.status === "confirmed_project");
+  if (confirmedProj.length > 0) {
+    const names = confirmedProj.slice(0, 3).map((e) => getKeywordLabel(e.keyword)).join(", ");
+    const suffix = confirmedProj.length > 3 ? ` и ещё ${confirmedProj.length - 3}` : "";
+    const isPlural = confirmedProj.length > 1;
+    const verb = isPlural ? "подтверждены" : "подтверждён";
+    recs.push({
+      type: "evidence_confirmed",
+      target: "",
+      tab: -1,
+      text: `${names}${suffix} ${verb} в проектах или GitHub и соответствуют требованиям вакансии.`,
+    });
+  }
+
+  const declared = evidenceMatches.filter((e) => e.status === "declared_skill");
+  if (declared.length > 0) {
+    const names = declared.slice(0, 3).map((e) => getKeywordLabel(e.keyword)).join(", ");
+    const suffix = declared.length > 3 ? ` и ещё ${declared.length - 3}` : "";
+    const isPlural = declared.length > 1;
+    const word = isPlural ? "указаны" : "указан";
+    const suffix2 = isPlural ? "найдены" : "найден";
+    recs.push({
+      type: "evidence_declared",
+      target: "experience-description",
+      tab: 3,
+      text: `${names}${suffix} ${word} в навыках, но не ${suffix2} в опыте или проектах. При наличии реального опыта можно отразить его в описании опыта или проекта.`,
+    });
+  }
+
+  const missingE = evidenceMatches.filter((e) => e.status === "missing");
+  if (missingE.length > 0) {
+    const names = missingE.slice(0, 3).map((e) => getKeywordLabel(e.keyword)).join(", ");
+    const suffix = missingE.length > 3 ? ` и ещё ${missingE.length - 3}` : "";
+    const isPlural = missingE.length > 1;
+    const foundWord = isPlural ? "найдены" : "найден";
+    const skillWord = isPlural ? "навыки" : "навык";
+    recs.push({
+      type: "evidence_missing",
+      target: "skills-skill",
+      tab: 1,
+      text: `${names}${suffix} не ${foundWord} в резюме. Добавляйте ${skillWord} только при наличии реального опыта.`,
+    });
+  }
+
+  // Legacy recommendations (kept for backward compatibility)
   const missingSkills = missing.filter((k) => {
     const cat = categoryMap.get(k);
     return cat === "languages" || cat === "frameworks" || cat === "databases";
   });
-  if (missingSkills.length > 0) {
+  if (missingSkills.length > 0 && missingE.length === 0) {
     const names = missingSkills.slice(0, 5).map(getKeywordLabel).join(", ");
     const suffix = missingSkills.length > 5 ? ` и ещё ${missingSkills.length - 5}` : "";
     recs.push({
@@ -202,7 +336,7 @@ function generateJobMatchRecommendations(missing, resumeData, categoryMap, total
     const cat = categoryMap.get(k);
     return cat === "cloud" || cat === "tools" || cat === "methodologies";
   });
-  if (missingTech.length > 0) {
+  if (missingTech.length > 0 && missingE.length === 0) {
     const names = missingTech.slice(0, 3).map(getKeywordLabel).join(", ");
     recs.push({
       type: "experience",
@@ -256,6 +390,14 @@ function generateJobMatchRecommendations(missing, resumeData, categoryMap, total
   return recs;
 }
 
+const EVIDENCE_WEIGHTS = {
+  confirmed_experience: 1.0,
+  confirmed_project: 0.8,
+  declared_skill: 0.5,
+  weak_match: 0.25,
+  missing: 0,
+};
+
 export function analyzeJobMatch(resumeData, jdText) {
   const jdWordCount = jdText.trim().split(/\s+/).filter(Boolean).length;
   const hasLowConfidence = jdWordCount < 10;
@@ -293,7 +435,51 @@ export function analyzeJobMatch(resumeData, jdText) {
   const missingTechnical = missing.filter((k) => TECHNICAL_CATEGORIES.has(categoryMap.get(k)));
 
   const categoryBreakdown = calculateCategoryBreakdown(found, missing, categoryMap);
-  const recommendations = generateJobMatchRecommendations(missing, resumeData, categoryMap, totalKeywords);
+
+  // Evidence-based classification
+  const evidenceMap = buildResumeEvidenceMap(resumeData);
+  const evidenceMatches = [];
+  const confirmedExperience = [];
+  const confirmedProjects = [];
+  const declaredOnly = [];
+  const weakMatches = [];
+  const missingEvidence = [];
+  const unsafeToAdd = [];
+
+  for (const kw of jdKeywords) {
+    const evidence = classifyKeywordEvidence(kw, evidenceMap);
+    evidenceMatches.push(evidence);
+
+    switch (evidence.status) {
+      case "confirmed_experience":
+        confirmedExperience.push(kw);
+        break;
+      case "confirmed_project":
+        confirmedProjects.push(kw);
+        break;
+      case "declared_skill":
+        declaredOnly.push(kw);
+        break;
+      case "weak_match":
+        weakMatches.push(kw);
+        break;
+      case "missing":
+        missingEvidence.push(kw);
+        unsafeToAdd.push(kw);
+        break;
+    }
+  }
+
+  // Calculate evidence score
+  const evidenceScore = totalKeywords === 0
+    ? 0
+    : Math.round(
+        (evidenceMatches.reduce((sum, e) => sum + EVIDENCE_WEIGHTS[e.status], 0) / totalKeywords) * 100
+      );
+
+  const recommendations = generateJobMatchRecommendations(
+    missing, resumeData, categoryMap, totalKeywords, evidenceMatches
+  );
 
   return {
     technicalScore,
@@ -309,6 +495,15 @@ export function analyzeJobMatch(resumeData, jdText) {
     hasLowConfidence,
     totalKeywords,
     matchedKeywords,
+    // Evidence-based fields
+    evidenceMatches,
+    confirmedExperience,
+    confirmedProjects,
+    declaredOnly,
+    weakMatches,
+    missingEvidence,
+    unsafeToAdd,
+    evidenceScore,
   };
 }
 

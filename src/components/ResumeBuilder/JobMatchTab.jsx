@@ -21,7 +21,7 @@ import {
 import WorkIcon from "@mui/icons-material/Work";
 import DescriptionIcon from "@mui/icons-material/Description";
 
-import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS } from "../../utils/jobMatchUtils";
+import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS, classifyKeywordEvidence, buildResumeEvidenceMap } from "../../utils/jobMatchUtils";
 import { isAIAvailable, generateCoverLetter } from "../../utils/aiService";
 import EmptyState from "../common/EmptyState";
 
@@ -80,6 +80,10 @@ export default function JobMatchTab({
         missing: result?.missingTechnical || [],
         companyName: result?.companyName || "",
         positionName: result?.positionName || "",
+        confirmedExperience: result?.confirmedExperience || [],
+        confirmedProjects: result?.confirmedProjects || [],
+        declaredOnly: result?.declaredOnly || [],
+        missingEvidence: result?.missingEvidence || [],
       });
       setClPreviewText(text);
       setClPreviewOpen(true);
@@ -220,7 +224,126 @@ export default function JobMatchTab({
             </Alert>
           )}
 
-          {result.totalKeywords > 0 && result.found.length > 0 && (
+          {result.totalKeywords > 0 && result.evidenceScore !== undefined && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    Evidence Score
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={`${result.evidenceScore}%`}
+                    color={scoreColor(result.evidenceScore)}
+                    variant="filled"
+                  />
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={result.evidenceScore}
+                  sx={{
+                    height: 12,
+                    borderRadius: 999,
+                    bgcolor: "action.hover",
+                    mb: 1,
+                    "& .MuiLinearProgress-bar": {
+                      borderRadius: 999,
+                      bgcolor: scoreColor(result.evidenceScore) + ".main",
+                    },
+                  }}
+                />
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  CV Builder не рекомендует добавлять навыки только ради совпадения с вакансией.
+                  Если требование найдено только в вакансии, добавляйте его в резюме только при наличии реального опыта.
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
+
+          {result.totalKeywords > 0 && result.confirmedExperience?.length > 0 && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Подтверждено опытом ({result.confirmedExperience.length})
+                </Typography>
+                <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                  {result.confirmedExperience.map((kw) => (
+                    <Tooltip key={kw} title={`Категория: ${getKeywordCategory(kw) || "Неизвестно"}`}>
+                      <Chip label={getKeywordLabel(kw)} color="success" variant="filled" size="small" />
+                    </Tooltip>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+
+          {result.totalKeywords > 0 && result.confirmedProjects?.length > 0 && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Подтверждено проектами / GitHub ({result.confirmedProjects.length})
+                </Typography>
+                <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                  {result.confirmedProjects.map((kw) => (
+                    <Tooltip key={kw} title={`Категория: ${getKeywordCategory(kw) || "Неизвестно"}`}>
+                      <Chip label={getKeywordLabel(kw)} color="info" variant="outlined" size="small" />
+                    </Tooltip>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+
+          {result.totalKeywords > 0 && result.declaredOnly?.length > 0 && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Есть только в навыках ({result.declaredOnly.length})
+                </Typography>
+                <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                  {result.declaredOnly.map((kw) => (
+                    <Tooltip key={kw} title={`Категория: ${getKeywordCategory(kw) || "Неизвестно"}`}>
+                      <Chip label={getKeywordLabel(kw)} color="warning" variant="outlined" size="small" />
+                    </Tooltip>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+
+          {result.totalKeywords > 0 && result.missingEvidence?.length > 0 && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                  Отсутствует в резюме ({result.missingEvidence.length})
+                </Typography>
+                <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                  {result.missingEvidence.map((kw) => (
+                    <Tooltip key={kw} title={`Категория: ${getKeywordCategory(kw) || "Неизвестно"}`}>
+                      <Chip label={getKeywordLabel(kw)} color="error" variant="outlined" size="small" />
+                    </Tooltip>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+
+          {result.totalKeywords > 0 && result.unsafeToAdd?.length > 0 && (() => {
+            const shown = result.unsafeToAdd.slice(0, 5);
+            const names = shown.map(getKeywordLabel).join(", ");
+            const extra = result.unsafeToAdd.length > 5 ? ` и ещё ${result.unsafeToAdd.length - 5}` : "";
+            const isPlural = shown.length > 1;
+            const foundWord = isPlural ? "найдены" : "найден";
+            const skillWord = isPlural ? "навыки" : "навык";
+            return (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {`Не добавляйте без опыта: ${names}${extra} не ${foundWord} в резюме. Добавляйте ${skillWord} только при наличии реального опыта.`}
+              </Alert>
+            );
+          })()}
+
+          {/* Fallback: show legacy found/missing if evidence data not available */}
+          {result.evidenceScore === undefined && result.totalKeywords > 0 && result.found.length > 0 && (
             <Card sx={{ mb: 2 }}>
               <CardContent>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
@@ -237,7 +360,7 @@ export default function JobMatchTab({
             </Card>
           )}
 
-          {result.totalKeywords > 0 && result.missingTechnical.length > 0 && (
+          {result.evidenceScore === undefined && result.totalKeywords > 0 && result.missingTechnical.length > 0 && (
             <Card sx={{ mb: 2 }}>
               <CardContent>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
@@ -295,22 +418,32 @@ export default function JobMatchTab({
                   Рекомендации
                 </Typography>
                 <Stack spacing={1}>
-                  {result.recommendations.map((rec, idx) => (
-                    <Alert
-                      key={idx}
-                      severity="info"
-                      action={
-                        <Button
-                          size="small"
-                          onClick={() => onNavigateToTarget(rec.tab, rec.target)}
-                        >
-                          Перейти
-                        </Button>
-                      }
-                    >
-                      {rec.text}
-                    </Alert>
-                  ))}
+                  {result.recommendations.map((rec, idx) => {
+                    const severity =
+                      rec.type === "evidence_confirmed" ? "success" :
+                      rec.type === "evidence_declared" ? "warning" :
+                      rec.type === "evidence_missing" ? "error" :
+                      "info";
+                    const showNav = rec.tab >= 0 && rec.target;
+                    return (
+                      <Alert
+                        key={idx}
+                        severity={severity}
+                        action={
+                          showNav ? (
+                            <Button
+                              size="small"
+                              onClick={() => onNavigateToTarget(rec.tab, rec.target)}
+                            >
+                              Перейти
+                            </Button>
+                          ) : undefined
+                        }
+                      >
+                        {rec.text}
+                      </Alert>
+                    );
+                  })}
                 </Stack>
               </CardContent>
             </Card>
