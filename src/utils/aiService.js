@@ -26,6 +26,713 @@ export function extractAIText(response) {
   return "";
 }
 
+/* ── About-me helpers ─────────────────────────────────────────────── */
+
+function normalizeAboutText(value) {
+  return String(value || "").toLowerCase().replace(/ё/g, "е").trim();
+}
+
+function getAboutSkillName(skill) {
+  if (typeof skill === "string") return skill;
+  return skill?.name || skill?.skill_name || "";
+}
+
+function getExperienceText(experience) {
+  return (experience || [])
+    .map((e) => `${e.position || ""} ${e.company || ""} ${e.description || ""}`)
+    .join(" ");
+}
+
+function getGithubText(github) {
+  return (github || [])
+    .map((g) => `${g.name || ""} ${g.description || ""}`)
+    .join(" ");
+}
+
+function splitSentences(text) {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+// Do not use simple includes for tech matching: Java must not match JavaScript.
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasExactTerm(text, term) {
+  const normalizedText = normalizeAboutText(text);
+  const normalizedTerm = normalizeAboutText(term);
+  if (!normalizedTerm) return false;
+  const escaped = escapeRegExp(normalizedTerm);
+  const regex = new RegExp(`(^|[^a-zа-я0-9+#.])${escaped}($|[^a-zа-я0-9+#.])`, "i");
+  return regex.test(normalizedText);
+}
+
+const SKILL_CANONICAL_ALIASES = {
+  "js": "javascript",
+  "react.js": "react",
+  "reactjs": "react",
+  "mui": "material ui",
+};
+
+function normalizeSkillCanonical(name) {
+  const lower = normalizeAboutText(name);
+  return SKILL_CANONICAL_ALIASES[lower] || lower;
+}
+
+/* ── Profile detection (universal, confirmed-only primary) ────────── */
+
+const PROFILE_KEYWORDS = {
+  frontend: [
+    "frontend", "front-end", "react", "vue", "angular", "javascript", "typescript",
+    "html", "css", "ui", "интерфейс", "пользовательский интерфейс",
+    "верстка", "вёрстка", "spa", "material ui", "mui", "vite",
+  ],
+  backendHard: [
+    "backend", "back-end", "бекенд", "бэкенд", "сервер", "серверная логика", "серверной логики",
+    "java", "spring", "spring boot", "node.js", "nodejs",
+    "express", "nestjs", "django", "fastapi", "laravel", "jpa", "hibernate",
+  ],
+  backendWeak: [
+    "api", "rest", "graphql", "postgresql", "mysql", "mongodb", "supabase",
+  ],
+  qa: [
+    "qa", "тестирование", "тестировщик", "автотест", "автотесты",
+    "selenium", "playwright", "cypress", "jest", "postman", "test case", "bug",
+  ],
+  devops: [
+    "devops", "docker", "kubernetes", "ci/cd", "gitlab ci", "github actions",
+    "nginx", "linux", "terraform", "ansible", "deploy", "деплой", "pipeline",
+  ],
+  data: [
+    "data", "данные", "аналитик", "analytics", "sql", "pandas",
+    "numpy", "machine learning", "ml", "model", "модель", "etl", "bi", "power bi",
+  ],
+  mobile: [
+    "mobile", "android", "ios", "react native", "flutter", "kotlin", "swift",
+  ],
+  design: [
+    "designer", "дизайнер", "figma", "ux", "ui/ux", "prototype", "прототип",
+  ],
+};
+
+const PROFILE_LABELS = {
+  frontend: "frontend-разработчик",
+  backend: "backend-разработчик",
+  fullstack: "fullstack-разработчик",
+  qa: "QA-специалист",
+  devops: "DevOps-инженер",
+  data: "data/analytics-специалист",
+  mobile: "mobile-разработчик",
+  design: "UI/UX-дизайнер",
+  unknown: "IT-специалист",
+};
+
+function getProfileLabel(profileType) {
+  return PROFILE_LABELS[profileType.primary] || "IT-специалист";
+}
+
+function countProfileHits(text, keywords) {
+  const lower = normalizeAboutText(text);
+  return keywords.reduce((acc, kw) => acc + (hasExactTerm(lower, kw) ? 1 : 0), 0);
+}
+
+function detectProfileType(experienceText, githubText, skills) {
+  const confirmedScores = {};
+  const skillScores = {};
+  // All profile categories for iteration (backend counts as one)
+  const profileKeys = ["frontend", "backend", "qa", "devops", "data", "mobile", "design"];
+  for (const profile of profileKeys) {
+    confirmedScores[profile] = 0;
+    skillScores[profile] = 0;
+  }
+
+  // Frontend confirmed
+  confirmedScores.frontend += countProfileHits(experienceText, PROFILE_KEYWORDS.frontend) * 3;
+  confirmedScores.frontend += countProfileHits(githubText, PROFILE_KEYWORDS.frontend) * 2;
+
+  // Backend: hard keywords are required to establish backend confirmedScore
+  const beHardExp = countProfileHits(experienceText, PROFILE_KEYWORDS.backendHard);
+  const beHardGh = countProfileHits(githubText, PROFILE_KEYWORDS.backendHard);
+  const backendHardConfirmed = (beHardExp + beHardGh) > 0;
+
+  confirmedScores.backend += beHardExp * 3;
+  confirmedScores.backend += beHardGh * 2;
+
+  // Weak backend keywords only add score if hard backend is already confirmed
+  if (backendHardConfirmed) {
+    confirmedScores.backend += countProfileHits(experienceText, PROFILE_KEYWORDS.backendWeak) * 3;
+    confirmedScores.backend += countProfileHits(githubText, PROFILE_KEYWORDS.backendWeak) * 2;
+  }
+
+  // Other profiles confirmed
+  for (const profile of ["qa", "devops", "data", "mobile", "design"]) {
+    confirmedScores[profile] += countProfileHits(experienceText, PROFILE_KEYWORDS[profile]) * 3;
+    confirmedScores[profile] += countProfileHits(githubText, PROFILE_KEYWORDS[profile]) * 2;
+  }
+
+  // Skills = informational only, never drives primary
+  const skillsText = (skills || []).map(getAboutSkillName).join(" ");
+  skillScores.frontend = countProfileHits(skillsText, PROFILE_KEYWORDS.frontend) * 1;
+  skillScores.backend = countProfileHits(skillsText, [...PROFILE_KEYWORDS.backendHard, ...PROFILE_KEYWORDS.backendWeak]) * 1;
+  for (const profile of ["qa", "devops", "data", "mobile", "design"]) {
+    skillScores[profile] = countProfileHits(skillsText, PROFILE_KEYWORDS[profile]) * 1;
+  }
+
+  // Primary is determined ONLY by confirmedScores
+  const sortedConfirmed = Object.entries(confirmedScores).sort((a, b) => b[1] - a[1]);
+  const [topProfile, topScore] = sortedConfirmed[0];
+
+  if (topScore === 0) {
+    return { primary: "unknown", secondary: [], confirmedScores, skillScores, backendHardConfirmed };
+  }
+
+  // Fullstack: frontend confirmed AND backend hard keywords confirmed
+  const feConfirmed = confirmedScores.frontend || 0;
+  if (feConfirmed > 0 && backendHardConfirmed) {
+    return {
+      primary: "fullstack",
+      secondary: ["frontend", "backend"],
+      confirmedScores,
+      skillScores,
+      backendHardConfirmed,
+    };
+  }
+
+  // Secondary: profiles with confirmedScore >= 40% of primary and >= 3
+  const threshold = Math.max(3, Math.floor(topScore * 0.4));
+  const secondary = sortedConfirmed
+    .filter(([p, s]) => p !== topProfile && s >= threshold)
+    .map(([p]) => p);
+
+  return { primary: topProfile, secondary, confirmedScores, skillScores, backendHardConfirmed };
+}
+
+/* ── Skill filtering ──────────────────────────────────────────────── */
+
+function isConfirmedInContext(skillName, experienceText, githubText) {
+  const canonical = normalizeSkillCanonical(skillName);
+  return (
+    hasExactTerm(experienceText, skillName) ||
+    hasExactTerm(githubText, skillName) ||
+    hasExactTerm(experienceText, canonical) ||
+    hasExactTerm(githubText, canonical)
+  );
+}
+
+// Skills that appear in experience/github → confirmed
+function buildConfirmedTechnologies(skills, experienceText, githubText) {
+  return (skills || [])
+    .map(getAboutSkillName)
+    .filter((name) => name && isConfirmedInContext(name, experienceText, githubText));
+}
+
+// Skills that do NOT appear in experience/github → unconfirmed
+function buildUnconfirmedSkills(skills, experienceText, githubText) {
+  return (skills || [])
+    .map(getAboutSkillName)
+    .filter((name) => name && !isConfirmedInContext(name, experienceText, githubText));
+}
+
+// Skills not confirmed AND not belonging to active profile → excluded from summary
+function buildExcludedForSummarySkills(skills, experienceText, githubText, profileType) {
+  const activeProfiles = new Set([profileType.primary, ...profileType.secondary]);
+  const allBackendKw = [...PROFILE_KEYWORDS.backendHard, ...PROFILE_KEYWORDS.backendWeak];
+
+  return skills
+    .map(getAboutSkillName)
+    .filter((name) => {
+      if (!name) return false;
+      if (isConfirmedInContext(name, experienceText, githubText)) return false;
+
+      const canonical = normalizeSkillCanonical(name);
+
+      // For unknown profile: exclude everything unconfirmed
+      if (profileType.primary === "unknown") return true;
+
+      // Check if skill belongs to any active confirmed profile
+      const profileKeywordMap = {
+        frontend: PROFILE_KEYWORDS.frontend,
+        backend: allBackendKw,
+        qa: PROFILE_KEYWORDS.qa,
+        devops: PROFILE_KEYWORDS.devops,
+        data: PROFILE_KEYWORDS.data,
+        mobile: PROFILE_KEYWORDS.mobile,
+        design: PROFILE_KEYWORDS.design,
+      };
+
+      for (const [profile, keywords] of Object.entries(profileKeywordMap)) {
+        if (!activeProfiles.has(profile)) continue;
+        const matches = keywords.some((kw) => {
+          const kwCanon = normalizeSkillCanonical(kw);
+          return canonical === kwCanon || hasExactTerm(canonical, kwCanon);
+        });
+        if (matches) return false;
+      }
+
+      return true;
+    })
+    .filter(Boolean);
+}
+
+function buildDetailedSkillsForPrompt(skills, experienceText, githubText, excludedSet) {
+  return (skills || [])
+    .map((s) => {
+      const name = getAboutSkillName(s);
+      if (!name) return "";
+      if (excludedSet.has(normalizeAboutText(name))) return "";
+      const level = Number(s.level) || 0;
+      let lvl = "";
+      if (level >= 1 && level <= 2) lvl = " (базовый)";
+      else if (level === 3) lvl = " (средний)";
+      else if (level >= 4) lvl = " (продвинутый)";
+      return `- ${name}${lvl}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+/* ── Validation ───────────────────────────────────────────────────── */
+
+const BANNED_PHRASES = [
+  // Motivational / overclaim
+  "стремлюсь", "ориентирован на", "мой подход", "готов развиваться",
+  "хочу развиваться", "высокими требованиями", "высокие требования",
+  "повышению стабильности", "повышение стабильности",
+  "повышению производительности", "повышение производительности",
+  "оптимизации кода", "оптимизация кода",
+  "значительно", "высокоэффектив", "отзывчив",
+  "глубокие знания", "эксперт", "профессионал высокого уровня",
+  // Overclaim terms
+  "обладаю", "продвинут", "уверенно", "эффективно",
+  "полноценн", "масштабируем", "надежн", "надёжн",
+  "эстетически", "позволяет", "помогает",
+  "ключевые технологии",
+  // Result-claim stems
+  "что позволило", "позволило создать", "позволило",
+  "интерактивные и функциональные",
+  "подтвержденным опытом работы", "подтверждённым опытом работы",
+  // Motivational / job-seeking
+  "ищу возможности", "ищу", "готов изучать", "готова изучать",
+  "интересных проектах", "интересные проекты",
+  "актуальных задач", "актуальные задачи",
+  "изучать", "интересуюсь",
+  // Stems from real test failures
+  "с фокусом на", "уверенно работаю", "способствует",
+  "высокую производительность", "высокая производительность",
+  "современными технологиями", "современные технологии",
+  "продвинутые навыки", "продвинутыми навыками",
+  "что обеспечивает", "что способствует",
+  "эстетически привлекательн",
+  "что дает возможность", "что даёт возможность",
+  "с опытом в создании",
+  // Case B result-claim
+  "основной акцент", "высококачественную", "высококачественн",
+  "реализацию функциональности",
+  // Case D motivational
+  "открыт к новым возможностям", "открыта к новым возможностям",
+  "новым возможностям", "в сфере разработки",
+  "в рамках всего стека", "всего стека технологий", "всего стека",
+  "участвовал в создании веб-приложений", "участвовала в создании веб-приложений",
+  // Years of experience hallucination
+  "лет опыта", "года опыта", "год опыта",
+  "лет стажа", "года стажа", "год стажа",
+  // Additional overclaim
+  "что дало мне возможность", "дало мне возможность",
+  // Self-development / motivational
+  "углубляю знания", "углубляет знания", "углубляю",
+  "современных технологиях", "современные технологии",
+  "с акцентом на frontend и backend", "с акцентом на",
+  "удобных решений", "удобные решения",
+  "развиваю навыки", "изучаю",
+];
+
+const MOTIVATIONAL_STEMS = [
+  "стрем", "развива", "изуч", "углубля",
+  "нацелен", "нацелена", "открыт", "готов",
+  "ищу", "современн", "мотивац",
+];
+
+const VAGUE_RESULT_STEMS = [
+  "решения задач", "решать задачи",
+  "применение технолог", "создание удобн",
+  "удобн", "функциональн",
+];
+
+const FULLSTACK_TERMS = ["fullstack", "full stack", "фулстек", "фуллстек"];
+const BACKEND_TERMS = ["backend", "бекенд", "бэкенд", "серверной логики", "серверная логика", "для разработки серверной"];
+const FRONTEND_TERMS = ["frontend-разработчик", "front-end", "фронтенд-разработчик"];
+
+function isProfileAllowed(profileType, profileName) {
+  const { primary, secondary } = profileType;
+  if (profileName === "fullstack") return primary === "fullstack";
+  if (profileName === "backend") return primary === "backend" || primary === "fullstack" || secondary.includes("backend");
+  if (profileName === "frontend") return primary === "frontend" || primary === "fullstack" || secondary.includes("frontend");
+  return false;
+}
+
+const UNKNOWN_PROFILE_BLOCKED = [
+  "разработчик", "backend-разработчик", "frontend-разработчик",
+  "fullstack-разработчик", "опыт работы", "создаю", "разрабатываю",
+  "разрабатывал", "создавал",
+  "ищу", "готов", "готова", "изучать", "интересуюсь", "проекты",
+  "открыт", "открыта", "возможност", "сфера разработки", "сфере разработки",
+];
+
+function validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, unconfirmedSkills) {
+  const violations = [];
+
+  if (!text || text.trim().length < 20) {
+    violations.push("текст слишком короткий");
+    return { ok: false, violations };
+  }
+
+  const sentences = splitSentences(text);
+  if (sentences.length > 3) {
+    violations.push(`слишком много предложений: ${sentences.length} (допустимо 2–3)`);
+  }
+
+  const lower = normalizeAboutText(text);
+
+  // Banned phrases
+  for (const phrase of BANNED_PHRASES) {
+    if (lower.includes(normalizeAboutText(phrase))) {
+      violations.push(`запрещённая фраза: "${phrase}"`);
+    }
+  }
+
+  // Motivational stems (catch variations like "продолжаю развиваться", "нацелен на")
+  for (const stem of MOTIVATIONAL_STEMS) {
+    if (lower.includes(stem)) {
+      violations.push(`мотивационная/размытая формулировка: "${stem}"`);
+    }
+  }
+
+  // Vague result stems
+  for (const stem of VAGUE_RESULT_STEMS) {
+    if (lower.includes(stem)) {
+      violations.push(`размытая формулировка результата: "${stem}"`);
+    }
+  }
+
+  // Years of experience hallucination (regex)
+  const yearPatterns = [
+    /\b\d+\s*(год|года|лет)\s+(опыта|стажа)\b/i,
+    /\b(опыт|стаж)\s+\d+\s*(год|года|лет)\b/i,
+    /\b\d+[\s-]*(летний|годичн|годовалый)\s+(опыт|стаж)\b/i,
+    /\b\d+\s+лет\s+в\s+разработке\b/i,
+  ];
+  for (const re of yearPatterns) {
+    if (re.test(text)) {
+      violations.push("неподтверждённый стаж/количество лет опыта");
+      break;
+    }
+  }
+
+  // Role label checks against confirmed profile
+  if (!isProfileAllowed(profileType, "fullstack")) {
+    for (const term of FULLSTACK_TERMS) {
+      if (hasExactTerm(text, term)) {
+        violations.push(`profile mismatch: "${term}" не подтверждён опытом`);
+      }
+    }
+  }
+  if (!isProfileAllowed(profileType, "backend")) {
+    for (const term of BACKEND_TERMS) {
+      if (hasExactTerm(text, term)) {
+        violations.push(`profile mismatch: "${term}" не подтверждён опытом`);
+      }
+    }
+  }
+  if (!isProfileAllowed(profileType, "frontend")) {
+    for (const term of FRONTEND_TERMS) {
+      if (hasExactTerm(text, term)) {
+        violations.push(`profile mismatch: "${term}" не подтверждён опытом`);
+      }
+    }
+  }
+
+  // Unknown profile: block role claims and action verbs
+  if (profileType.primary === "unknown") {
+    for (const term of UNKNOWN_PROFILE_BLOCKED) {
+      if (hasExactTerm(text, term)) {
+        violations.push(`unknown profile: "${term}" нельзя использовать без опыта`);
+      }
+    }
+  }
+
+  // Block excluded skills (not confirmed, not in active profile) — even as "знаком с X"
+  for (const excluded of excludedForSummarySkills) {
+    if (hasExactTerm(text, excluded)) {
+      violations.push(`"${excluded}" в summary без подтверждения`);
+    }
+  }
+
+  // Overclaim: "опыт работы с X" / "имею опыт с X" where X is unconfirmed
+  const unconfirmedSet = new Set((unconfirmedSkills || []).map(normalizeAboutText));
+  const experiencePatterns = ["опыт работы с ", "имею опыт работы с ", "имею опыт с ", "опыт с "];
+  for (const pattern of experiencePatterns) {
+    const idx = lower.indexOf(pattern);
+    if (idx !== -1) {
+      const after = lower.slice(idx + pattern.length);
+      const wordMatch = after.match(/^[а-яa-z0-9\s,]+/);
+      if (wordMatch) {
+        const techPart = wordMatch[0].trim();
+        for (const [unconfirmed] of unconfirmedSet) {
+          if (techPart.includes(unconfirmed)) {
+            violations.push(`overclaim: "опыт с ${unconfirmed}" без подтверждения`);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return { ok: violations.length === 0, violations };
+}
+
+/* ── Retry / Fallback ─────────────────────────────────────────────── */
+
+function buildRetryPrompt(originalText, violations, excludedForSummarySkills, profileType) {
+  const isUnknown = profileType.primary === "unknown";
+  return `Исправь текст "О себе". Есть нарушения:
+
+Текст:
+${originalText}
+
+Нарушения:
+${violations.map((v) => `- ${v}`).join("\n")}
+
+Технологии, которые НЕ нужно упоминать (не подтверждены опытом):
+${excludedForSummarySkills.length > 0 ? excludedForSummarySkills.join(", ") : "Нет"}
+
+Требования:
+- Строго 2–3 предложения, 300–500 символов.
+- Убери запрещённые фразы и неподтверждённые технологии.
+- Не называй профиль по skills-only данным.
+${isUnknown ? "- Experience пустой. НЕ используй: 'разработчик', 'опыт', 'создаю', 'разрабатываю'. Пиши только: 'имею навыки работы с X', 'знаком с X'." : ""}
+- Skills-only технологии описывай только как навыки, не как опыт.
+- Не используй слова: обладаю, продвинутый, уверенно, эффективно, полноценный, масштабируемый, надежный, эстетически, позволяет, помогает.
+- Не используй мотивационные и self-development формулировки: продолжаю развиваться, стремлюсь, изучаю, углубляю знания, нацелен на, открыт к возможностям. Summary должен описывать уже имеющийся подтверждённый опыт и навыки.
+- НЕ указывай количество лет опыта или стажа. Не пиши "N лет опыта", "N лет в разработке". Это галлюцинация — в приложении нет такого поля.
+- Пиши технологии конкретно: "интерфейсы на React", не "высокоэффективные интерфейсы".
+- Ответь ТОЛЬКО исправленным текстом, без объяснений.`;
+}
+
+function buildFallbackText(experienceText, profileType, skills) {
+  const lower = normalizeAboutText(experienceText);
+  const primary = profileType.primary;
+
+  // Collect confirmed tech from experience
+  const fe = [];
+  const be = [];
+  const tools = [];
+
+  if (hasExactTerm(lower, "react")) fe.push("React");
+  if (hasExactTerm(lower, "javascript")) fe.push("JavaScript");
+  if (hasExactTerm(lower, "css")) fe.push("CSS");
+  if (hasExactTerm(lower, "material ui") || hasExactTerm(lower, "mui")) fe.push("Material UI");
+  if (hasExactTerm(lower, "html")) fe.push("HTML");
+  if (hasExactTerm(lower, "vue")) fe.push("Vue");
+  if (hasExactTerm(lower, "angular")) fe.push("Angular");
+
+  if (hasExactTerm(lower, "java")) be.push("Java");
+  if (hasExactTerm(lower, "spring") || hasExactTerm(lower, "spring boot")) be.push("Spring Boot");
+  if (hasExactTerm(lower, "python")) be.push("Python");
+  if (hasExactTerm(lower, "node.js") || hasExactTerm(lower, "nodejs")) be.push("Node.js");
+  if (hasExactTerm(lower, "postgresql")) tools.push("PostgreSQL");
+  if (hasExactTerm(lower, "mongodb")) tools.push("MongoDB");
+  if (hasExactTerm(lower, "docker")) tools.push("Docker");
+
+  if (primary === "fullstack") {
+    const parts = [];
+    if (fe.length) parts.push(`создание интерфейсов на ${fe.join(", ")}`);
+    if (be.length) parts.push(`backend-задачи на ${be.join(", ")}`);
+    const line1 = `Fullstack-разработчик${parts.length ? " с опытом " + parts.join(" и ") : ""}.`;
+    const line2 = tools.length ? `Работал с ${tools.join(", ")}.` : "";
+    return [line1, line2].filter(Boolean).join(" ");
+  }
+
+  if (primary === "frontend") {
+    const tech = fe.length ? ` на ${fe.join(", ")}` : "";
+    const line1 = `Frontend-разработчик с опытом создания пользовательских интерфейсов${tech}.`;
+    const extras = [];
+    if (hasExactTerm(lower, "api") || hasExactTerm(lower, "rest")) extras.push("интеграцией сторонних API");
+    if (tools.length) extras.push(`работой с ${tools.join(", ")}`);
+    const line2 = extras.length ? `Занимался ${extras.join(" и ")}.` : "";
+    return [line1, line2].filter(Boolean).join(" ");
+  }
+
+  if (primary === "backend") {
+    const tech = be.length ? ` на ${be.join(", ")}` : "";
+    const line1 = `Backend-разработчик с опытом разработки серверной логики${tech}.`;
+    const line2 = tools.length ? `Работал с ${tools.join(", ")}.` : "";
+    return [line1, line2].filter(Boolean).join(" ");
+  }
+
+  if (primary === "qa") {
+    return "QA-специалист с опытом тестирования веб-приложений и написания автотестов.";
+  }
+
+  if (primary === "devops") {
+    const tech = tools.length ? ` (${tools.join(", ")})` : "";
+    return `DevOps-инженер с опытом настройки CI/CD и инфраструктуры${tech}.`;
+  }
+
+  if (primary === "data") {
+    return "Специалист по данным с опытом анализа и обработки информации.";
+  }
+
+  if (primary === "mobile") {
+    return "Mobile-разработчик с опытом создания мобильных приложений.";
+  }
+
+  if (primary === "design") {
+    return "UI/UX-дизайнер с опытом проектирования интерфейсов.";
+  }
+
+  // unknown: cautious, skills-only wording
+  const skillNames = (skills || [])
+    .map(getAboutSkillName)
+    .filter(Boolean)
+    .slice(0, 6);
+  const skillList = skillNames.length > 0 ? skillNames.join(", ") : "указанными в резюме";
+  return `IT-специалист с набором заявленных навыков в области веб-разработки. Имею навыки работы с ${skillList}.`;
+}
+
+/* ── Main function ────────────────────────────────────────────────── */
+
+export async function generateAboutMe({ name, about, skills, experience, github }) {
+  if (!isAIAvailable()) {
+    throw new Error("AI-сервис недоступен");
+  }
+
+  const experienceText = getExperienceText(experience);
+  const githubText = getGithubText(github);
+  const profileType = detectProfileType(experienceText, githubText, skills);
+
+  const excludedForSummarySkills = buildExcludedForSummarySkills(
+    skills, experienceText, githubText, profileType
+  );
+  const excludedSet = new Set(excludedForSummarySkills.map(normalizeAboutText));
+
+  const detailedSkills = buildDetailedSkillsForPrompt(
+    skills, experienceText, githubText, excludedSet
+  );
+
+  const confirmedTech = buildConfirmedTechnologies(skills, experienceText, githubText);
+  const unconfirmedSkills = buildUnconfirmedSkills(skills, experienceText, githubText);
+
+  const expList = (experience || [])
+    .map((e) => `${e.position || ""} в ${e.company || ""}: ${e.description || ""}`)
+    .filter(Boolean)
+    .join("\n");
+
+  const ghList = (github || [])
+    .map((g) => `${g.name || ""}: ${g.description || ""} (${g.stars || 0} stars)`)
+    .filter(Boolean)
+    .join("\n");
+
+  const hasAbout = about && about.trim().length > 0;
+  const profileLabel = getProfileLabel(profileType);
+  const isUnknown = profileType.primary === "unknown";
+
+  const prompt = `Ты — карьерный консультант. Напиши краткий раздел "О себе" для IT-специалиста.
+
+${hasAbout ? `ТЕКУЩИЙ ТЕКСТ "О СЕБЕ" (улучши, сохранив смысл):\n${about}` : 'Текст "О себе" отсутствует — сгенерируй новый.'}
+
+ИНФОРМАЦИЯ О КАНДИДАТЕ:
+Имя: ${name || "Не указано"}
+Профиль определён по подтверждённому опыту: ${profileLabel} (primary: ${profileType.primary}${profileType.secondary.length ? `, secondary: ${profileType.secondary.join(", ")}` : ""})
+Confirmed scores (experience+github): ${Object.entries(profileType.confirmedScores).map(([k, v]) => `${k}=${v}`).join(", ")}
+
+Технологии, подтверждённые опытом (можно писать "работал с X", "опыт с X):
+${confirmedTech.length > 0 ? confirmedTech.join(", ") : "Нет"}
+
+Технологии ТОЛЬКО из skills (НЕ считаются опытом, писать только как "имею навыки работы с X" или "знаком с X"):
+${unconfirmedSkills.length > 0 ? unconfirmedSkills.join(", ") : "Нет"}
+
+Заявленные навыки (НЕ путай с коммерческим опытом):
+${detailedSkills || "Не указаны"}
+
+Практический опыт работы (подтверждённый):
+${expList || "Не указан"}
+
+Проекты / GitHub:
+${ghList || "Не указаны"}
+
+Технологии, которые НЕ нужно упоминать в summary (не подтверждены опытом и не соответствуют профилю):
+${excludedForSummarySkills.length > 0 ? excludedForSummarySkills.join(", ") : "Нет"}
+
+${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТОЧЕН. Нельзя писать 'опыт с X', 'разработчик X-профиля', 'создаю приложения', 'разрабатываю'. Можно писать только 'имею навыки работы с X' или 'знаком с X'." : ""}
+
+ЖЁСТКИЕ ПРАВИЛА:
+1. Профиль определён по подтверждённому опыту (experience/github), а не по skills. Skills — это только заявленные навыки.
+2. Если experience пустой — НЕ пиши "разработчик", "опыт", "создаю", "разрабатываю". Пиши "имею навыки работы с X".
+3. Включай максимум 5–7 ключевых технологий. Приоритет: технологии из experience.description → затем databases/tools если связаны с опытом. НЕ перечислять весь skills list.
+4. Технологии ТОЛЬКО из skills (не в experience.description) — НЕ пиши "опыт с X", не делай их центральными.
+5. НЕ пиши "практический опыт с X", если X есть только в навыках.
+6. Используй ТОЛЬКО факты из резюме. НЕ выдумывай опыт, метрики, должности, seniority.
+7. Формат: 2–3 предложения, сплошной текст (без списков, без markdown).
+8. 300–500 символов. Не длиннее.
+9. ЗАПРЕЩЕНО: "глубокие знания", "эксперт", "профессионал высокого уровня", "значительно", "высокоэффективный", "отзывчивый", "сильный", "уверенный", "экспертный", "профессиональный", "качественный", "стремлюсь", "ориентирован на", "мой подход", "готов развиваться", "высокие требования", "повышение стабильности", "оптимизация кода", "обладаю", "продвинут", "уверенно", "эффективно", "полноценн", "масштабируем", "надежн", "надёжн", "эстетически", "позволяет", "помогает", "ключевые технологии включают".
+10. Пиши технологии конкретно: "интерфейсы на React", "работа с Material UI и CSS". Не абстрактно: "современные технологии".
+11. Не делай пользователя более опытным, чем следует из experience.description.
+12. Язык: русский.
+13. Ответь ТОЛЬКО готовым текстом, без объяснений.
+14. НЕ указывай количество лет опыта или стажа. Не пиши "N лет опыта", "N лет в разработке" и т.п. В этом приложении нет поля для ввода стажа, любые числа — галлюцинация.
+
+ПРИМЕРЫ СТИЛЯ:
+Плохо: "создание высокоэффективных и отзывчивых пользовательских интерфейсов"
+Хорошо: "создание пользовательских интерфейсов на React"
+Плохо: "что позволило значительно улучшить функциональность веб-приложений"
+Хорошо: "занимался интеграцией сторонних API в веб-приложения"
+Плохо: "обладаю продвинутыми знаниями React"
+Хорошо: "имею навыки работы с React"`;
+
+  // First attempt
+  const response = await window.puter.ai.chat(prompt, {
+    model: "openai/gpt-4o-mini",
+  });
+  let text = extractAIText(response).trim();
+
+  // Validate
+  let validation = validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, unconfirmedSkills);
+
+  if (import.meta.env.DEV && !validation.ok) {
+    console.warn("[AboutMe] First attempt violations:", validation.violations);
+  }
+
+  // Retry once if violations found (skip retry for unknown profile — go straight to fallback)
+  if (!validation.ok && profileType.primary !== "unknown") {
+    const retryPrompt = buildRetryPrompt(text, validation.violations, excludedForSummarySkills, profileType);
+    const retryResponse = await window.puter.ai.chat(retryPrompt, {
+      model: "openai/gpt-4o-mini",
+    });
+    const retryText = extractAIText(retryResponse).trim();
+
+    const retryValidation = validateGeneratedAboutMe(retryText, profileType, excludedForSummarySkills, unconfirmedSkills);
+
+    if (import.meta.env.DEV && !retryValidation.ok) {
+      console.warn("[AboutMe] Retry violations:", retryValidation.violations);
+    }
+
+    if (retryValidation.ok && retryText.length > 20) {
+      text = retryText;
+    } else {
+      text = buildFallbackText(experienceText, profileType, skills);
+    }
+  } else if (!validation.ok) {
+    text = buildFallbackText(experienceText, profileType, skills);
+  }
+
+  // Final length cap: keep first 2–3 sentences
+  const finalSentences = splitSentences(text).slice(0, 3);
+  return finalSentences.join(" ");
+}
+
 export async function improveExperienceDescription({ description, position, company }) {
   if (!isAIAvailable()) {
     throw new Error("AI-сервис недоступен");
@@ -73,14 +780,14 @@ export async function generateCoverLetter({ jdText, name, about, skills, experie
   const detailedSkills = (skills || [])
     .map((s) => {
       if (typeof s === "string") return `- ${s}`;
-      const name = s.name || s.skill_name || "";
-      if (!name) return "";
+      const n = s.name || s.skill_name || "";
+      if (!n) return "";
       const level = Number(s.level) || 0;
       let levelDesc = "";
       if (level >= 1 && level <= 2) levelDesc = " (базовый уровень / знакомство)";
       else if (level === 3) levelDesc = " (средний уровень)";
       else if (level >= 4) levelDesc = " (продвинутый уровень)";
-      return `- ${name}${levelDesc}`;
+      return `- ${n}${levelDesc}`;
     })
     .filter(Boolean)
     .join("\n");

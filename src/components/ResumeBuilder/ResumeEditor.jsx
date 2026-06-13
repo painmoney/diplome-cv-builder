@@ -389,6 +389,9 @@ export default function ResumeEditor() {
             data={resumeData.profile}
             errors={profileErrors}
             onChange={(d) => updateSection("profile", d)}
+            skills={resumeData.skills}
+            experience={resumeData.experience}
+            github={resumeData.github}
           />
         )}
         {activeTab === 1 && (
