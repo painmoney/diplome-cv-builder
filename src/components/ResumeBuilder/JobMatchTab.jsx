@@ -22,7 +22,7 @@ import WorkIcon from "@mui/icons-material/Work";
 import DescriptionIcon from "@mui/icons-material/Description";
 
 import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS, classifyKeywordEvidence, buildResumeEvidenceMap } from "../../utils/jobMatchUtils";
-import { isAIAvailable, generateCoverLetter } from "../../utils/aiService";
+import { isAIAvailable, generateCoverLetter, generateJobMatchAdvice } from "../../utils/aiService";
 import EmptyState from "../common/EmptyState";
 
 export default function JobMatchTab({
@@ -41,6 +41,10 @@ export default function JobMatchTab({
   const [clError, setClError] = useState("");
   const [clPreviewOpen, setClPreviewOpen] = useState(false);
   const [clPreviewText, setClPreviewText] = useState("");
+  const [adviceLoading, setAdviceLoading] = useState(false);
+  const [adviceError, setAdviceError] = useState("");
+  const [advicePreviewOpen, setAdvicePreviewOpen] = useState(false);
+  const [advicePreviewText, setAdvicePreviewText] = useState("");
   const handleAnalyze = () => {
     const trimmed = jdText.trim();
     if (!trimmed || trimmed.split(/\s+/).length < 5) return;
@@ -110,6 +114,37 @@ export default function JobMatchTab({
     a.download = "cover-letter.txt";
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleGenerateAdvice = async () => {
+    setAdviceLoading(true);
+    setAdviceError("");
+    try {
+      const text = await generateJobMatchAdvice({
+        jdText,
+        confirmedExperience: result?.confirmedExperience || [],
+        confirmedProjects: result?.confirmedProjects || [],
+        declaredOnly: result?.declaredOnly || [],
+        missingEvidence: result?.missingEvidence || [],
+        evidenceScore: result?.evidenceScore,
+        technicalScore: result?.technicalScore,
+        overallScore: result?.overallScore,
+      });
+      setAdvicePreviewText(text);
+      setAdvicePreviewOpen(true);
+    } catch (err) {
+      setAdviceError(err.message || "Ошибка AI-сервиса");
+    } finally {
+      setAdviceLoading(false);
+    }
+  };
+
+  const handleCopyAdvice = async () => {
+    try {
+      await navigator.clipboard.writeText(advicePreviewText);
+    } catch {
+      // no-op fallback
+    }
   };
 
   const wordCount = jdText.trim() ? jdText.trim().split(/\s+/).length : 0;
@@ -485,6 +520,41 @@ export default function JobMatchTab({
               </CardContent>
             </Card>
           )}
+
+          {result.totalKeywords > 0 && isAIAvailable() && (
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                  <WorkIcon fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    AI Рекомендации под вакансию
+                  </Typography>
+                </Box>
+                <Alert severity="info" sx={{ mb: 1.5 }}>
+                  AI проанализирует соответствие резюме вакансии и даст безопасные рекомендации. Рекомендации не изменят резюме автоматически.
+                </Alert>
+                {result.evidenceScore !== undefined && result.evidenceScore < 40 && (
+                  <Alert severity="warning" sx={{ mb: 1.5 }}>
+                    Evidence Score ниже 40% — вакансия слабо подтверждается резюме. Не адаптируйте резюме искусственно.
+                  </Alert>
+                )}
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleGenerateAdvice}
+                  disabled={adviceLoading}
+                  startIcon={adviceLoading ? <CircularProgress size={16} /> : <WorkIcon />}
+                >
+                  {adviceLoading ? "Генерация..." : "AI-рекомендации под вакансию"}
+                </Button>
+                {adviceError && (
+                  <Alert severity="warning" sx={{ mt: 1.5 }} onClose={() => setAdviceError("")}>
+                    {adviceError}
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </Collapse>
       )}
 
@@ -522,6 +592,35 @@ export default function JobMatchTab({
           <Button onClick={handleDownloadCoverLetter}>Скачать .txt</Button>
           <Button onClick={handleCopyCoverLetter}>Копировать</Button>
           <Button onClick={() => setClPreviewOpen(false)} variant="contained">
+            Закрыть
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={advicePreviewOpen}
+        onClose={() => setAdvicePreviewOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>AI Рекомендации под вакансию</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Рекомендации основаны на анализе резюме и текста вакансии. Проверьте каждый пункт перед применением.
+          </Alert>
+          <TextField
+            multiline
+            fullWidth
+            minRows={8}
+            maxRows={20}
+            value={advicePreviewText}
+            onChange={(e) => setAdvicePreviewText(e.target.value)}
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCopyAdvice}>Копировать</Button>
+          <Button onClick={() => setAdvicePreviewOpen(false)} variant="contained">
             Закрыть
           </Button>
         </DialogActions>

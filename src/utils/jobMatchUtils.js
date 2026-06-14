@@ -264,11 +264,12 @@ function generateJobMatchRecommendations(missing, resumeData, categoryMap, total
     const suffix = confirmedExp.length > 3 ? ` и ещё ${confirmedExp.length - 3}` : "";
     const isPlural = confirmedExp.length > 1;
     const verb = isPlural ? "подтверждены" : "подтверждён";
+    const verb2 = isPlural ? "соответствуют" : "соответствует";
     recs.push({
       type: "evidence_confirmed",
       target: "",
       tab: -1,
-      text: `${names}${suffix} ${verb} в опыте и соответствуют требованиям вакансии.`,
+      text: `${names}${suffix} ${verb} в опыте и ${verb2} требованиям вакансии.`,
     });
   }
 
@@ -278,11 +279,12 @@ function generateJobMatchRecommendations(missing, resumeData, categoryMap, total
     const suffix = confirmedProj.length > 3 ? ` и ещё ${confirmedProj.length - 3}` : "";
     const isPlural = confirmedProj.length > 1;
     const verb = isPlural ? "подтверждены" : "подтверждён";
+    const verb2 = isPlural ? "соответствуют" : "соответствует";
     recs.push({
       type: "evidence_confirmed",
       target: "",
       tab: -1,
-      text: `${names}${suffix} ${verb} в проектах или GitHub и соответствуют требованиям вакансии.`,
+      text: `${names}${suffix} ${verb} в проектах или GitHub и ${verb2} требованиям вакансии.`,
     });
   }
 
