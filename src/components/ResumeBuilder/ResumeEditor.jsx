@@ -29,6 +29,7 @@ import ExperienceBlock from "./ExperienceBlock";
 import GitHubBlock from "./GitHubBlock";
 import TemplateSelector from "./TemplateSelector";
 import JobMatchTab from "./JobMatchTab";
+import ResumeHealthCheck from "./ResumeHealthCheck";
 
 import RecommendationPanel from "./RecommendationPanel";
 import { getRecommendations } from "../../utils/recommendationLogic";
@@ -50,7 +51,7 @@ export default function ResumeEditor() {
   const initialTarget = location.state?.target;
 
   const [activeTab, setActiveTab] = useState(() => {
-    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 5 ? initialTab : 0;
+    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 6 ? initialTab : 0;
   });
   const [resumeTitle, setResumeTitle] = useState("Моё IT-резюме");
   const [resumeData, setResumeData] = useState(DEFAULT_RESUME_DATA);
@@ -381,6 +382,7 @@ export default function ResumeEditor() {
         <Tab label="Опыт работы" />
         <Tab label="GitHub" />
         <Tab label="Анализ вакансии" icon={<WorkIcon fontSize="small" />} iconPosition="start" />
+        <Tab label="Проверка" />
       </Tabs>
 
       <Box sx={{ mb: 3 }}>
@@ -418,6 +420,12 @@ export default function ResumeEditor() {
             isAnalyzing={jobMatchAnalyzing}
             setIsAnalyzing={setJobMatchAnalyzing}
             onNavigateToTarget={handleNavigateToTarget}
+          />
+        )}
+        {activeTab === 6 && (
+          <ResumeHealthCheck
+            resumeData={resumeData}
+            jobMatchResult={jobMatchResult}
           />
         )}
       </Box>
