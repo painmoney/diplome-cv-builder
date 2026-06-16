@@ -27,6 +27,7 @@ import MinimalistTemplate from "../components/templates/MinimalistTemplate";
 import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
 import ClassicTemplate from "../components/templates/ClassicTemplate";
+import ModernTemplate from "../components/templates/ModernTemplate";
 
 import html2canvas from "html2canvas";
 import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
@@ -131,6 +132,7 @@ export default function ResumePreview() {
     academic: AcademicTemplate,
     github: GithubTemplate,
     classic: ClassicTemplate,
+    modern: ModernTemplate,
   }), []);
 
   const TemplateComponent = previewMap[selectedTemplate] || MinimalistTemplate;

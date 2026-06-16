@@ -49,6 +49,17 @@ export const TEMPLATE_REGISTRY = {
     supportsDocx: true,
     supportsMarkdown: true,
   },
+  modern: {
+    id: "modern",
+    label: "Современный IT",
+    description: "Современный шаблон с акцентом на навыки, опыт и GitHub-проекты",
+    category: "it",
+    docxAccent: "0ea5e9",
+    docxMuted: "555555",
+    supportsPdf: true,
+    supportsDocx: true,
+    supportsMarkdown: true,
+  },
 };
 
 export const TEMPLATE_IDS = Object.keys(TEMPLATE_REGISTRY);
