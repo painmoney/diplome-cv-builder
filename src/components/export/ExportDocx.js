@@ -17,30 +17,10 @@ import {
   safeText,
   buildProfileContactLinks,
 } from "../../utils/helpers";
-
-const TEMPLATE_STYLES = {
-  minimalist: {
-    accent: "1976D2",
-    muted: "555555",
-    titlePrefix: "",
-    sectionPrefix: "",
-  },
-  academic: {
-    accent: "2E7D32",
-    muted: "555555",
-    titlePrefix: "",
-    sectionPrefix: "",
-  },
-  github: {
-    accent: "0969DA",
-    muted: "57606A",
-    titlePrefix: "",
-    sectionPrefix: "",
-  },
-};
+import { getTemplateDocxStyle } from "../../utils/templateRegistry";
 
 const getTemplateStyle = (template = "minimalist") => {
-  return TEMPLATE_STYLES[template] || TEMPLATE_STYLES.minimalist;
+  return getTemplateDocxStyle(template);
 };
 
 const makeParagraph = (text, options = {}) => {

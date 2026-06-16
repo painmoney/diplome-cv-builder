@@ -21,6 +21,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
 
+import { TEMPLATE_IDS } from "../utils/templateRegistry";
 import MinimalistTemplate from "../components/templates/MinimalistTemplate";
 import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
@@ -28,7 +29,7 @@ import GithubTemplate from "../components/templates/GithubTemplate";
 import html2canvas from "html2canvas";
 import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
 
-const VALID_TEMPLATES = ["minimalist", "academic", "github"];
+const VALID_TEMPLATES = TEMPLATE_IDS;
 
 export default function ResumePreview() {
   const { user } = useAuth();
@@ -122,16 +123,13 @@ export default function ResumePreview() {
     });
   }, [templateOverride, resume?.id]);
 
-  const TemplateComponent = useMemo(() => {
-    switch (selectedTemplate) {
-      case "academic":
-        return AcademicTemplate;
-      case "github":
-        return GithubTemplate;
-      default:
-        return MinimalistTemplate;
-    }
-  }, [selectedTemplate]);
+  const previewMap = useMemo(() => ({
+    minimalist: MinimalistTemplate,
+    academic: AcademicTemplate,
+    github: GithubTemplate,
+  }), []);
+
+  const TemplateComponent = previewMap[selectedTemplate] || MinimalistTemplate;
 
   const handleTemplateChange = async (_, value) => {
     if (!value) return;

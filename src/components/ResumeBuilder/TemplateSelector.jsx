@@ -1,5 +1,6 @@
 
 import { Box, ToggleButtonGroup, ToggleButton, Typography } from '@mui/material';
+import { TEMPLATE_REGISTRY } from "../../utils/templateRegistry";
 
 export default function TemplateSelector({ value, onChange }) {
   return (
@@ -11,9 +12,9 @@ export default function TemplateSelector({ value, onChange }) {
         onChange={(_, newValue) => newValue && onChange(newValue)}
         aria-label="template"
       >
-        <ToggleButton value="minimalist">Минималистичный</ToggleButton>
-        <ToggleButton value="academic">Академический</ToggleButton>
-        <ToggleButton value="github">GitHub-стиль</ToggleButton>
+        {Object.values(TEMPLATE_REGISTRY).map((tpl) => (
+          <ToggleButton key={tpl.id} value={tpl.id}>{tpl.label}</ToggleButton>
+        ))}
       </ToggleButtonGroup>
     </Box>
   );
