@@ -284,28 +284,50 @@ function detectProfileType(experienceText, githubText, skills) {
 
 /* ── Skill filtering ──────────────────────────────────────────────── */
 
-function isConfirmedInContext(skillName, experienceText, githubText) {
+function isConfirmedInContext(skillName, experienceText, githubText, projectsText = "") {
   const canonical = normalizeSkillCanonical(skillName);
   return (
     hasExactTerm(experienceText, skillName) ||
     hasExactTerm(githubText, skillName) ||
+    hasExactTerm(projectsText, skillName) ||
     hasExactTerm(experienceText, canonical) ||
-    hasExactTerm(githubText, canonical)
+    hasExactTerm(githubText, canonical) ||
+    hasExactTerm(projectsText, canonical)
   );
 }
 
-// Skills that appear in experience/github → confirmed
-function buildConfirmedTechnologies(skills, experienceText, githubText) {
-  return (skills || [])
-    .map(getAboutSkillName)
-    .filter((name) => name && isConfirmedInContext(name, experienceText, githubText));
+// Split skills into 3 groups by evidence source
+function splitSkillConfirmation(skills, experienceText, githubText, projectsText = "") {
+  const experienceConfirmed = [];
+  const projectConfirmed = [];
+  const unconfirmed = [];
+
+  for (const skill of skills || []) {
+    const name = getAboutSkillName(skill);
+    if (!name) continue;
+    if (isConfirmedInContext(name, experienceText, githubText, "")) {
+      experienceConfirmed.push(name);
+    } else if (isConfirmedInContext(name, "", "", projectsText)) {
+      projectConfirmed.push(name);
+    } else {
+      unconfirmed.push(name);
+    }
+  }
+  return { experienceConfirmed, projectConfirmed, unconfirmed };
 }
 
-// Skills that do NOT appear in experience/github → unconfirmed
-function buildUnconfirmedSkills(skills, experienceText, githubText) {
+// Skills that appear in experience/github/projects → confirmed
+function buildConfirmedTechnologies(skills, experienceText, githubText, projectsText = "") {
   return (skills || [])
     .map(getAboutSkillName)
-    .filter((name) => name && !isConfirmedInContext(name, experienceText, githubText));
+    .filter((name) => name && isConfirmedInContext(name, experienceText, githubText, projectsText));
+}
+
+// Skills that do NOT appear in experience/github/projects → unconfirmed
+function buildUnconfirmedSkills(skills, experienceText, githubText, projectsText = "") {
+  return (skills || [])
+    .map(getAboutSkillName)
+    .filter((name) => name && !isConfirmedInContext(name, experienceText, githubText, projectsText));
 }
 
 // Skills not confirmed AND not belonging to active profile → excluded from summary
@@ -453,7 +475,7 @@ const UNKNOWN_PROFILE_BLOCKED = [
   "открыт", "открыта", "возможност", "сфера разработки", "сфере разработки",
 ];
 
-function validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, unconfirmedSkills) {
+function validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, unconfirmedSkills, projectConfirmedSkills = []) {
   const violations = [];
 
   if (!text || text.trim().length < 20) {
@@ -555,6 +577,26 @@ function validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, u
         for (const [unconfirmed] of unconfirmedSet) {
           if (techPart.includes(unconfirmed)) {
             violations.push(`overclaim: "опыт с ${unconfirmed}" без подтверждения`);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Overclaim: "опыт работы с X" / "работал с X" where X is project-confirmed only (not experience)
+  const projectSet = new Set((projectConfirmedSkills || []).map(normalizeAboutText));
+  const workExperiencePatterns = ["опыт работы с ", "имею опыт работы с ", "работал с ", "профессионал", "коммерческий опыт с "];
+  for (const pattern of workExperiencePatterns) {
+    const idx = lower.indexOf(pattern);
+    if (idx !== -1) {
+      const after = lower.slice(idx + pattern.length);
+      const wordMatch = after.match(/^[а-яa-z0-9\s,]+/);
+      if (wordMatch) {
+        const techPart = wordMatch[0].trim();
+        for (const [projected] of projectSet) {
+          if (techPart.includes(projected)) {
+            violations.push(`project-overclaim: "${pattern}${projected}" — проектный опыт, не опыт работы`);
             break;
           }
         }
@@ -676,13 +718,20 @@ function buildFallbackText(experienceText, profileType, skills) {
 
 /* ── Main function ────────────────────────────────────────────────── */
 
-export async function generateAboutMe({ name, about, skills, experience, github }) {
+export async function generateAboutMe({ name, about, skills, experience, github, projects = [] }) {
   if (!isAIAvailable()) {
     throw new Error("AI-сервис недоступен");
   }
 
   const experienceText = getExperienceText(experience);
   const githubText = getGithubText(github);
+
+  const manualProjects = Array.isArray(projects) ? projects : [];
+  const projectsText = manualProjects
+    .filter((p) => p.description || p.techStack)
+    .map((p) => [p.name, p.role, p.description, p.techStack, p.period].filter(Boolean).join(" "))
+    .join(" ");
+
   const profileType = detectProfileType(experienceText, githubText, skills);
 
   const excludedForSummarySkills = buildExcludedForSummarySkills(
@@ -694,8 +743,9 @@ export async function generateAboutMe({ name, about, skills, experience, github 
     skills, experienceText, githubText, excludedSet
   );
 
-  const confirmedTech = buildConfirmedTechnologies(skills, experienceText, githubText);
-  const unconfirmedSkills = buildUnconfirmedSkills(skills, experienceText, githubText);
+  const confirmedTech = buildConfirmedTechnologies(skills, experienceText, githubText, projectsText);
+  const unconfirmedSkills = buildUnconfirmedSkills(skills, experienceText, githubText, projectsText);
+  const { projectConfirmed: projectConfirmedSkills } = splitSkillConfirmation(skills, experienceText, githubText, projectsText);
 
   const expList = (experience || [])
     .map((e) => `${e.position || ""} в ${e.company || ""}: ${e.description || ""}`)
@@ -735,6 +785,9 @@ ${expList || "Не указан"}
 Проекты / GitHub:
 ${ghList || "Не указаны"}
 
+Ручные проекты (проектный опыт, НЕ опыт работы):
+${manualProjects.filter((p) => p.description || p.techStack).map((p) => `- ${p.name || "Проект"}: ${[p.role, p.description, p.techStack, p.period].filter(Boolean).join(" — ")}`).join("\n") || "Не указаны"}
+
 Технологии, которые НЕ нужно упоминать в summary (не подтверждены опытом и не соответствуют профилю):
 ${excludedForSummarySkills.length > 0 ? excludedForSummarySkills.join(", ") : "Нет"}
 
@@ -755,6 +808,9 @@ ${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТО
 12. Язык: русский.
 13. Ответь ТОЛЬКО готовым текстом, без объяснений.
 14. НЕ указывай количество лет опыта или стажа. Не пиши "N лет опыта", "N лет в разработке" и т.п. В этом приложении нет поля для ввода стажа, любые числа — галлюцинация.
+15. Ручные проекты и GitHub-проекты — это проектный опыт, НЕ опыт работы. Технологии из projects/GitHub подтверждают навыки как "проектный опыт", но НЕ позволяют писать "опыт работы с X", "работал с X", "коммерческий опыт". Разрешено: "в проектах использовал X", "проектный опыт с X".
+16. Если experience пустой, но есть projects/GitHub: можно писать "есть проектный опыт с X", "в проектах использовал X". НЕЛЬЗЯ писать "работал с X", "имею опыт работы с X", "разработчик".
+17. Validation также считает проектно-подтверждённые технологии НЕ подтверждёнными опытом работы — формулировки "опыт работы с X" будут заблокированы для технологий, найденных только в проектах/GitHub.
 
 ПРИМЕРЫ СТИЛЯ:
 Плохо: "создание высокоэффективных и отзывчивых пользовательских интерфейсов"
@@ -769,7 +825,7 @@ ${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТО
   let text = extractAIText(response).trim();
 
   // Validate
-  let validation = validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, unconfirmedSkills);
+  let validation = validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, unconfirmedSkills, projectConfirmedSkills);
 
   if (import.meta.env.DEV && !validation.ok) {
     console.warn("[AboutMe] First attempt violations:", validation.violations);
@@ -781,7 +837,7 @@ ${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТО
     const retryResponse = await callPuterAI(retryPrompt);
     const retryText = extractAIText(retryResponse).trim();
 
-    const retryValidation = validateGeneratedAboutMe(retryText, profileType, excludedForSummarySkills, unconfirmedSkills);
+    const retryValidation = validateGeneratedAboutMe(retryText, profileType, excludedForSummarySkills, unconfirmedSkills, projectConfirmedSkills);
 
     if (import.meta.env.DEV && !retryValidation.ok) {
       console.warn("[AboutMe] Retry violations:", retryValidation.violations);
@@ -887,8 +943,8 @@ ${hasPosition ? `ДОЛЖНОСТЬ: ${positionName}` : "ДОЛЖНОСТЬ: н�
 ОТСУТСТВУЮЩИЕ НАВЫКИ: ${missing?.join(", ") || "Нет"}
 
 EVIDENCE-BASED КЛАССИФИКАЦИЯ (если предоставлена):
-- Подтверждено опытом (МОЖНО писать "опыт работы с X"): ${confirmedExperience?.join(", ") || "Нет"}
-- Подтверждено проектами/GitHub (МОЖНО упомянуть как проектный опыт): ${confirmedProjects?.join(", ") || "Нет"}
+- Подтверждено опытом (МОЖНО писать "опыт работы с X", "в компании X"): ${confirmedExperience?.join(", ") || "Нет"}
+- Подтверждено проектами/GitHub (МОЖНО писать "в проекте X использовал", "проектный опыт с X", НЕ писать "опыт работы с X", "коммерческий опыт"): ${confirmedProjects?.join(", ") || "Нет"}
 - Есть только в навыках (ПИСАТЬ как "имею навыки работы с X", НЕ как опыт): ${declaredOnly?.join(", ") || "Нет"}
 - Отсутствует в резюме (НЕ упоминать как опыт, НЕ выдумывать): ${missingEvidence?.join(", ") || "Нет"}
 
@@ -903,7 +959,8 @@ EVIDENCE-BASED КЛАССИФИКАЦИЯ (если предоставлена):
 3. Если должность не указана — используй "ваша вакансия", "открытую позицию", НЕ пиши конкретную должность.
 4. Разделяй источники информации:
    - Технология есть ТОЛЬКО в навыках (не упомянута в experience) → пиши "имею навыки работы с X", "знаком с X", "имею базовое понимание X" в зависимости от уровня.
-   - Технология есть и в навыках, и в experience.description → можно писать "опыт работы с X".
+   - Технология есть в experience.description → можно писать "опыт работы с X".
+   - Технология есть в confirmedProjects (проекты/GitHub) → пиши "в проекте X использовал", "проектный опыт с X". НЕ пиши "опыт работы с X" или "коммерческий опыт" для технологии из проектов, если её нет в experience.
    - Уровень навыка 1-2: "знаком с основами X", "имею базовое понимание X".
    - Уровень навыка 3: "имею навыки работы с X".
    - Уровень навыка 4-5: можно "уверенно работаю с X", но "практический опыт" — только если технология есть в experience.description.
@@ -1005,7 +1062,7 @@ EVIDENCE-BASED КЛАССИФИКАЦИЯ:
 
 ЖЁСТКИЕ ПРАВИЛА:
 1. confirmedExperience — подтверждённый опыт. Можно рекомендовать усилить описание: добавить конкретику, задачи, контекст, результат. НЕ выдумывай метрики, если их нет.
-2. confirmedProjects — проектное подтверждение. Можно рекомендовать сильнее показать проект, подробнее описать роль/стек, перенести выше. НЕ пиши, что это коммерческий опыт.
+2. confirmedProjects — проектное подтверждение (ручные проекты и/или GitHub-репозитории). Можно рекомендовать сильнее показать проект, подробнее описать роль/стек, перенести выше. НЕ пиши, что это коммерческий опыт. НЕ пиши "опыт работы" для проектного контекста.
 3. declaredOnly — навык указан только в skills. Писать ТОЛЬКО как "навык указан в навыках". Рекомендовать подтвердить его в опыте или проекте ТОЛЬКО при наличии реального опыта. НЕ пиши "у вас есть опыт с X".
 4. missingEvidence — технология не найдена в резюме. НЕ советуй просто добавить её. Формулировка: "добавляйте только при наличии реального опыта".
 5. Если evidenceScore < 40% — добавь предупреждение, что вакансия слабо подтверждается резюме, и рекомендуй не адаптировать резюме искусственно.

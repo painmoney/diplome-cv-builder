@@ -18,7 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import AvatarUpload from "./AvatarUpload";
 import { isAIAvailable, generateAboutMe } from "../../utils/aiService";
 
-export default function ProfileForm({ data = {}, errors = {}, onChange, skills = [], experience = [], github = [] }) {
+export default function ProfileForm({ data = {}, errors = {}, onChange, skills = [], experience = [], github = [], projects = [] }) {
   const { user } = useAuth();
 
   const aboutValue = data.about ?? data.summary ?? "";
@@ -65,6 +65,7 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
         skills,
         experience,
         github,
+        projects,
       });
       setAiPreviewText(text);
       setAiPreviewOpen(true);

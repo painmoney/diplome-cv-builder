@@ -402,6 +402,7 @@ export default function ResumeEditor() {
             skills={resumeData.skills}
             experience={resumeData.experience}
             github={resumeData.github}
+            projects={resumeData.projects}
           />
         )}
         {activeTab === 1 && (
