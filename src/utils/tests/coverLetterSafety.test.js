@@ -12,6 +12,7 @@ import {
   getEvidenceBreakdownSummary,
   buildSafeNextActions,
   buildApplicationReadiness,
+  buildDeclaredSkillTip,
 } from "../coverLetterSafetyUtils";
 
 describe("formatKeywordName", () => {
@@ -501,5 +502,123 @@ describe("buildSafeNextActions", () => {
       evidenceScore: 75,
     });
     expect(actions.some((a) => a.type === "success")).toBe(true);
+  });
+});
+
+describe("buildDeclaredSkillTip", () => {
+  it("returns structured tip for PostgreSQL", () => {
+    const tip = buildDeclaredSkillTip("postgresql");
+    expect(tip).toHaveProperty("title");
+    expect(tip).toHaveProperty("description");
+    expect(tip).toHaveProperty("safeActions");
+    expect(tip).toHaveProperty("avoid");
+    expect(tip).toHaveProperty("targetSuggestions");
+    expect(tip.title).toContain("PostgreSQL");
+    expect(tip.description.length).toBeGreaterThan(20);
+    expect(tip.safeActions.length).toBeGreaterThan(0);
+    expect(tip.avoid.length).toBeGreaterThan(0);
+    expect(tip.targetSuggestions.length).toBeGreaterThan(0);
+  });
+
+  it("PostgreSQL tip does not claim experience", () => {
+    const tip = buildDeclaredSkillTip("postgresql");
+    const allText = [tip.description, ...tip.safeActions, ...tip.avoid].join(" ").toLowerCase();
+    expect(allText).not.toContain("у вас есть опыт");
+    expect(allText).not.toContain("вы работали с");
+    expect(allText).not.toContain("коммерческий опыт");
+  });
+
+  it("Docker tip mentions project and does not mention commercial experience", () => {
+    const tip = buildDeclaredSkillTip("docker");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toContain("проект");
+    expect(allText).not.toContain("коммерческий");
+  });
+
+  it("Python tip contains safe phrasing about real usage", () => {
+    const tip = buildDeclaredSkillTip("python");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toContain("реальн");
+  });
+
+  it("returns safe fallback for empty keyword", () => {
+    const tip = buildDeclaredSkillTip("");
+    expect(tip.title).toBeTruthy();
+    expect(tip.description).toBeTruthy();
+    expect(tip.safeActions.length).toBeGreaterThan(0);
+  });
+
+  it("returns safe fallback for unknown keyword", () => {
+    const tip = buildDeclaredSkillTip("CustomTech123");
+    expect(tip.title).toBeTruthy();
+    expect(tip.description).toBeTruthy();
+    expect(tip.safeActions.length).toBeGreaterThan(0);
+  });
+
+  it("missing keyword should not be processed as declaredOnly", () => {
+    const tip = buildDeclaredSkillTip("python");
+    expect(tip.title).toContain("Python");
+    expect(tip.description).not.toContain("отсутствует");
+  });
+
+  it("tips do not contain banned phrases", () => {
+    const banned = [
+      "просто добавьте",
+      "у вас есть опыт",
+      "вы работали с",
+      "коммерческий опыт",
+      "точно повысит",
+      "куда добавить evidence",
+    ];
+    const keywords = ["postgresql", "docker", "python", "javascript", "ci/cd", "react", "sql", "mongodb"];
+    for (const kw of keywords) {
+      const tip = buildDeclaredSkillTip(kw);
+      const allText = [tip.description, ...tip.safeActions, ...tip.avoid].join(" ").toLowerCase();
+      for (const phrase of banned) {
+        expect(allText).not.toContain(phrase);
+      }
+    }
+  });
+
+  it("no literal X in avoid text for unknown keywords", () => {
+    const tip = buildDeclaredSkillTip("unknownlib");
+    const avoidText = tip.avoid.join(" ");
+    expect(avoidText).not.toMatch(/\bX\b/);
+    expect(avoidText).toContain("unknownlib");
+  });
+
+  it("SQL tip is specific, not generic fallback", () => {
+    const tip = buildDeclaredSkillTip("sql");
+    expect(tip.title).toContain("SQL");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toContain("sql");
+    expect(allText).toContain("запрос");
+  });
+
+  it("MongoDB tip is specific, not generic fallback", () => {
+    const tip = buildDeclaredSkillTip("mongodb");
+    expect(tip.title).toContain("MongoDB");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toContain("mongodb");
+    expect(allText).toContain("коллекци");
+  });
+
+  it("targetSuggestions include experience and github tabs", () => {
+    const tip = buildDeclaredSkillTip("docker");
+    const tabs = tip.targetSuggestions.map((s) => s.tab);
+    expect(tabs).toContain(3);
+    expect(tabs).toContain(4);
+  });
+
+  it("all specific tips have safeActions and avoid sections", () => {
+    const keywords = [
+      "postgresql", "docker", "python", "javascript", "html",
+      "css", "ci/cd", "react", "git", "rest api", "gitlab", "sql", "mongodb",
+    ];
+    for (const kw of keywords) {
+      const tip = buildDeclaredSkillTip(kw);
+      expect(tip.safeActions.length).toBeGreaterThanOrEqual(1);
+      expect(tip.avoid.length).toBeGreaterThanOrEqual(1);
+    }
   });
 });

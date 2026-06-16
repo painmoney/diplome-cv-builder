@@ -17,13 +17,16 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Popover,
+  Divider,
 } from "@mui/material";
 import WorkIcon from "@mui/icons-material/Work";
 import DescriptionIcon from "@mui/icons-material/Description";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS } from "../../utils/jobMatchUtils";
 import { isAIAvailable, generateCoverLetter, generateJobMatchAdvice } from "../../utils/aiService";
-import { getCoverLetterMode, buildSafeNextActions, buildApplicationReadiness } from "../../utils/coverLetterSafetyUtils";
+import { getCoverLetterMode, buildSafeNextActions, buildApplicationReadiness, buildDeclaredSkillTip } from "../../utils/coverLetterSafetyUtils";
 import EmptyState from "../common/EmptyState";
 
 const DevScenarioPanel = import.meta.env.DEV
@@ -51,6 +54,8 @@ export default function JobMatchTab({
   const [adviceError, setAdviceError] = useState("");
   const [advicePreviewOpen, setAdvicePreviewOpen] = useState(false);
   const [advicePreviewText, setAdvicePreviewText] = useState("");
+  const [declaredTipAnchorEl, setDeclaredTipAnchorEl] = useState(null);
+  const [selectedDeclaredSkill, setSelectedDeclaredSkill] = useState(null);
 
   const coverLetterMode = getCoverLetterMode({
     evidenceScore: result?.evidenceScore,
@@ -361,11 +366,24 @@ export default function JobMatchTab({
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
                   Есть только в навыках ({result.declaredOnly.length})
                 </Typography>
+                <Alert severity="info" sx={{ mb: 1.5 }}>
+                  Эти технологии указаны в навыках, но пока не подтверждены опытом или проектами. Нажмите на навык, чтобы узнать, как безопасно подтвердить его без выдумывания опыта.
+                </Alert>
                 <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
                   {result.declaredOnly.map((kw) => (
-                    <Tooltip key={kw} title={`Категория: ${getKeywordCategory(kw) || "Неизвестно"}`}>
-                      <Chip label={getKeywordLabel(kw)} color="warning" variant="outlined" size="small" />
-                    </Tooltip>
+                    <Chip
+                      key={kw}
+                      label={getKeywordLabel(kw)}
+                      color="warning"
+                      variant="outlined"
+                      size="small"
+                      icon={<HelpOutlineIcon />}
+                      onClick={(e) => {
+                        setDeclaredTipAnchorEl(e.currentTarget);
+                        setSelectedDeclaredSkill(kw);
+                      }}
+                      sx={{ cursor: "pointer" }}
+                    />
                   ))}
                 </Stack>
               </CardContent>
@@ -770,6 +788,115 @@ export default function JobMatchTab({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Declared-skill tip Popover */}
+      <Popover
+        open={Boolean(declaredTipAnchorEl)}
+        anchorEl={declaredTipAnchorEl}
+        onClose={() => {
+          setDeclaredTipAnchorEl(null);
+          setSelectedDeclaredSkill(null);
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{
+          paper: {
+            sx: {
+              maxWidth: 420,
+              p: 2.5,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+            },
+          },
+        }}
+      >
+        {selectedDeclaredSkill && (() => {
+          const tip = buildDeclaredSkillTip(selectedDeclaredSkill);
+          return (
+            <>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                {tip.title}
+              </Typography>
+
+              <Alert severity="info" sx={{ mb: 1.5 }}>
+                {tip.description}
+              </Alert>
+
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "success.main" }}>
+                Как безопасно подтвердить
+              </Typography>
+              <Stack spacing={0.5} sx={{ mb: 1.5, mt: 0.5 }}>
+                {tip.safeActions.map((action, i) => (
+                  <Typography key={i} variant="body2" sx={{ pl: 1.5, position: "relative" }}>
+                    <Box
+                      component="span"
+                      sx={{
+                        position: "absolute",
+                        left: 0,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        bgcolor: "success.main",
+                      }}
+                    />
+                    {action}
+                  </Typography>
+                ))}
+              </Stack>
+
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "error.main" }}>
+                Чего не писать
+              </Typography>
+              <Stack spacing={0.5} sx={{ mb: 1.5, mt: 0.5 }}>
+                {tip.avoid.map((item, i) => (
+                  <Typography key={i} variant="body2" color="text.secondary" sx={{ pl: 1.5, position: "relative" }}>
+                    <Box
+                      component="span"
+                      sx={{
+                        position: "absolute",
+                        left: 0,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        bgcolor: "error.main",
+                      }}
+                    />
+                    {item}
+                  </Typography>
+                ))}
+              </Stack>
+
+              <Divider sx={{ my: 1.5 }} />
+
+              <Typography variant="caption" sx={{ fontWeight: 600, mb: 1, display: "block" }}>
+                Где подтвердить навык
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                {tip.targetSuggestions.map((s) => (
+                  <Button
+                    key={s.tab}
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setDeclaredTipAnchorEl(null);
+                      setSelectedDeclaredSkill(null);
+                      onNavigateToTarget(s.tab, s.targetId);
+                    }}
+                    sx={{ textTransform: "none" }}
+                  >
+                    {s.label}
+                  </Button>
+                ))}
+              </Stack>
+            </>
+          );
+        })()}
+      </Popover>
     </Box>
   );
 }
