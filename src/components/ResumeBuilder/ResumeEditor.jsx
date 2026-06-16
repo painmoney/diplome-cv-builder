@@ -10,6 +10,7 @@ import {
   TextField,
   Chip,
   Snackbar,
+  Stack,
 } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import WorkIcon from "@mui/icons-material/Work";
@@ -448,6 +449,46 @@ export default function ResumeEditor() {
         <Button variant="contained" size="large" onClick={() => saveResume({ silent: false })} disabled={loading}>
           {loading ? "Сохранение..." : "Сохранить резюме"}
         </Button>
+      </Box>
+
+      <Box
+        sx={{
+          mb: 4,
+          p: 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          {activeTab === 0 && "Дальше добавьте ключевые навыки — они помогут собрать краткое описание и анализ вакансии."}
+          {activeTab === 1 && "Дальше добавьте опыт или проекты, чтобы подтвердить навыки."}
+          {activeTab === 2 && "Дальше можно добавить опыт или перейти к GitHub-проектам."}
+          {activeTab === 3 && "Дальше можно добавить образование или перейти к GitHub-проектам."}
+          {activeTab === 4 && "После импорта проектов можно проверить резюме или сравнить его с вакансией."}
+          {activeTab === 5 && "После анализа можно вернуться к разделам и усилить резюме."}
+          {activeTab === 6 && "Исправьте найденные проблемы, затем перейдите к просмотру и экспорту резюме."}
+        </Typography>
+
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
+          <Button
+            variant="outlined"
+            disabled={activeTab === 0}
+            onClick={() => setActiveTab(activeTab - 1)}
+            sx={{ minWidth: 120 }}
+          >
+            ← Назад
+          </Button>
+          <Button
+            variant="outlined"
+            disabled={activeTab === 6}
+            onClick={() => setActiveTab(activeTab + 1)}
+            sx={{ minWidth: 120 }}
+          >
+            Далее →
+          </Button>
+        </Stack>
       </Box>
 
       <Snackbar

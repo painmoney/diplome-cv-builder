@@ -198,9 +198,9 @@ export default function JobMatchTab({
         Анализ соответствия вакансии
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Вставьте текст вакансии, чтобы узнать, насколько ваше резюме ей соответствует.
-        Анализ работает лучше с английскими вакансиями, но технологические термины
-        (React, Docker, PostgreSQL и т.д.) распознаются в любом языке.
+        Вставьте полный текст вакансии — так анализ будет точнее.
+        Мы сравним требования вакансии с опытом, проектами и навыками в резюме.
+        CV Builder не будет выдавать неподтверждённые навыки за опыт.
       </Typography>
 
       <TextField
@@ -253,6 +253,9 @@ export default function JobMatchTab({
                   variant="filled"
                 />
               </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                Показывает, сколько технологий и требований вакансии найдено в резюме.
+              </Typography>
               <LinearProgress
                 variant="determinate"
                 value={result.technicalScore}
@@ -295,7 +298,7 @@ export default function JobMatchTab({
               <CardContent>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Evidence Score
+                    Оценка доказательной базы
                   </Typography>
                   <Chip
                     size="small"
@@ -304,6 +307,9 @@ export default function JobMatchTab({
                     variant="filled"
                   />
                 </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                  Показывает, насколько навыки из вакансии подтверждены опытом, проектами или GitHub.
+                </Typography>
                 <LinearProgress
                   variant="determinate"
                   value={result.evidenceScore}
@@ -567,6 +573,9 @@ export default function JobMatchTab({
                         variant="filled"
                       />
                     </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      Помогает понять, можно ли уже откликаться или лучше сначала усилить резюме.
+                    </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                       {readiness.description}
                     </Typography>
@@ -578,7 +587,7 @@ export default function JobMatchTab({
                       />
                       <Chip
                         size="small"
-                        label={`Evidence Score: ${result.evidenceScore}%`}
+                        label={`Доказательная база: ${result.evidenceScore}%`}
                         variant="outlined"
                       />
                       <Chip
