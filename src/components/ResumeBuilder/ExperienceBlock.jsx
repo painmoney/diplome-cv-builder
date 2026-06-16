@@ -186,6 +186,7 @@ export default function ExperienceBlock({ data = [], onChange }) {
           multiline
           rows={2}
           size="small"
+          placeholder="Опишите задачи, стек и результат: что делали, какие технологии использовали, чего достигли"
         />
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>

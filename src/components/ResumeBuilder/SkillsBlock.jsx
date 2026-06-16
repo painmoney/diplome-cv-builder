@@ -32,18 +32,24 @@ export default function SkillsBlock({ data = [], onChange }) {
         Навыки
       </Typography>
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Добавьте 5–10 ключевых технологий, которые хотите показать работодателю.
+        Не обязательно указывать всё подряд — лучше выбрать стек, подтверждённый опытом или проектами.
+      </Typography>
+
+      <Box sx={{ display: "flex", gap: 2, mb: 1, flexWrap: "wrap" }}>
         <TextField
           id="skills-skill"
           label="Навык"
           value={newSkill}
           onChange={(e) => setNewSkill(e.target.value)}
+          placeholder="Например: React, PostgreSQL, Docker"
           size="small"
           sx={{ flex: 1, minWidth: 220 }}
         />
         <TextField
           id="skills-level"
-          label="Уровень (1-5)"
+          label="Уровень (1–5)"
           type="number"
           value={level}
           onChange={(e) => setLevel(e.target.value)}
@@ -57,11 +63,15 @@ export default function SkillsBlock({ data = [], onChange }) {
         </Button>
       </Box>
 
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 3 }}>
+        1 — знаком, 3 — уверенно использую, 5 — экспертный уровень
+      </Typography>
+
       {data.length === 0 ? (
         <EmptyState
           icon={<Code sx={{ fontSize: 40 }} />}
           title="Навыки пока не добавлены"
-          description="Добавьте языки, фреймворки и инструменты, чтобы резюме лучше проходило первичный отбор."
+          description="Начните с основных технологий вашего стека: JavaScript, React, PostgreSQL, Docker..."
           actionLabel="Добавить навык"
           onAction={() => document.getElementById("skills-skill")?.focus()}
           compact

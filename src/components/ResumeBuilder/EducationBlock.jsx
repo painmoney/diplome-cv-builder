@@ -82,6 +82,11 @@ export default function EducationBlock({ data = [], onChange }) {
         Образование
       </Typography>
 
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Можно указать вуз, колледж, курсы или сертификаты.
+        Если образование не связано с IT, всё равно можно оставить кратко.
+      </Typography>
+
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <TextField
           id="education-institution"

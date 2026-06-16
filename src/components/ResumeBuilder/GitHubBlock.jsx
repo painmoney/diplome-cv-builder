@@ -97,12 +97,17 @@ export default function GitHubBlock({ data = [], onChange }) {
         GitHub Репозитории
       </Typography>
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Импортируем только публичные репозитории. GitHub-проекты помогают подтвердить навыки и показать портфолио.
+      </Typography>
+
+      <Box sx={{ display: "flex", gap: 2, mb: 1, flexWrap: "wrap" }}>
         <TextField
           id="github-username"
           label="GitHub username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          placeholder="octocat"
           size="small"
           sx={{ flex: 1, minWidth: 220 }}
         />
