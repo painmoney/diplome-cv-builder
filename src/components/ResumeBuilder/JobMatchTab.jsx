@@ -701,7 +701,7 @@ export default function JobMatchTab({
                 </Alert>
                 {result.evidenceScore !== undefined && result.evidenceScore < 40 && (
                   <Alert severity="warning" sx={{ mb: 1.5 }}>
-                    Evidence Score ниже 40% — вакансия слабо подтверждается резюме. Не адаптируйте резюме искусственно.
+                    Оценка доказательной базы ниже 40% — вакансия слабо подтверждается резюме. Не адаптируйте резюме искусственно.
                   </Alert>
                 )}
                 <Button

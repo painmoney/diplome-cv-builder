@@ -102,7 +102,7 @@ function buildSteps(data, jobMatchResult) {
       id: "jobmatch",
       title: jobMatchDone ? "Вакансия проанализирована" : "Сравните с вакансией",
       description:
-        "Job Match покажет совпадения, missing skills и Evidence Score.",
+        "Сравнение резюме с вакансией: совпадения, оценка доказательной базы и рекомендации.",
       completed: jobMatchDone,
       optional: true,
       tabIndex: 5,

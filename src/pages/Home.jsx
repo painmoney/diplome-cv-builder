@@ -517,7 +517,7 @@ export default function Home() {
             {
               n: "05",
               title: "Сравните с вакансией",
-              text: "Job Match и Evidence Score покажут, насколько резюме соответствует требованиям.",
+              text: "Сравните резюме с вакансией и получите оценку доказательной базы.",
               Icon: SearchIcon,
             },
             {
