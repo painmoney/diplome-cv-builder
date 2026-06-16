@@ -78,23 +78,30 @@ export default function GithubTemplate({ data }) {
             </Typography>
           )}
 
-          {profile?.phone && (
-            <Typography variant="body2" sx={{ color: "#8b949e" }}>
-              # {profile.phone}
-            </Typography>
-          )}
-
-          {profile?.githubUrl && (
-            <Typography variant="body2" sx={{ color: "#8b949e" }}>
-              git: {profile.githubUrl}
-            </Typography>
-          )}
-
-          {profile?.website && (
-            <Typography variant="body2" sx={{ color: "#8b949e" }}>
-              web: {profile.website}
-            </Typography>
-          )}
+          {(() => {
+            const links = [];
+            if (profile?.email) links.push(`@ ${profile.email}`);
+            if (profile?.phone) links.push(`# ${profile.phone}`);
+            if (profile?.location) links.push(`loc: ${profile.location}`);
+            if (profile?.telegram) {
+              const v = String(profile.telegram).trim();
+              const m = v.match(/^@?([a-zA-Z0-9_]+)$/);
+              links.push(`tg: ${m ? `@${m[1]}` : v}`);
+            }
+            if (profile?.githubUrl) links.push(`git: ${profile.githubUrl}`);
+            if (profile?.linkedin) links.push(`in: ${profile.linkedin}`);
+            if (profile?.website) links.push(`web: ${profile.website}`);
+            if (profile?.habrCareer) links.push(`habr: ${profile.habrCareer}`);
+            return links.length > 0 ? (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {links.map((text, idx) => (
+                  <Typography key={idx} variant="body2" sx={{ color: "#8b949e" }}>
+                    {text}{idx < links.length - 1 && " |"}
+                  </Typography>
+                ))}
+              </Box>
+            ) : null;
+          })()}
         </Box>
       </Box>
 

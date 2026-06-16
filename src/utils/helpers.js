@@ -195,3 +195,37 @@ export function getResumeCompleteness(data = {}) {
 
   return { score, status, sections };
 }
+
+/**
+ * Собирает массив контактов из profile для отображения в шаблонах/экспорте.
+ * Возвращает только заполненные поля.
+ */
+export const buildProfileContactLinks = (profile = {}) => {
+  const links = [];
+
+  const email = safeText(profile.email);
+  if (email) links.push({ type: "email", label: "Email", value: email, href: `mailto:${email}` });
+
+  const phone = safeText(profile.phone);
+  if (phone) links.push({ type: "phone", label: "Телефон", value: phone, href: `tel:${phone}` });
+
+  const location = safeText(profile.location);
+  if (location) links.push({ type: "location", label: "Город", value: location });
+
+  const telegram = normalizeTelegram(profile.telegram);
+  if (telegram.display) links.push({ type: "telegram", label: "Telegram", value: telegram.display, href: telegram.url });
+
+  const githubUrl = safeText(profile.githubUrl);
+  if (githubUrl) links.push({ type: "github", label: "GitHub", value: githubUrl.replace(/^https?:\/\//, ""), href: githubUrl });
+
+  const linkedin = safeText(profile.linkedin);
+  if (linkedin) links.push({ type: "linkedin", label: "LinkedIn", value: linkedin.replace(/^https?:\/\//, ""), href: linkedin });
+
+  const website = safeText(profile.website);
+  if (website) links.push({ type: "website", label: "Портфолио", value: website.replace(/^https?:\/\//, ""), href: normalizeUrl(website) });
+
+  const habrCareer = safeText(profile.habrCareer);
+  if (habrCareer) links.push({ type: "habrCareer", label: "Habr Career", value: habrCareer.replace(/^https?:\/\//, ""), href: habrCareer });
+
+  return links;
+};

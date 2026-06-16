@@ -162,12 +162,21 @@ export default function GithubPDF({ data }) {
             <Text style={styles.about}>$ {profile.about}</Text>
           )}
           <View style={styles.contactInfo}>
-            {profile?.email && (
-              <Text style={styles.contactLine}>@ {profile.email}</Text>
-            )}
-            {profile?.phone && (
-              <Text style={styles.contactLine}># {profile.phone}</Text>
-            )}
+            {(() => {
+              const lines = [];
+              if (profile?.email) lines.push(`@ ${profile.email}`);
+              if (profile?.phone) lines.push(`# ${profile.phone}`);
+              if (profile?.location) lines.push(`loc: ${profile.location}`);
+              if (profile?.telegram) {
+                const v = String(profile.telegram).trim();
+                const m = v.match(/^@?([a-zA-Z0-9_]+)$/);
+                lines.push(`tg: ${m ? `@${m[1]}` : v}`);
+              }
+              if (profile?.linkedin) lines.push(`in: ${profile.linkedin}`);
+              if (profile?.habrCareer) lines.push(`habr: ${profile.habrCareer}`);
+              if (!lines.length) return null;
+              return <Text style={styles.contactLine}>{lines.join("  |  ")}</Text>;
+            })()}
           </View>
         </View>
 

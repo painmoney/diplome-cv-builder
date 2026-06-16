@@ -1,6 +1,6 @@
 
 import { Box, Typography, Chip, Paper, Divider } from "@mui/material";
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
+import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
 
 const SectionTitle = ({ children, color = "#1976d2" }) => (
   <Box sx={{ mb: 2 }}>
@@ -84,18 +84,30 @@ export default function MinimalistTemplate({ data }) {
           </Typography>
         )}
 
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          {profile?.email && <LightChip label={`Email: ${profile.email}`} />}
-
-          {profile?.phone && <LightChip label={`Телефон: ${profile.phone}`} />}
-
-          {profile?.githubUrl && (
-            <LightChip label={`GitHub: ${profile.githubUrl}`} />
-          )}
-
-          {profile?.website && (
-            <LightChip label={`Website: ${profile.website}`} />
-          )}
+        <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center" }}>
+          {buildProfileContactLinks(profile).map((link, idx, arr) => (
+            <Box key={link.type} sx={{ display: "inline-flex", alignItems: "center" }}>
+              {link.href ? (
+                <Typography
+                  variant="body2"
+                  component="a"
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ color: "#1976d2", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                >
+                  {link.value}
+                </Typography>
+              ) : (
+                <Typography variant="body2" sx={{ color: "#374151" }}>
+                  {link.value}
+                </Typography>
+              )}
+              {idx < arr.length - 1 && (
+                <Typography variant="body2" sx={{ color: "#9ca3af", mx: 0.5 }}>•</Typography>
+              )}
+            </Box>
+          ))}
         </Box>
       </Box>
 

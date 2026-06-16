@@ -1,6 +1,6 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from '../../../utils/helpers';
+import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
 
 // Регистрируем шрифт с поддержкой кириллицы
 Font.register({
@@ -117,12 +117,12 @@ export default function MinimalistPDF({ data }) {
           <Text style={styles.name}>{profile?.name || 'Имя не указано'}</Text>
           {profile?.about && <Text style={styles.text}>{profile.about}</Text>}
           <View style={styles.contactInfo}>
-            {profile?.email && (
-              <Text style={styles.contactLine}>Email: {profile.email}</Text>
-            )}
-            {profile?.phone && (
-              <Text style={styles.contactLine}>Телефон: {profile.phone}</Text>
-            )}
+            {(() => {
+              const links = buildProfileContactLinks(profile);
+              if (!links.length) return null;
+              const contactText = links.map((l) => l.value).join("  •  ");
+              return <Text style={styles.contactLine}>{contactText}</Text>;
+            })()}
           </View>
         </View>
 

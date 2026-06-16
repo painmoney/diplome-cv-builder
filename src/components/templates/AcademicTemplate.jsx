@@ -1,6 +1,6 @@
 
 import { Box, Typography, Paper, Grid, Divider, Chip } from "@mui/material";
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
+import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
 
 const SectionTitle = ({ children, color = "#2e7d32" }) => (
   <Box sx={{ mb: 2 }}>
@@ -75,9 +75,31 @@ export default function AcademicTemplate({ data }) {
           </Typography>
         )}
 
-        <Typography variant="body2" sx={{ color: "#6b7280" }}>
-          {[profile?.email, profile?.phone].filter(Boolean).join(" | ")}
-        </Typography>
+        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", justifyContent: "center" }}>
+          {buildProfileContactLinks(profile).map((link, idx, arr) => (
+            <Box key={link.type} sx={{ display: "inline-flex", alignItems: "center" }}>
+              {link.href ? (
+                <Typography
+                  variant="body2"
+                  component="a"
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ color: "#2e7d32", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                >
+                  {link.value}
+                </Typography>
+              ) : (
+                <Typography variant="body2" sx={{ color: "#6b7280" }}>
+                  {link.value}
+                </Typography>
+              )}
+              {idx < arr.length - 1 && (
+                <Typography variant="body2" sx={{ color: "#9ca3af", mx: 0.5 }}>•</Typography>
+              )}
+            </Box>
+          ))}
+        </Box>
       </Box>
 
       <Grid container spacing={4}>

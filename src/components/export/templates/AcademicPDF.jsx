@@ -1,6 +1,6 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from '../../../utils/helpers';
+import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
 
 Font.register({
   family: 'NotoSans',
@@ -121,8 +121,11 @@ export default function AcademicPDF({ data }) {
           <Text style={styles.name}>{profile?.name || 'Имя не указано'}</Text>
           {profile?.about && <Text style={styles.about}>{profile.about}</Text>}
           <View style={styles.contactInfo}>
-            {profile?.email && <Text>{profile.email}</Text>}
-            {profile?.phone && <Text>{profile.phone}</Text>}
+            {(() => {
+              const links = buildProfileContactLinks(profile);
+              if (!links.length) return null;
+              return <Text>{links.map((l) => l.value).join(" | ")}</Text>;
+            })()}
           </View>
         </View>
 

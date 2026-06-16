@@ -7,6 +7,7 @@ import {
   getWorkPeriod,
   formatMarkdownLink,
   safeText,
+  buildProfileContactLinks,
 } from "../../utils/helpers";
 
 const bulletsFromText = (text) => {
@@ -31,11 +32,13 @@ export const buildMarkdown = (resumeData) => {
   lines.push("");
 
   // Contacts
-  const contacts = [];
-  if (profile.email) contacts.push(`Email: ${formatMarkdownLink(profile.email, `mailto:${profile.email}`)}`);
-  if (profile.phone) contacts.push(`Телефон: ${profile.phone}`);
-  if (profile.githubUrl) contacts.push(`GitHub: ${formatMarkdownLink(profile.githubUrl, profile.githubUrl)}`);
-  if (profile.website) contacts.push(`Website: ${formatMarkdownLink(profile.website, profile.website)}`);
+  const contactLinks = buildProfileContactLinks(profile);
+  const contacts = contactLinks.map((link) => {
+    if (link.href) {
+      return formatMarkdownLink(link.value, link.href);
+    }
+    return link.value;
+  });
 
   if (contacts.length) {
     lines.push(contacts.join(" • "));

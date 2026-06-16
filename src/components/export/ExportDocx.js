@@ -15,6 +15,7 @@ import {
   getEducationYears,
   getWorkPeriod,
   safeText,
+  buildProfileContactLinks,
 } from "../../utils/helpers";
 
 const TEMPLATE_STYLES = {
@@ -147,11 +148,8 @@ export const buildDocxDocument = (resumeData, template = "minimalist") => {
     })
   );
 
-  const contacts = [];
-  if (profile.email) contacts.push(`Email: ${profile.email}`);
-  if (profile.phone) contacts.push(`Телефон: ${profile.phone}`);
-  if (profile.githubUrl) contacts.push(`GitHub: ${profile.githubUrl}`);
-  if (profile.website) contacts.push(`Website: ${profile.website}`);
+  const contactLinks = buildProfileContactLinks(profile);
+  const contacts = contactLinks.map((link) => `${link.label}: ${link.value}`);
 
   if (contacts.length) {
     children.push(

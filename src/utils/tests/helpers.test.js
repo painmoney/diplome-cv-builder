@@ -3,6 +3,7 @@ import {
   normalizeTelegram,
   normalizeUrl,
   normalizeResumeData,
+  buildProfileContactLinks,
 } from "../helpers";
 
 describe("normalizeTelegram", () => {
@@ -116,5 +117,58 @@ describe("normalizeResumeData - new contact fields", () => {
     expect(result.profile.telegram).toBe("@myuser");
     expect(result.profile.linkedin).toBe("https://linkedin.com/in/test");
     expect(result.profile.habrCareer).toBe("https://career.habr.com/test");
+  });
+});
+
+describe("buildProfileContactLinks", () => {
+  it("returns only filled fields", () => {
+    const profile = { email: "test@test.com", phone: "+79001234567" };
+    const links = buildProfileContactLinks(profile);
+    expect(links.length).toBe(2);
+    expect(links[0].type).toBe("email");
+    expect(links[1].type).toBe("phone");
+  });
+
+  it("returns empty array for empty profile", () => {
+    const links = buildProfileContactLinks({});
+    expect(links.length).toBe(0);
+  });
+
+  it("normalizes Telegram display", () => {
+    const links = buildProfileContactLinks({ telegram: "username" });
+    expect(links.length).toBe(1);
+    expect(links[0].type).toBe("telegram");
+    expect(links[0].value).toBe("@username");
+    expect(links[0].href).toBe("https://t.me/username");
+  });
+
+  it("strips https from display values", () => {
+    const links = buildProfileContactLinks({ githubUrl: "https://github.com/user" });
+    expect(links[0].value).toBe("github.com/user");
+    expect(links[0].href).toBe("https://github.com/user");
+  });
+
+  it("website uses Портфолио label", () => {
+    const links = buildProfileContactLinks({ website: "https://portfolio.com" });
+    expect(links[0].type).toBe("website");
+    expect(links[0].label).toBe("Портфолио");
+  });
+
+  it("handles all contact fields", () => {
+    const profile = {
+      email: "a@b.com",
+      phone: "+7900",
+      location: "Moscow",
+      telegram: "@user",
+      githubUrl: "https://github.com/u",
+      linkedin: "https://linkedin.com/in/u",
+      website: "https://site.com",
+      habrCareer: "https://career.habr.com/u",
+    };
+    const links = buildProfileContactLinks(profile);
+    expect(links.length).toBe(8);
+    expect(links.map((l) => l.type)).toEqual([
+      "email", "phone", "location", "telegram", "github", "linkedin", "website", "habrCareer",
+    ]);
   });
 });
