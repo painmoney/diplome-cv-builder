@@ -32,6 +32,7 @@ import JobMatchTab from "./JobMatchTab";
 import ResumeHealthCheck from "./ResumeHealthCheck";
 
 import RecommendationPanel from "./RecommendationPanel";
+import OnboardingChecklist from "./OnboardingChecklist";
 import { getRecommendations } from "../../utils/recommendationLogic";
 import { validateProfile, formatValidationToast } from "../../utils/validators";
 
@@ -141,6 +142,12 @@ export default function ResumeEditor() {
       }
       return { ...prev, [section]: newData };
     });
+  };
+
+  const handleLoadDevScenario = ({ resumeData: scenarioData, jobText }) => {
+    setResumeData(scenarioData);
+    setJobMatchText(jobText);
+    setJobMatchResult(null);
   };
 
   const flashField = (inputEl) => {
@@ -375,6 +382,12 @@ export default function ResumeEditor() {
 
       <TemplateSelector value={resumeData.template} onChange={(t) => updateSection("template", t)} />
 
+      <OnboardingChecklist
+        resumeData={resumeData}
+        jobMatchResult={jobMatchResult}
+        onNavigateToTab={handleNavigateToTarget}
+      />
+
       <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 3 }}>
         <Tab label="Профиль" />
         <Tab label="Навыки" />
@@ -420,6 +433,7 @@ export default function ResumeEditor() {
             isAnalyzing={jobMatchAnalyzing}
             setIsAnalyzing={setJobMatchAnalyzing}
             onNavigateToTarget={handleNavigateToTarget}
+            onLoadDevScenario={handleLoadDevScenario}
           />
         )}
         {activeTab === 6 && (

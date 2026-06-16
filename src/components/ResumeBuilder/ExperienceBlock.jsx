@@ -211,7 +211,7 @@ export default function ExperienceBlock({ data = [], onChange }) {
 
         {aiAvailable && newExp.description?.trim() && !aiLoading && (
           <Typography variant="caption" color="text.secondary">
-            AI обработает текст через внешний сервис. Не отправляйте конфиденциальные данные.
+            AI обработает текст через внешний сервис. Не отправляйте конфиденциальные данные. Использует лимиты Puter-аккаунта.
           </Typography>
         )}
 

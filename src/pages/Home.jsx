@@ -17,13 +17,17 @@ import { motion } from "framer-motion";
 
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BoltIcon from "@mui/icons-material/Bolt";
+import CodeIcon from "@mui/icons-material/Code";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import PaletteIcon from "@mui/icons-material/Palette";
+import PersonIcon from "@mui/icons-material/Person";
+import SearchIcon from "@mui/icons-material/Search";
 import SecurityIcon from "@mui/icons-material/Security";
 
 import { useAuth } from "../context/AuthContext";
+import TypewriterText from "../components/common/TypewriterText";
 
 const fadeUp = {
   initial: { opacity: 0, y: 14 },
@@ -43,11 +47,11 @@ export default function Home() {
 
   const chips = useMemo(
     () => [
-      { label: "React 18", icon: <BoltIcon /> },
-      { label: "Material UI", icon: <PaletteIcon /> },
-      { label: "Supabase", icon: <SecurityIcon /> },
-      { label: "PDF / Markdown / PNG", icon: <FileDownloadIcon /> },
-      { label: "20+ рекомендаций", icon: <AutoAwesomeIcon /> },
+      { label: "GitHub-проекты", icon: <GitHubIcon /> },
+      { label: "Проверка резюме", icon: <FactCheckIcon /> },
+      { label: "Анализ вакансии", icon: <SearchIcon /> },
+      { label: "Экспорт в 3 формата", icon: <FileDownloadIcon /> },
+      { label: "AI-рекомендации", icon: <AutoAwesomeIcon /> },
     ],
     []
   );
@@ -55,13 +59,13 @@ export default function Home() {
   const features = useMemo(
     () => [
       {
-        title: "Интеллектуальные рекомендации",
-        text: "Проверка резюме по 20+ критериям и подсказки, что улучшить для HR-скрининга.",
+        title: "AI-рекомендации без выдумывания",
+        text: "Рекомендации по 20+ критериям и генерация «О себе» на основе реального опыта.",
         icon: <AutoAwesomeIcon />,
       },
       {
-        title: "Редактор + автосохранение",
-        text: "5 вкладок, валидация в реальном времени и автосейв с debounce, чтобы ничего не потерять.",
+        title: "Структурированный редактор",
+        text: "Профиль, навыки, опыт, образование, GitHub — автосохранение и валидация в реальном времени.",
         icon: <FactCheckIcon />,
       },
       {
@@ -70,18 +74,18 @@ export default function Home() {
         icon: <PaletteIcon />,
       },
       {
-        title: "GitHub интеграция",
-        text: "Подтягивай последние репозитории по username и показывай активность в open-source.",
+        title: "GitHub-проекты",
+        text: "Загружайте публичные репозитории GitHub и выбирайте до 5 проектов для резюме.",
         icon: <GitHubIcon />,
       },
       {
         title: "Экспорт в один клик",
-        text: "PDF для отправки работодателю, Markdown для GitHub/Notion, PNG/JPG для быстрого шаринга.",
+        text: "PDF, DOCX, Markdown, PNG/JPG — готовый файл для отклика или шаринга.",
         icon: <FileDownloadIcon />,
       },
       {
-        title: "Безопасность данных",
-        text: "Доступ к данным ограничен Row Level Security — пользователь видит только свои записи.",
+        title: "Job Match и Health Check",
+        text: "Сравните резюме с вакансией: Evidence Score, совпадения, ATS-готовность и рекомендации.",
         icon: <SecurityIcon />,
       },
     ],
@@ -161,23 +165,27 @@ export default function Home() {
                   fontWeight: 900,
                   letterSpacing: 0.2,
                   fontSize: { xs: "2.0rem", sm: "2.6rem", md: "3.1rem" },
-                  lineHeight: 1.05,
+                  lineHeight: 1.1,
                 }}
               >
-                Собери сильное IT-резюме в
+                Создайте IT-резюме, которое помогает
                 <Box
                   component="span"
                   sx={{
-                    ml: 1,
-                    backgroundImage: `linear-gradient(90deg, ${theme.palette.primary.main}, ${
-                      isDark ? "#a78bfa" : "#dc004e"
-                    })`,
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    color: "transparent",
+                    display: "block",
+                    color: "primary.main",
+                    mt: 0.5,
+                    minHeight: "1.15em",
                   }}
                 >
-                  CV Builder
+                  <TypewriterText
+                    phrases={[
+                      "показать опыт",
+                      "доказать навыки",
+                      "проверить резюме",
+                      "усилить отклик",
+                    ]}
+                  />
                 </Box>
               </Typography>
 
@@ -186,13 +194,12 @@ export default function Home() {
                 color="text.secondary"
                 sx={{ mt: 1.5, maxWidth: 720 }}
               >
-                Редактор резюме для разработчиков, QA, DevOps и дизайнеров: шаблоны,
-                GitHub, экспорт в PDF/Markdown и умные рекомендации, чтобы пройти HR-скрининг.
+                Заполните профиль, добавьте навыки и опыт, выберите GitHub-проекты,
+                проверьте резюме и экспортируйте готовый файл для отклика.
               </Typography>
 
               <Stack
                 direction="row"
-                spacing={1}
                 sx={{ mt: 2.5, flexWrap: "wrap", gap: 1 }}
               >
                 {chips.map((c) => (
@@ -242,8 +249,7 @@ export default function Home() {
                 color="text.secondary"
                 sx={{ display: "block", mt: 1.5 }}
               >
-                Данные защищены Supabase RLS • Автосохранение и валидация • Экспорт
-                в один клик
+                Защита данных • Автосохранение • Валидация • Экспорт в один клик
               </Typography>
             </Box>
           </Grid>
@@ -334,8 +340,8 @@ export default function Home() {
 
                 <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
                   <Chip size="small" label="PDF" />
+                  <Chip size="small" label="DOCX" />
                   <Chip size="small" label="Markdown" />
-                  <Chip size="small" label="PNG/JPG" />
                   <Chip size="small" icon={<GitHubIcon />} label="GitHub" />
                 </Stack>
               </CardContent>
@@ -483,62 +489,191 @@ export default function Home() {
         <Typography variant="h4" sx={{ fontWeight: 900 }}>
           Как это работает
         </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mt: 1, maxWidth: 640 }}>
+          Шесть простых шагов от пустого профиля до готового IT-резюме.
+        </Typography>
 
-        <Grid container spacing={2.2} sx={{ mt: 2.5 }}>
+        <Box
+          component={motion.div}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.09 } },
+          }}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
+            gap: 2.2,
+            mt: 3,
+          }}
+        >
           {[
             {
               n: "01",
-              title: "Заполни профиль",
-              text: "Контакты и краткое “о себе” — база для первого впечатления.",
+              title: "Заполните профиль",
+              text: "ФИО, email и краткое «о себе» — база для первого впечатления.",
+              Icon: PersonIcon,
             },
             {
               n: "02",
-              title: "Добавь навыки и опыт",
-              text: "Фокус на действиях и цифрах: влияние, скорость, масштабы.",
+              title: "Добавьте навыки и опыт",
+              text: "Укажите технологии и опишите задачи с конкретными результатами.",
+              Icon: CodeIcon,
             },
             {
               n: "03",
-              title: "Исправь рекомендации",
-              text: "Панель подсказок ведёт прямо к проблемному полю (вкладка → фокус → подсветка).",
+              title: "Выберите GitHub-проекты",
+              text: "Подключите GitHub и добавьте до 5 релевантных репозиториев.",
+              Icon: GitHubIcon,
             },
             {
               n: "04",
-              title: "Экспортируй",
-              text: "PDF для отклика, Markdown для GitHub/Notion, изображения для шаринга.",
+              title: "Проверьте резюме",
+              text: "Health Check покажет слабые места, ATS-риски и рекомендации.",
+              Icon: FactCheckIcon,
+            },
+            {
+              n: "05",
+              title: "Сравните с вакансией",
+              text: "Job Match и Evidence Score покажут, насколько резюме соответствует требованиям.",
+              Icon: SearchIcon,
+            },
+            {
+              n: "06",
+              title: "Экспортируйте",
+              text: "PDF, DOCX или Markdown — готовый файл для отклика.",
+              Icon: FileDownloadIcon,
             },
           ].map((s) => (
-            <Grid key={s.n} item xs={12} sm={6} md={3}>
+            <Box
+              key={s.n}
+              component={motion.div}
+              variants={{
+                hidden: { opacity: 0, y: 18 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+              }}
+            >
               <Card
                 elevation={0}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.18 }}
                 sx={{
                   height: "100%",
+                  position: "relative",
+                  overflow: "hidden",
                   border: "1px solid",
                   borderColor: "divider",
                   bgcolor: "background.paper",
+                  transition: "box-shadow 180ms ease, border-color 180ms ease",
+                  "&:hover": {
+                    boxShadow: 4,
+                    borderColor: "primary.main",
+                  },
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 3,
+                    background: "linear-gradient(90deg, primary.main, transparent)",
+                    opacity: 0.55,
+                    pointerEvents: "none",
+                  },
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 80,
+                    background: isDark
+                      ? "radial-gradient(ellipse at 30% 0%, rgba(88,166,255,0.10), transparent 70%)"
+                      : "radial-gradient(ellipse at 30% 0%, rgba(25,118,210,0.07), transparent 70%)",
+                    pointerEvents: "none",
+                  },
+                  "&:hover .stepIcon": {
+                    color: "primary.main",
+                    bgcolor: isDark
+                      ? "rgba(88,166,255,0.18)"
+                      : "rgba(25,118,210,0.12)",
+                    transform: "scale(1.05)",
+                  },
                 }}
               >
-                <CardContent sx={{ p: 2.5 }}>
-                  <Typography
-                    variant="overline"
-                    sx={{
-                      fontWeight: 900,
-                      letterSpacing: 1.2,
-                      color: "text.secondary",
-                    }}
+                <CardContent
+                  sx={{
+                    p: { xs: 2.5, md: 3 },
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    position: "relative",
+                    zIndex: 1,
+                  }}
+                >
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ mb: 2 }}
                   >
-                    {s.n}
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mt: 0.5 }}>
+                    <Box
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: "50%",
+                        display: "grid",
+                        placeItems: "center",
+                        bgcolor: isDark
+                          ? "rgba(88,166,255,0.14)"
+                          : "rgba(25,118,210,0.10)",
+                        color: "primary.main",
+                        fontWeight: 900,
+                        fontSize: "0.95rem",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {s.n}
+                    </Box>
+                    <Box
+                      className="stepIcon"
+                      sx={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 2,
+                        display: "grid",
+                        placeItems: "center",
+                        bgcolor: isDark
+                          ? "rgba(255,255,255,0.06)"
+                          : "rgba(25,118,210,0.06)",
+                        color: "text.secondary",
+                        transition: "transform 180ms ease, color 180ms ease, background-color 180ms ease",
+                      }}
+                    >
+                      <s.Icon sx={{ fontSize: 20 }} />
+                    </Box>
+                  </Stack>
+
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 800, lineHeight: 1.25, fontSize: "1rem", mt: 0.25 }}
+                  >
                     {s.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.8 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1, lineHeight: 1.65 }}
+                  >
                     {s.text}
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
 
       {/* CTA */}

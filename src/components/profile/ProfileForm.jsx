@@ -171,7 +171,7 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
       {aiAvailable && !aboutValue.trim() && (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -0.5, mb: 1 }}>
           AI генерирует текст на основе навыков, опыта и проектов из резюме.
-          Проверьте результат перед сохранением.
+          Проверьте результат перед сохранением. Использует лимиты Puter-аккаунта.
         </Typography>
       )}
 

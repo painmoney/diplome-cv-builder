@@ -1,3 +1,75 @@
+import {
+  getCoverLetterMode,
+  buildWeakMatchCoverLetter,
+  buildSafeCoverLetterFallback,
+  buildJobMatchAdviceFallback,
+  validateCoverLetterText,
+  validateJobMatchAdviceText,
+} from "./coverLetterSafetyUtils";
+
+const AI_MODEL_PRIMARY = "openai/gpt-4o-mini";
+
+function isModelError(err) {
+  const msg = String(err?.message || err || "").toLowerCase();
+  return (
+    msg.includes("unsupported") ||
+    msg.includes("invalid model") ||
+    msg.includes("model not found") ||
+    msg.includes("404") ||
+    msg.includes("400")
+  );
+}
+
+function isLimitError(err) {
+  const msg = String(err?.message || err || "").toLowerCase();
+  return (
+    msg.includes("429") ||
+    msg.includes("too many requests") ||
+    msg.includes("limit") ||
+    msg.includes("rate limit")
+  );
+}
+
+function isAuthError(err) {
+  const msg = String(err?.message || err || "").toLowerCase();
+  return msg.includes("auth") || msg.includes("login") || msg.includes("unauthorized");
+}
+
+export function normalizePuterAIError(err) {
+  if (isLimitError(err)) {
+    return "Лимит AI-сервиса временно исчерпан. Попробуйте позже.";
+  }
+  if (isAuthError(err)) {
+    return "Для AI-генерации нужно войти в Puter.";
+  }
+  return "AI-сервис временно недоступен. Попробуйте позже.";
+}
+
+export async function callPuterAI(prompt, options = {}) {
+  if (!isAIAvailable()) {
+    throw new Error("AI-сервис недоступен");
+  }
+
+  try {
+    return await window.puter.ai.chat(prompt, {
+      model: AI_MODEL_PRIMARY,
+      ...options,
+    });
+  } catch (primaryErr) {
+    if (isLimitError(primaryErr)) {
+      throw new Error(normalizePuterAIError(primaryErr), { cause: primaryErr });
+    }
+    if (isModelError(primaryErr)) {
+      try {
+        return await window.puter.ai.chat(prompt, options);
+      } catch (fallbackErr) {
+        throw new Error(normalizePuterAIError(fallbackErr), { cause: fallbackErr });
+      }
+    }
+    throw new Error(normalizePuterAIError(primaryErr), { cause: primaryErr });
+  }
+}
+
 export function isAIAvailable() {
   return (
     typeof window !== "undefined" &&
@@ -693,9 +765,7 @@ ${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТО
 Хорошо: "имею навыки работы с React"`;
 
   // First attempt
-  const response = await window.puter.ai.chat(prompt, {
-    model: "openai/gpt-4o-mini",
-  });
+  const response = await callPuterAI(prompt);
   let text = extractAIText(response).trim();
 
   // Validate
@@ -708,9 +778,7 @@ ${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТО
   // Retry once if violations found (skip retry for unknown profile — go straight to fallback)
   if (!validation.ok && profileType.primary !== "unknown") {
     const retryPrompt = buildRetryPrompt(text, validation.violations, excludedForSummarySkills, profileType);
-    const retryResponse = await window.puter.ai.chat(retryPrompt, {
-      model: "openai/gpt-4o-mini",
-    });
+    const retryResponse = await callPuterAI(retryPrompt);
     const retryText = extractAIText(retryResponse).trim();
 
     const retryValidation = validateGeneratedAboutMe(retryText, profileType, excludedForSummarySkills, unconfirmedSkills);
@@ -760,14 +828,12 @@ ${description}
 Язык: русский.
 Ответь ТОЛЬКО улучшенным текстом, без объяснений и вступлений.`;
 
-  const response = await window.puter.ai.chat(prompt, {
-    model: "openai/gpt-4o-mini",
-  });
+  const response = await callPuterAI(prompt);
 
   return extractAIText(response).trim();
 }
 
-export async function generateCoverLetter({ jdText, name, about, skills, experience, found, missing, companyName, positionName, confirmedExperience, confirmedProjects, declaredOnly, missingEvidence }) {
+export async function generateCoverLetter({ jdText, name, about, skills, experience, found, missing, companyName, positionName, confirmedExperience, confirmedProjects, declaredOnly, missingEvidence, evidenceScore, technicalScore, overallScore }) {
   if (!isAIAvailable()) {
     throw new Error("AI-сервис недоступен");
   }
@@ -826,6 +892,11 @@ EVIDENCE-BASED КЛАССИФИКАЦИЯ (если предоставлена):
 - Есть только в навыках (ПИСАТЬ как "имею навыки работы с X", НЕ как опыт): ${declaredOnly?.join(", ") || "Нет"}
 - Отсутствует в резюме (НЕ упоминать как опыт, НЕ выдумывать): ${missingEvidence?.join(", ") || "Нет"}
 
+ОЦЕНКИ СООТВЕТСТВИЯ:
+- Evidence Score: ${evidenceScore ?? "неизвестен"}%
+- Technical Score: ${technicalScore ?? "неизвестно"}%
+- Overall Score: ${overallScore ?? "неизвестно"}%
+
 ЖЁСТКИЕ ПРАВИЛА:
 1. Используй ТОЛЬКО факты из резюме. НЕ выдумывай опыт, проекты, достижения, метрики, должности.
 2. Если название компании неизвестно — начни с "Здравствуйте!" или "Добрый день!". НЕ пиши "[Название компании]" и не выдумывай название.
@@ -843,18 +914,61 @@ EVIDENCE-BASED КЛАССИФИКАЦИЯ (если предоставлена):
 9. Структура: приветствие → почему интересна вакансия → ключевые компетенции → подпись.
 10. Не используй шаблонные фразы вроде "в связи с вашим вакантным местом", "на территории компании", "в рамках".
 11. ЗАПРЕЩЕНО использовать: "с вашей поддержкой", "внести значительный вклад", "я идеально подхожу", "полностью соответствую", "внести ощутимый вклад", "стать ценным участником", "стать частью команды", "внести интересные идеи и решения", "увлекательные вызовы", "достигать новых высот".
-12. Если совпадение слабое — пиши аккуратно: "мой опыт может быть полезен в задачах...", "готов быстро погружаться в новые технологии", "могу применить имеющийся опыт в смежных задачах".
+12. Если совпадение слабое — пиши аккуратно: "мой опыт может быть полезен в задачах...", "могу применить имеющийся опыт в смежных задачах". ЗАПРЕЩЕНО: "готов быстро погружаться в новые технологии", "готов освоить X".
 13. Если профиль кандидата — frontend/web UI, а вакансия — backend/fullstack/highload: НЕ пиши, что стремишься развиваться именно в highload/backend-системах. Позиционируй через свои сильные стороны: "развиваться в разработке интерфейсов и интеграции клиентской части с серверными сервисами".
 14. Акцент на конкретном пересечении резюме и вакансии — какие задачи из вакансии кандидат может решать.
-15. ${name ? `Письмо ОБЯЗАТЕЛЬНО заканчивай подписью:\nС уважением,\n${name}` : "Подпись не нужна (имя не указано)."}
-16. Язык: русский.
-17. Ответь ТОЛЬКО текстом письма, без объяснений и вступлений.`;
+15. Если evidenceScore < 40 или technicalScore < 40: письмо ОБЯЗАТЕЛЬНО осторожное. НЕ писать "я подхожу", "мой опыт соответствует", "готов быстро освоить X". MissingEvidence НЕ упоминать как план обучения. MissingEvidence ТОЛЬКО для ограничения: не выдавать эти технологии за опыт. Акцент ТОЛЬКО на confirmedExperience, confirmedProjects и declaredOnly. Если совпадение слабое — честно показать смежный опыт, не натягивать профиль под вакансию.
+16. MissingEvidence — НЕ позиционировать как "область роста" или "план обучения". Это технологии, которых нет в резюме. Их НЕЛЬЗЯ упоминать в позитивном контексте.
+17. ${name ? `Письмо ОБЯЗАТЕЛЬНО заканчивай подписью:\nС уважением,\n${name}` : "Подпись не нужна (имя не указано)."}
+18. Язык: русский.
+19. Ответь ТОЛЬКО текстом письма, без объяснений и вступлений.`;
 
-  const response = await window.puter.ai.chat(prompt, {
-    model: "openai/gpt-4o-mini",
+  const coverLetterMode = getCoverLetterMode({
+    evidenceScore,
+    technicalScore,
+    confirmedExperience,
+    confirmedProjects,
+    declaredOnly,
+    missingEvidence,
   });
 
-  return extractAIText(response).trim();
+  if (coverLetterMode.mode === "careful") {
+    return buildWeakMatchCoverLetter({
+      name,
+      confirmedExperience,
+      confirmedProjects,
+      declaredOnly,
+      companyName,
+      positionName,
+    });
+  }
+
+  const response = await callPuterAI(prompt);
+  const text = extractAIText(response).trim();
+
+  const validation = validateCoverLetterText(text, {
+    positionName,
+    confirmedExperience,
+    confirmedProjects,
+    declaredOnly,
+    missingEvidence,
+    mode: coverLetterMode.mode,
+  });
+
+  if (!validation.ok) {
+    if (import.meta.env.DEV) {
+      console.warn("[CoverLetter] Unsafe AI output, using safe fallback:", validation.violations);
+    }
+    return buildSafeCoverLetterFallback({
+      name,
+      positionName,
+      confirmedExperience,
+      confirmedProjects,
+      declaredOnly,
+    });
+  }
+
+  return text;
 }
 
 export async function generateJobMatchAdvice({
@@ -950,9 +1064,28 @@ EVIDENCE-BASED КЛАССИФИКАЦИЯ:
   [general] — общая рекомендация
 - Ответь ТОЛЬКО списком рекомендаций, без объяснений и вступлений.`;
 
-  const response = await window.puter.ai.chat(prompt, {
-    model: "openai/gpt-4o-mini",
+  const response = await callPuterAI(prompt);
+  const text = extractAIText(response).trim();
+
+  const validation = validateJobMatchAdviceText(text, {
+    confirmedExperience,
+    confirmedProjects,
+    declaredOnly,
+    missingEvidence,
   });
 
-  return extractAIText(response).trim();
+  if (!validation.ok) {
+    if (import.meta.env.DEV) {
+      console.warn("[JobMatchAdvice] Unsafe AI output:", validation.violations);
+    }
+    return buildJobMatchAdviceFallback({
+      confirmedExperience,
+      confirmedProjects,
+      declaredOnly,
+      missingEvidence,
+      evidenceScore,
+    });
+  }
+
+  return text;
 }

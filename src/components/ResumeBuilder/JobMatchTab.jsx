@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import {
   Box,
   Typography,
@@ -21,9 +21,14 @@ import {
 import WorkIcon from "@mui/icons-material/Work";
 import DescriptionIcon from "@mui/icons-material/Description";
 
-import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS, classifyKeywordEvidence, buildResumeEvidenceMap } from "../../utils/jobMatchUtils";
+import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS } from "../../utils/jobMatchUtils";
 import { isAIAvailable, generateCoverLetter, generateJobMatchAdvice } from "../../utils/aiService";
+import { getCoverLetterMode } from "../../utils/coverLetterSafetyUtils";
 import EmptyState from "../common/EmptyState";
+
+const DevScenarioPanel = import.meta.env.DEV
+  ? lazy(() => import("../dev/JobMatchScenarioPanel"))
+  : null;
 
 export default function JobMatchTab({
   resumeData,
@@ -36,6 +41,7 @@ export default function JobMatchTab({
   isAnalyzing,
   setIsAnalyzing,
   onNavigateToTarget,
+  onLoadDevScenario,
 }) {
   const [clLoading, setClLoading] = useState(false);
   const [clError, setClError] = useState("");
@@ -45,6 +51,17 @@ export default function JobMatchTab({
   const [adviceError, setAdviceError] = useState("");
   const [advicePreviewOpen, setAdvicePreviewOpen] = useState(false);
   const [advicePreviewText, setAdvicePreviewText] = useState("");
+
+  const coverLetterMode = getCoverLetterMode({
+    evidenceScore: result?.evidenceScore,
+    technicalScore: result?.technicalScore,
+    confirmedExperience: result?.confirmedExperience || [],
+    confirmedProjects: result?.confirmedProjects || [],
+    declaredOnly: result?.declaredOnly || [],
+    missingEvidence: result?.missingEvidence || [],
+  });
+
+  const isWeakCoverLetterMatch = coverLetterMode.mode === "careful";
   const handleAnalyze = () => {
     const trimmed = jdText.trim();
     if (!trimmed || trimmed.split(/\s+/).length < 5) return;
@@ -88,6 +105,9 @@ export default function JobMatchTab({
         confirmedProjects: result?.confirmedProjects || [],
         declaredOnly: result?.declaredOnly || [],
         missingEvidence: result?.missingEvidence || [],
+        evidenceScore: result?.evidenceScore,
+        technicalScore: result?.technicalScore,
+        overallScore: result?.overallScore,
       });
       setClPreviewText(text);
       setClPreviewOpen(true);
@@ -163,6 +183,12 @@ export default function JobMatchTab({
 
   return (
     <Box>
+      {DevScenarioPanel && onLoadDevScenario && (
+        <Suspense fallback={null}>
+          <DevScenarioPanel onLoadDevScenario={onLoadDevScenario} />
+        </Suspense>
+      )}
+
       <Typography variant="h6" gutterBottom>
         Анализ соответствия вакансии
       </Typography>
@@ -496,8 +522,12 @@ export default function JobMatchTab({
                 <Alert severity="info" sx={{ mb: 1.5 }}>
                   Перед генерацией заполните навыки, опыт и блок «О себе».
                   AI использует только данные из резюме и текст вакансии.
-                  Если технология не указана в резюме, она может быть определена как зона развития.
                 </Alert>
+                {isWeakCoverLetterMatch && (
+                  <Alert severity="warning" sx={{ mb: 1.5 }}>
+                    Совпадение с вакансией низкое или слабо подтверждено опытом. CV Builder сформирует осторожную версию письма без упоминания неподтверждённых технологий.
+                  </Alert>
+                )}
                 {hasIncompleteResume && (
                   <Alert severity="warning" sx={{ mb: 1.5 }}>
                     Резюме заполнено не полностью — письмо может получиться неточным.
@@ -510,7 +540,7 @@ export default function JobMatchTab({
                   disabled={clLoading}
                   startIcon={clLoading ? <CircularProgress size={16} /> : <DescriptionIcon />}
                 >
-                  {clLoading ? "Генерация..." : "Сгенерировать письмо"}
+                  {clLoading ? "Генерация..." : isWeakCoverLetterMatch ? "Сформировать осторожное письмо" : "Сгенерировать письмо"}
                 </Button>
                 {clError && (
                   <Alert severity="warning" sx={{ mt: 1.5 }} onClose={() => setClError("")}>
@@ -573,11 +603,17 @@ export default function JobMatchTab({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Сопроводительное письмо</DialogTitle>
+        <DialogTitle>{isWeakCoverLetterMatch ? "Сопроводительное письмо (осторожная версия)" : "Сопроводительное письмо"}</DialogTitle>
         <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Проверьте текст. Письмо можно скопировать или скачать.
-          </Alert>
+          {isWeakCoverLetterMatch ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Это осторожная версия письма: часть требований вакансии не подтверждена опытом или проектами, поэтому неподтверждённые технологии не добавлены.
+            </Alert>
+          ) : (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Проверьте текст. Письмо можно скопировать или скачать.
+            </Alert>
+          )}
           <TextField
             multiline
             fullWidth
