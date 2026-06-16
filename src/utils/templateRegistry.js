@@ -15,6 +15,8 @@ export const TEMPLATE_REGISTRY = {
     supportsPdf: true,
     supportsDocx: true,
     supportsMarkdown: true,
+    featuredOnHome: true,
+    homeOrder: 1,
   },
   academic: {
     id: "academic",
@@ -26,6 +28,8 @@ export const TEMPLATE_REGISTRY = {
     supportsPdf: true,
     supportsDocx: true,
     supportsMarkdown: true,
+    featuredOnHome: true,
+    homeOrder: 2,
   },
   github: {
     id: "github",
@@ -37,6 +41,8 @@ export const TEMPLATE_REGISTRY = {
     supportsPdf: true,
     supportsDocx: true,
     supportsMarkdown: true,
+    featuredOnHome: true,
+    homeOrder: 3,
   },
   classic: {
     id: "classic",
@@ -48,6 +54,8 @@ export const TEMPLATE_REGISTRY = {
     supportsPdf: true,
     supportsDocx: true,
     supportsMarkdown: true,
+    featuredOnHome: true,
+    homeOrder: 4,
   },
   modern: {
     id: "modern",
@@ -59,6 +67,8 @@ export const TEMPLATE_REGISTRY = {
     supportsPdf: true,
     supportsDocx: true,
     supportsMarkdown: true,
+    featuredOnHome: true,
+    homeOrder: 5,
   },
 };
 

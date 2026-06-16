@@ -27,6 +27,29 @@ describe("TEMPLATE_REGISTRY", () => {
       expect(typeof tpl.supportsMarkdown).toBe("boolean");
     }
   });
+
+  it("every entry has featuredOnHome boolean", () => {
+    for (const tpl of Object.values(TEMPLATE_REGISTRY)) {
+      expect(typeof tpl.featuredOnHome).toBe("boolean");
+    }
+  });
+
+  it("featured templates have numeric homeOrder", () => {
+    const featured = Object.values(TEMPLATE_REGISTRY).filter((t) => t.featuredOnHome);
+    expect(featured.length).toBeGreaterThan(0);
+    for (const tpl of featured) {
+      expect(typeof tpl.homeOrder).toBe("number");
+      expect(tpl.homeOrder).toBeGreaterThan(0);
+    }
+  });
+
+  it("homeOrder values are unique among featured templates", () => {
+    const featured = Object.values(TEMPLATE_REGISTRY)
+      .filter((t) => t.featuredOnHome)
+      .sort((a, b) => a.homeOrder - b.homeOrder);
+    const orders = featured.map((t) => t.homeOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+  });
 });
 
 describe("getSafeTemplateId", () => {

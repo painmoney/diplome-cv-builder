@@ -77,16 +77,18 @@ export default function Home() {
     []
   );
 
-  const templates = useMemo(
-    () =>
-      Object.values(TEMPLATE_REGISTRY).map((tpl) => ({
-        title: tpl.label,
-        caption: tpl.description,
-        tag: tpl.category || "template",
-        template: tpl.id,
-      })),
-    []
-  );
+  const allTemplates = Object.values(TEMPLATE_REGISTRY);
+  // Home intentionally shows only featured templates to avoid turning landing into a full catalog.
+  const featuredTemplates = allTemplates
+    .filter((tpl) => tpl.featuredOnHome)
+    .sort((a, b) => (a.homeOrder ?? 999) - (b.homeOrder ?? 999))
+    .slice(0, 5)
+    .map((tpl) => ({
+      title: tpl.label,
+      caption: tpl.description,
+      tag: tpl.category || "template",
+      template: tpl.id,
+    }));
 
   const scrollToId = (id) => {
     const el = document.getElementById(id);
@@ -382,12 +384,12 @@ export default function Home() {
           Шаблоны
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-          Выбирайте один из 5 шаблонов под роль и сценарий отклика — переключать стиль можно даже в превью.
+          Ниже — избранные стили для разных сценариев отклика. В редакторе можно переключать шаблоны без потери данных.
         </Typography>
 
         <Grid container spacing={2.2} sx={{ mt: 2.5 }}>
-          {templates.map((t) => (
-            <Grid key={t.template} item xs={12} md={4}>
+          {featuredTemplates.map((t) => (
+            <Grid key={t.template} item xs={12} sm={6} md={4}>
               <Card
                 component={motion.div}
                 whileHover={{ y: -3 }}
@@ -433,7 +435,6 @@ export default function Home() {
                     {t.caption}
                   </Typography>
 
-                  {/* передаём выбранный шаблон */}
                   <Button
                     variant="text"
                     sx={{ mt: 1.5, px: 0 }}
@@ -449,6 +450,74 @@ export default function Home() {
               </Card>
             </Grid>
           ))}
+
+          {/* CTA card */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Card
+              component={motion.div}
+              whileHover={{ y: -3 }}
+              transition={{ duration: 0.15 }}
+              elevation={0}
+              sx={{
+                height: "100%",
+                border: "1px solid",
+                borderColor: "divider",
+                overflow: "hidden",
+                position: "relative",
+                background: isDark
+                  ? "linear-gradient(135deg, rgba(88,166,255,0.22), rgba(139,92,246,0.18), rgba(34,211,238,0.14))"
+                  : "linear-gradient(135deg, rgba(25,118,210,0.16), rgba(124,58,237,0.12), rgba(14,165,233,0.10))",
+              }}
+            >
+              <Box sx={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", bgcolor: isDark ? "rgba(88,166,255,0.12)" : "rgba(25,118,210,0.08)", filter: "blur(30px)" }} />
+              <Box sx={{ position: "absolute", bottom: -20, left: -20, width: 80, height: 80, borderRadius: "50%", bgcolor: isDark ? "rgba(139,92,246,0.12)" : "rgba(124,58,237,0.08)", filter: "blur(25px)" }} />
+
+              <CardContent sx={{ p: 2.5, position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: 900,
+                    fontSize: { xs: "2rem", md: "2.4rem" },
+                    lineHeight: 1,
+                    color: "primary.main",
+                    mb: 0.5,
+                  }}
+                >
+                  {allTemplates.length}+
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  стилей и сценариев
+                </Typography>
+
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                  Больше шаблонов внутри
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, flex: 1 }}>
+                  Выбирайте стиль под вакансию: ATS, GitHub, академический, продуктовый и современные варианты.
+                </Typography>
+
+                <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5, mt: 1.5 }}>
+                  {["ATS", "GitHub", "Modern", "Academic", "Product"].map((tag) => (
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      size="small"
+                      variant="outlined"
+                      sx={{ bgcolor: "background.paper", fontWeight: 600 }}
+                    />
+                  ))}
+                </Stack>
+
+                <Button
+                  variant="contained"
+                  sx={{ mt: 2 }}
+                  onClick={() => navigate(user ? "/resume-editor" : "/register")}
+                >
+                  {user ? "Открыть редактор" : "Начать с шаблона"}
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       </Box>
 
