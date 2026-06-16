@@ -48,6 +48,7 @@ export const TECH_KEYWORDS = {
 
 export const SYNONYMS = {
   "rest": "REST API",
+  "docker-compose": "docker compose",
 };
 
 export const SUPPRESSIONS = {

@@ -194,3 +194,78 @@ describe("display — Stage C-1 safe additions", () => {
     expect(getKeywordLabel("docker compose")).toBe("Docker Compose");
   });
 });
+
+describe("extractKeywordsFromText — Stage C-3a safe multi-word baseline", () => {
+  it("detects Testing Library", () => {
+    const result = extractKeywordsFromText("We use Testing Library for component tests");
+    expect(result).toContain("testing library");
+  });
+
+  it("detects Docker Compose", () => {
+    const result = extractKeywordsFromText("Docker Compose for local dev");
+    expect(result).toContain("docker compose");
+  });
+
+  it("detects GitHub Actions", () => {
+    const result = extractKeywordsFromText("CI via GitHub Actions");
+    expect(result).toContain("github actions");
+  });
+
+  it("detects GitLab CI", () => {
+    const result = extractKeywordsFromText("Pipeline in GitLab CI");
+    expect(result).toContain("gitlab ci");
+  });
+
+  it("detects REST API", () => {
+    const result = extractKeywordsFromText("REST API integration");
+    expect(result).toContain("rest api");
+  });
+
+  it("detects Spring Boot", () => {
+    const result = extractKeywordsFromText("Backend with Spring Boot");
+    expect(result).toContain("spring boot");
+  });
+
+  it("detects MS SQL Server", () => {
+    const result = extractKeywordsFromText("Database: MS SQL Server");
+    expect(result).toContain("ms sql server");
+  });
+});
+
+describe("extractKeywordsFromText — Stage C-3a docker-compose synonym", () => {
+  it("docker-compose maps to docker compose via SYNONYMS", () => {
+    const result = extractKeywordsFromText("Local environment uses docker-compose");
+    expect(result).toContain("docker compose");
+  });
+
+  it("docker-compose in config context maps to docker compose", () => {
+    const result = extractKeywordsFromText("docker-compose configuration for services");
+    expect(result).toContain("docker compose");
+  });
+});
+
+describe("extractKeywordsFromText — Stage C-3a registry-only aliases NOT in recognition", () => {
+  it("'vanilla js' does NOT contain javascript", () => {
+    const result = extractKeywordsFromText("vanilla js");
+    expect(result).not.toContain("javascript");
+  });
+
+  it("'ts files' does NOT contain typescript", () => {
+    const result = extractKeywordsFromText("ts files");
+    expect(result).not.toContain("typescript");
+  });
+
+  it("'rn app' does NOT contain react native", () => {
+    const result = extractKeywordsFromText("rn app");
+    expect(result).not.toContain("react native");
+  });
+});
+
+describe("Stage C-3a — risky false-positive TODOs", () => {
+  it.todo("go to production should NOT match Go after context-aware extraction is implemented");
+  it.todo("rest of the team should NOT match REST API after context-aware extraction is implemented");
+  it.todo("node in a graph should NOT match Node.js after context-aware extraction is implemented");
+  it.todo("R&D should NOT match R after context-aware extraction is implemented");
+  it.todo("js should only match JavaScript in technical context if enabled later");
+  it.todo("ts should only match TypeScript in technical context if enabled later");
+});
