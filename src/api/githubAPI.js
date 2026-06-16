@@ -1,5 +1,39 @@
 import { supabase } from "./supabaseClient";
 
+function getFallbackMessage(status) {
+  if (status === 400) return "Некорректный GitHub username";
+  if (status === 404) return "Пользователь GitHub не найден";
+  if (status === 429) return "Превышен лимит GitHub API. Попробуйте позже.";
+  if (status === 401 || status === 403) return "Не удалось выполнить запрос к GitHub. Проверьте настройки сервера.";
+  return "GitHub API временно недоступен. Попробуйте позже.";
+}
+
+async function readErrorBody(error) {
+  const ctx = error?.context;
+
+  if (!ctx) return { status: 0, message: "" };
+
+  const status = ctx.status || 0;
+
+  try {
+    const cloned = typeof ctx.clone === "function" ? ctx.clone() : null;
+    if (!cloned) return { status, message: "" };
+
+    const text = await cloned.text();
+    if (!text) return { status, message: "" };
+
+    try {
+      const json = JSON.parse(text);
+      const msg = json.error || json.message || json.details || "";
+      return { status, message: msg };
+    } catch {
+      return { status, message: "" };
+    }
+  } catch {
+    return { status, message: "" };
+  }
+}
+
 export async function fetchGitHubRepos(username) {
   const normalizedUsername = username.trim();
 
@@ -12,21 +46,13 @@ export async function fetchGitHubRepos(username) {
   });
 
   if (error) {
-    const msg = String(error?.message || error || "").toLowerCase();
+    const { status, message } = await readErrorBody(error);
 
-    if (msg.includes("не найден") || msg.includes("not found") || msg.includes("404")) {
-      throw new Error("Пользователь не найден");
+    if (message) {
+      throw new Error(message);
     }
 
-    if (msg.includes("лимит") || msg.includes("rate limit") || msg.includes("429")) {
-      throw new Error("Превышен лимит GitHub API. Попробуйте позже");
-    }
-
-    if (msg.includes("token") || msg.includes("не настроен")) {
-      throw new Error("GitHub token не настроен на сервере");
-    }
-
-    throw new Error(`Ошибка GitHub API: ${error.message || "неизвестная ошибка"}`);
+    throw new Error(getFallbackMessage(status));
   }
 
   if (data && typeof data === "object" && data.error) {
