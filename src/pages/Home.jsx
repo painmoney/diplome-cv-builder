@@ -26,6 +26,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SecurityIcon from "@mui/icons-material/Security";
 
 import { useAuth } from "../context/AuthContext";
+import { TEMPLATE_REGISTRY } from "../utils/templateRegistry";
 import TypewriterText from "../components/common/TypewriterText";
 
 const fadeUp = {
@@ -49,7 +50,7 @@ export default function Home() {
       { label: "GitHub-проекты", icon: <GitHubIcon /> },
       { label: "Проверка резюме", icon: <FactCheckIcon /> },
       { label: "Анализ вакансии", icon: <SearchIcon /> },
-      { label: "Экспорт в 3 формата", icon: <FileDownloadIcon /> },
+      { label: "Экспорт в 5 форматов", icon: <FileDownloadIcon /> },
       { label: "AI-рекомендации", icon: <AutoAwesomeIcon /> },
     ],
     []
@@ -76,28 +77,14 @@ export default function Home() {
     []
   );
 
-  // добавили template ключ (именно он будет улетать в query param)
   const templates = useMemo(
-    () => [
-      {
-        title: "Minimalist",
-        caption: "Чистый современный стиль для продуктовых команд и стартапов.",
-        tag: "product",
-        template: "minimalist",
-      },
-      {
-        title: "Academic",
-        caption: "Строгая типографика и двухколоночная сетка для исследований и вузов.",
-        tag: "research",
-        template: "academic",
-      },
-      {
-        title: "GitHub",
-        caption: "Тёмная “терминальная” эстетика для разработчиков и open-source.",
-        tag: "dev",
-        template: "github",
-      },
-    ],
+    () =>
+      Object.values(TEMPLATE_REGISTRY).map((tpl) => ({
+        title: tpl.label,
+        caption: tpl.description,
+        tag: tpl.category || "template",
+        template: tpl.id,
+      })),
     []
   );
 
@@ -229,7 +216,7 @@ export default function Home() {
                 color="text.secondary"
                 sx={{ display: "block", mt: 1.5 }}
               >
-                Бесплатно • Автосохранение • Экспорт в PDF, DOCX, Markdown
+                Бесплатно • Автосохранение • Экспорт в PDF, DOCX, Markdown, PNG/JPG
               </Typography>
             </Box>
           </Grid>
@@ -322,7 +309,7 @@ export default function Home() {
                   <Chip size="small" label="PDF" />
                   <Chip size="small" label="DOCX" />
                   <Chip size="small" label="Markdown" />
-                  <Chip size="small" icon={<GitHubIcon />} label="GitHub" />
+                  <Chip size="small" label="PNG / JPG" />
                 </Stack>
               </CardContent>
             </Card>
@@ -395,12 +382,12 @@ export default function Home() {
           Шаблоны
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-          Выбирай стиль под компанию и роль — можно переключать даже в превью.
+          Выбирайте один из 5 шаблонов под роль и сценарий отклика — переключать стиль можно даже в превью.
         </Typography>
 
         <Grid container spacing={2.2} sx={{ mt: 2.5 }}>
           {templates.map((t) => (
-            <Grid key={t.title} item xs={12} md={4}>
+            <Grid key={t.template} item xs={12} md={4}>
               <Card
                 component={motion.div}
                 whileHover={{ y: -3 }}
@@ -523,7 +510,7 @@ export default function Home() {
             {
               n: "06",
               title: "Экспортируйте",
-              text: "PDF, DOCX или Markdown — готовый файл для отклика.",
+              text: "PDF, DOCX, Markdown, PNG/JPG — готовый файл для отклика.",
               Icon: FileDownloadIcon,
             },
           ].map((s) => (
