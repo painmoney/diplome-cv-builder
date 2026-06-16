@@ -22,6 +22,20 @@ export const isValidPhone = (phone) => {
   return digits.length >= 10 && digits.length <= 15;
 };
 
+export const isValidUrl = (url) => {
+  const v = String(url || "").trim();
+  if (!v) return true; // поле необязательное
+  // Мягкая проверка: должен начинаться с http(s):// или быть похож на домен
+  return /^(https?:\/\/[^\s]+|[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}[^\s]*$)/.test(v);
+};
+
+export const isValidTelegram = (value) => {
+  const v = String(value || "").trim();
+  if (!v) return true; // поле необязательное
+  // Разрешаем: username, @username, t.me/username, https://t.me/username
+  return /^(@?[a-zA-Z0-9_]+|https?:\/\/t\.me\/[a-zA-Z0-9_]+|t\.me\/[a-zA-Z0-9_]+)$/.test(v);
+};
+
 export const validateProfile = (profile = {}) => {
   const errors = {};
 
@@ -31,6 +45,26 @@ export const validateProfile = (profile = {}) => {
 
   if (profile.phone && !isValidPhone(profile.phone)) {
     errors.phone = "Некорректный телефон (пример: +7 (900) 123-45-67)";
+  }
+
+  if (profile.githubUrl && !isValidUrl(profile.githubUrl)) {
+    errors.githubUrl = "Некорректный URL (пример: https://github.com/username)";
+  }
+
+  if (profile.website && !isValidUrl(profile.website)) {
+    errors.website = "Некорректный URL (пример: https://portfolio.example.com)";
+  }
+
+  if (profile.linkedin && !isValidUrl(profile.linkedin)) {
+    errors.linkedin = "Некорректный URL (пример: https://linkedin.com/in/username)";
+  }
+
+  if (profile.habrCareer && !isValidUrl(profile.habrCareer)) {
+    errors.habrCareer = "Некорректный URL (пример: https://career.habr.com/username)";
+  }
+
+  if (profile.telegram && !isValidTelegram(profile.telegram)) {
+    errors.telegram = "Некорректный Telegram (пример: @username или https://t.me/username)";
   }
 
   return errors;

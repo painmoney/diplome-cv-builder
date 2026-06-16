@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogActions,
   Alert,
+  Divider,
 } from "@mui/material";
 import AutoFixHigh from "@mui/icons-material/AutoFixHigh";
 import { useAuth } from "../../context/AuthContext";
@@ -134,6 +135,80 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
         error={Boolean(errors.phone)}
         helperText={errors.phone || " "}
       />
+
+      <TextField
+        id="profile-location"
+        label="Город / локация"
+        value={data.location || ""}
+        onChange={(e) => handleChange("location", e.target.value)}
+        fullWidth
+        margin="normal"
+        placeholder="Москва / Санкт-Петербург / Remote"
+        helperText="Можно указать город или формат работы"
+      />
+
+      <Divider sx={{ my: 2 }} />
+
+      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+        Профессиональные ссылки
+      </Typography>
+
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+        <TextField
+          id="profile-githubUrl"
+          label="GitHub"
+          value={data.githubUrl || ""}
+          onChange={(e) => handleChange("githubUrl", e.target.value)}
+          fullWidth
+          placeholder="https://github.com/username"
+          error={Boolean(errors.githubUrl)}
+          helperText={errors.githubUrl || "Ссылка на профиль GitHub"}
+        />
+
+        <TextField
+          id="profile-website"
+          label="Портфолио / сайт"
+          value={data.website || ""}
+          onChange={(e) => handleChange("website", e.target.value)}
+          fullWidth
+          placeholder="https://portfolio.example.com"
+          error={Boolean(errors.website)}
+          helperText={errors.website || "Личный сайт, портфолио или страница проекта"}
+        />
+
+        <TextField
+          id="profile-telegram"
+          label="Telegram"
+          value={data.telegram || ""}
+          onChange={(e) => handleChange("telegram", e.target.value)}
+          fullWidth
+          placeholder="@username"
+          error={Boolean(errors.telegram)}
+          helperText={errors.telegram || "Удобно для быстрого контакта в РФ/СНГ. Поле необязательное"}
+        />
+
+        <TextField
+          id="profile-linkedin"
+          label="LinkedIn"
+          value={data.linkedin || ""}
+          onChange={(e) => handleChange("linkedin", e.target.value)}
+          fullWidth
+          placeholder="https://linkedin.com/in/username"
+          error={Boolean(errors.linkedin)}
+          helperText={errors.linkedin || "Полезно для международных откликов. Поле необязательное"}
+        />
+
+        <TextField
+          id="profile-habrCareer"
+          label="Habr Career"
+          value={data.habrCareer || ""}
+          onChange={(e) => handleChange("habrCareer", e.target.value)}
+          fullWidth
+          placeholder="https://career.habr.com/username"
+          error={Boolean(errors.habrCareer)}
+          helperText={errors.habrCareer || "Можно указать профиль на Хабр Карьере"}
+        />
+      </Box>
 
       <TextField
         id="profile-about"

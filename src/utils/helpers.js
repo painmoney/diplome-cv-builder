@@ -5,6 +5,50 @@ export const getProfileAbout = (profile = {}) => {
   return safeText(profile.about || profile.summary || "");
 };
 
+/**
+ * Нормализует значение Telegram в { display, url }.
+ * Принимает: username, @username, https://t.me/username, t.me/username
+ */
+export const normalizeTelegram = (value) => {
+  const v = safeText(value);
+  if (!v) return { display: "", url: "" };
+
+  // https://t.me/username
+  const httpsMatch = v.match(/^https?:\/\/t\.me\/([a-zA-Z0-9_]+)\/?$/);
+  if (httpsMatch) {
+    const username = httpsMatch[1];
+    return { display: `@${username}`, url: `https://t.me/${username}` };
+  }
+
+  // t.me/username
+  const tmeMatch = v.match(/^t\.me\/([a-zA-Z0-9_]+)\/?$/);
+  if (tmeMatch) {
+    const username = tmeMatch[1];
+    return { display: `@${username}`, url: `https://t.me/${username}` };
+  }
+
+  // @username
+  const atMatch = v.match(/^@?([a-zA-Z0-9_]+)$/);
+  if (atMatch) {
+    const username = atMatch[1];
+    return { display: `@${username}`, url: `https://t.me/${username}` };
+  }
+
+  return { display: v, url: v };
+};
+
+/**
+ * Мягкая нормализация URL.
+ * "" → "", example.com → https://example.com, https://... → как есть
+ */
+export const normalizeUrl = (value) => {
+  const v = safeText(value);
+  if (!v) return "";
+  if (/^https?:\/\//i.test(v)) return v;
+  if (/^[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(v)) return `https://${v}`;
+  return v;
+};
+
 export const getSkillName = (skill) => {
   if (typeof skill === "string") return safeText(skill);
   if (skill && typeof skill === "object") return safeText(skill.name);
@@ -54,6 +98,12 @@ export const normalizeResumeData = (data = {}) => {
       email: safeText(profile.email),
       phone: safeText(profile.phone),
       about: getProfileAbout(profile),
+      location: safeText(profile.location),
+      githubUrl: safeText(profile.githubUrl),
+      website: safeText(profile.website),
+      telegram: safeText(profile.telegram),
+      linkedin: safeText(profile.linkedin),
+      habrCareer: safeText(profile.habrCareer),
     },
     skills,
     education,

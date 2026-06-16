@@ -1,7 +1,10 @@
 import { supabase } from "./supabaseClient";
 
 const DEFAULT_RESUME_DATA = {
-  profile: { name: "", photo: "", about: "", summary: "", email: "", phone: "" },
+  profile: {
+    name: "", photo: "", about: "", summary: "", email: "", phone: "",
+    location: "", githubUrl: "", website: "", telegram: "", linkedin: "", habrCareer: "",
+  },
   education: [],
   skills: [],
   experience: [],
@@ -20,6 +23,12 @@ const normalizeProfile = (profile = {}) => {
     phone: profile.phone ?? "",
     name: profile.name ?? "",
     photo: profile.photo ?? "",
+    location: profile.location ?? "",
+    githubUrl: profile.githubUrl ?? "",
+    website: profile.website ?? "",
+    telegram: profile.telegram ?? "",
+    linkedin: profile.linkedin ?? "",
+    habrCareer: profile.habrCareer ?? "",
   };
 };
 
