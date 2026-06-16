@@ -38,6 +38,17 @@ export const TEMPLATE_REGISTRY = {
     supportsDocx: true,
     supportsMarkdown: true,
   },
+  classic: {
+    id: "classic",
+    label: "Классический ATS",
+    description: "Простой одноколоночный шаблон для откликов через ATS",
+    category: "ats",
+    docxAccent: "333333",
+    docxMuted: "555555",
+    supportsPdf: true,
+    supportsDocx: true,
+    supportsMarkdown: true,
+  },
 };
 
 export const TEMPLATE_IDS = Object.keys(TEMPLATE_REGISTRY);

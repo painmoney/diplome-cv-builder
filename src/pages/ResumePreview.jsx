@@ -6,8 +6,8 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  ToggleButtonGroup,
-  ToggleButton,
+  Menu,
+  MenuItem,
   Stack,
 } from "@mui/material";
 import {
@@ -16,15 +16,17 @@ import {
   ArrowBack,
   Description,
   Image as ImageIcon,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
 
-import { TEMPLATE_IDS } from "../utils/templateRegistry";
+import { TEMPLATE_IDS, TEMPLATE_REGISTRY } from "../utils/templateRegistry";
 import MinimalistTemplate from "../components/templates/MinimalistTemplate";
 import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
+import ClassicTemplate from "../components/templates/ClassicTemplate";
 
 import html2canvas from "html2canvas";
 import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
@@ -48,6 +50,7 @@ export default function ResumePreview() {
   const [exportingMD, setExportingMD] = useState(false);
   const [exportingDOCX, setExportingDOCX] = useState(false);
   const [exportingIMG, setExportingIMG] = useState(null); // "png" | "jpg" | null
+  const [templateMenuAnchor, setTemplateMenuAnchor] = useState(null);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -127,6 +130,7 @@ export default function ResumePreview() {
     minimalist: MinimalistTemplate,
     academic: AcademicTemplate,
     github: GithubTemplate,
+    classic: ClassicTemplate,
   }), []);
 
   const TemplateComponent = previewMap[selectedTemplate] || MinimalistTemplate;
@@ -347,16 +351,33 @@ export default function ResumePreview() {
           </Button>
         </Stack>
 
-        <ToggleButtonGroup
-          value={selectedTemplate}
-          exclusive
-          onChange={handleTemplateChange}
+        <Button
+          variant="outlined"
           size="small"
+          endIcon={<ExpandMoreIcon />}
+          onClick={(e) => setTemplateMenuAnchor(e.currentTarget)}
+          sx={{ minWidth: 180, textTransform: "none" }}
         >
-          <ToggleButton value="minimalist">Minimalist</ToggleButton>
-          <ToggleButton value="academic">Academic</ToggleButton>
-          <ToggleButton value="github">GitHub</ToggleButton>
-        </ToggleButtonGroup>
+          {TEMPLATE_REGISTRY[selectedTemplate]?.label || "Шаблон"}
+        </Button>
+        <Menu
+          anchorEl={templateMenuAnchor}
+          open={Boolean(templateMenuAnchor)}
+          onClose={() => setTemplateMenuAnchor(null)}
+        >
+          {Object.values(TEMPLATE_REGISTRY).map((tpl) => (
+            <MenuItem
+              key={tpl.id}
+              selected={tpl.id === selectedTemplate}
+              onClick={() => {
+                handleTemplateChange(null, tpl.id);
+                setTemplateMenuAnchor(null);
+              }}
+            >
+              {tpl.label}
+            </MenuItem>
+          ))}
+        </Menu>
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button

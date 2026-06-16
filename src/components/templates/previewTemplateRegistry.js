@@ -1,12 +1,14 @@
 import MinimalistTemplate from "./MinimalistTemplate";
 import AcademicTemplate from "./AcademicTemplate";
 import GithubTemplate from "./GithubTemplate";
+import ClassicTemplate from "./ClassicTemplate";
 import { getSafeTemplateId } from "../../utils/templateRegistry";
 
 const PREVIEW_TEMPLATE_COMPONENTS = {
   minimalist: MinimalistTemplate,
   academic: AcademicTemplate,
   github: GithubTemplate,
+  classic: ClassicTemplate,
 };
 
 /**
