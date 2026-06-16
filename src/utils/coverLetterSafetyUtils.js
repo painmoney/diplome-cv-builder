@@ -1,3 +1,5 @@
+import { getTechnologyMeta } from "./technologyRegistry";
+
 const KEYWORD_DISPLAY_NAMES = {
   git: "Git",
   github: "GitHub",
@@ -52,6 +54,10 @@ const KEYWORD_DISPLAY_NAMES = {
 export function formatKeywordName(value) {
   const raw = String(value || "").trim();
   const key = raw.toLowerCase();
+
+  const registryMeta = getTechnologyMeta(key);
+  if (registryMeta) return registryMeta.displayName;
+
   return KEYWORD_DISPLAY_NAMES[key] || raw;
 }
 

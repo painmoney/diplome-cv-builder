@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { JOB_MATCH_TEST_CASES } from "../../dev/jobMatchTestCases";
 import { getCoverLetterMode } from "../coverLetterSafetyUtils";
+import { getKeywordLabel } from "../jobMatchUtils";
 
 describe("JOB_MATCH_TEST_CASES", () => {
   it("has unique ids", () => {
@@ -126,5 +127,41 @@ describe("Case E — DevOps mismatch", () => {
       missingEvidence: ["Kubernetes", "Linux", "AWS"],
     });
     expect(mode.mode).toBe("careful");
+  });
+});
+
+describe("getKeywordLabel — registry display names", () => {
+  it("returns correct display names for problem technologies", () => {
+    expect(getKeywordLabel("testing")).toBe("Testing");
+    expect(getKeywordLabel("rest api")).toBe("REST API");
+    expect(getKeywordLabel("github actions")).toBe("GitHub Actions");
+    expect(getKeywordLabel("gitlab ci")).toBe("GitLab CI");
+    expect(getKeywordLabel("vs code")).toBe("VS Code");
+    expect(getKeywordLabel("ms sql server")).toBe("MS SQL Server");
+    expect(getKeywordLabel("spring boot")).toBe("Spring Boot");
+    expect(getKeywordLabel("styled components")).toBe("Styled Components");
+    expect(getKeywordLabel("docker compose")).toBe("Docker Compose");
+    expect(getKeywordLabel("testing library")).toBe("Testing Library");
+  });
+
+  it("resolves aliases through registry", () => {
+    expect(getKeywordLabel("reactjs")).toBe("React");
+    expect(getKeywordLabel("postgres")).toBe("PostgreSQL");
+    expect(getKeywordLabel("nodejs")).toBe("Node.js");
+    expect(getKeywordLabel("ts")).toBe("TypeScript");
+    expect(getKeywordLabel("restful")).toBe("REST API");
+    expect(getKeywordLabel("k8s")).toBe("Kubernetes");
+  });
+
+  it("preserves original for keywords in ALL_KEYWORDS", () => {
+    expect(getKeywordLabel("react")).toBe("React");
+    expect(getKeywordLabel("javascript")).toBe("JavaScript");
+    expect(getKeywordLabel("postgresql")).toBe("PostgreSQL");
+    expect(getKeywordLabel("docker")).toBe("Docker");
+  });
+
+  it("falls back to capitalization for unknown keywords", () => {
+    expect(getKeywordLabel("unknown")).toBe("Unknown");
+    expect(getKeywordLabel("customtech")).toBe("Customtech");
   });
 });

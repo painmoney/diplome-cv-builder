@@ -862,6 +862,26 @@ const TECHNOLOGY_REGISTRY = {
     aliases: [],
     tipType: "message-broker",
   },
+
+  // ── REQUIREMENTS (technology-related) ────────────────────────────
+  testing: {
+    displayName: "Testing",
+    category: "methodologies",
+    aliases: [],
+    tipType: "testing-tool",
+  },
+  "manual testing": {
+    displayName: "Manual Testing",
+    category: "methodologies",
+    aliases: [],
+    tipType: "testing-tool",
+  },
+  "automated testing": {
+    displayName: "Automated Testing",
+    category: "methodologies",
+    aliases: [],
+    tipType: "testing-tool",
+  },
 };
 
 // ── Helper functions ───────────────────────────────────────────────

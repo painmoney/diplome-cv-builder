@@ -26,6 +26,28 @@ describe("formatKeywordName", () => {
   it("preserves unknown keywords", () => {
     expect(formatKeywordName("CustomTech")).toBe("CustomTech");
   });
+
+  it("returns correct display names via registry for problem technologies", () => {
+    expect(formatKeywordName("testing")).toBe("Testing");
+    expect(formatKeywordName("rest api")).toBe("REST API");
+    expect(formatKeywordName("github actions")).toBe("GitHub Actions");
+    expect(formatKeywordName("gitlab ci")).toBe("GitLab CI");
+    expect(formatKeywordName("vs code")).toBe("VS Code");
+    expect(formatKeywordName("ms sql server")).toBe("MS SQL Server");
+    expect(formatKeywordName("spring boot")).toBe("Spring Boot");
+    expect(formatKeywordName("styled components")).toBe("Styled Components");
+    expect(formatKeywordName("docker compose")).toBe("Docker Compose");
+    expect(formatKeywordName("testing library")).toBe("Testing Library");
+  });
+
+  it("resolves aliases through registry", () => {
+    expect(formatKeywordName("reactjs")).toBe("React");
+    expect(formatKeywordName("postgres")).toBe("PostgreSQL");
+    expect(formatKeywordName("nodejs")).toBe("Node.js");
+    expect(formatKeywordName("ts")).toBe("TypeScript");
+    expect(formatKeywordName("restful")).toBe("REST API");
+    expect(formatKeywordName("k8s")).toBe("Kubernetes");
+  });
 });
 
 describe("formatKeywordList", () => {

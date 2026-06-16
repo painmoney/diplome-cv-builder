@@ -7,6 +7,7 @@ import {
   CATEGORY_LABELS,
 } from "./jobMatchConstants";
 import { normalizeResumeData, safeText, getSkillName } from "./helpers";
+import { getTechnologyMeta } from "./technologyRegistry";
 
 const TECHNICAL_CATEGORIES = new Set([
   "languages", "frameworks", "databases", "cloud", "tools", "methodologies",
@@ -19,6 +20,10 @@ export function getKeywordCategory(keyword) {
 }
 
 export function getKeywordLabel(keyword) {
+  const normalized = String(keyword || "").toLowerCase().trim();
+  const registryMeta = getTechnologyMeta(normalized);
+  if (registryMeta) return registryMeta.displayName;
+
   const meta = ALL_KEYWORDS.get(keyword);
   if (meta) return meta.original;
   for (const [, canonical] of Object.entries(RUSSIAN_PHRASES)) {
