@@ -90,6 +90,7 @@ export const normalizeResumeData = (data = {}) => {
   const education = Array.isArray(data.education) ? data.education : [];
   const experience = Array.isArray(data.experience) ? data.experience : [];
   const github = Array.isArray(data.github) ? data.github : [];
+  const projects = Array.isArray(data.projects) ? data.projects : [];
 
   return {
     profile: {
@@ -109,6 +110,7 @@ export const normalizeResumeData = (data = {}) => {
     education,
     experience,
     github,
+    projects,
     template: data.template || "minimalist",
   };
 };

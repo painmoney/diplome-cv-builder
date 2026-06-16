@@ -9,6 +9,7 @@ const DEFAULT_RESUME_DATA = {
   skills: [],
   experience: [],
   github: [],
+  projects: [],
   template: "minimalist",
 };
 
@@ -41,6 +42,7 @@ export const normalizeLoadedResumeData = (data = {}) => {
     skills: Array.isArray(data.skills) ? data.skills : [],
     experience: Array.isArray(data.experience) ? data.experience : [],
     github: Array.isArray(data.github) ? data.github : [],
+    projects: Array.isArray(data.projects) ? data.projects : [],
     template: data.template || "minimalist",
   };
 

@@ -86,7 +86,7 @@ const TAB_MAP = {
   skills: { tab: 1, target: "skills-skill" },
   education: { tab: 2, target: "education-institution" },
   experience: { tab: 3, target: "experience-company" },
-  github: { tab: 4, target: "github-username" },
+  github: { tab: 5, target: "github-username" },
 };
 
 export default function Dashboard() {

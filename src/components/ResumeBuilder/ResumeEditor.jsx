@@ -28,6 +28,7 @@ import EducationBlock from "./EducationBlock";
 import SkillsBlock from "./SkillsBlock";
 import ExperienceBlock from "./ExperienceBlock";
 import GitHubBlock from "./GitHubBlock";
+import ProjectsBlock from "./ProjectsBlock";
 import TemplateSelector from "./TemplateSelector";
 import JobMatchTab from "./JobMatchTab";
 import ResumeHealthCheck from "./ResumeHealthCheck";
@@ -43,6 +44,7 @@ const DEFAULT_RESUME_DATA = {
   skills: [],
   experience: [],
   github: [],
+  projects: [],
   template: "minimalist",
 };
 
@@ -53,7 +55,7 @@ export default function ResumeEditor() {
   const initialTarget = location.state?.target;
 
   const [activeTab, setActiveTab] = useState(() => {
-    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 6 ? initialTab : 0;
+    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 7 ? initialTab : 0;
   });
   const [resumeTitle, setResumeTitle] = useState("Моё IT-резюме");
   const [resumeData, setResumeData] = useState(DEFAULT_RESUME_DATA);
@@ -221,7 +223,8 @@ export default function ResumeEditor() {
       1: "skills-skill",
       2: "education-institution",
       3: "experience-company",
-      4: "github-username",
+      4: null,
+      5: "github-username",
     };
 
     const finalTarget = targetId || fallbackByTab[tabIndex];
@@ -386,6 +389,7 @@ export default function ResumeEditor() {
         <Tab label="Навыки" />
         <Tab label="Образование" />
         <Tab label="Опыт работы" />
+        <Tab label="Портфолио" />
         <Tab label="GitHub" />
         <Tab label="Анализ вакансии" icon={<WorkIcon fontSize="small" />} iconPosition="start" />
         <Tab label="Проверка" />
@@ -412,9 +416,12 @@ export default function ResumeEditor() {
           <ExperienceBlock data={resumeData.experience} onChange={(d) => updateSection("experience", d)} />
         )}
         {activeTab === 4 && (
-          <GitHubBlock data={resumeData.github} onChange={(d) => updateSection("github", d)} />
+          <ProjectsBlock data={resumeData.projects} onChange={(value) => updateSection("projects", value)} />
         )}
         {activeTab === 5 && (
+          <GitHubBlock data={resumeData.github} onChange={(d) => updateSection("github", d)} />
+        )}
+        {activeTab === 6 && (
           <JobMatchTab
             resumeData={resumeData}
             jdText={jobMatchText}
@@ -429,7 +436,7 @@ export default function ResumeEditor() {
             onLoadDevScenario={handleLoadDevScenario}
           />
         )}
-        {activeTab === 6 && (
+        {activeTab === 7 && (
           <ResumeHealthCheck
             resumeData={resumeData}
             jobMatchResult={jobMatchResult}
@@ -456,11 +463,12 @@ export default function ResumeEditor() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
           {activeTab === 0 && "Дальше добавьте ключевые навыки — они помогут собрать краткое описание и анализ вакансии."}
           {activeTab === 1 && "Дальше добавьте опыт или проекты, чтобы подтвердить навыки."}
-          {activeTab === 2 && "Дальше можно добавить опыт или перейти к GitHub-проектам."}
-          {activeTab === 3 && "Дальше можно добавить образование или перейти к GitHub-проектам."}
-          {activeTab === 4 && "После импорта проектов можно проверить резюме или сравнить его с вакансией."}
-          {activeTab === 5 && "После анализа можно вернуться к разделам и усилить резюме."}
-          {activeTab === 6 && "Исправьте найденные проблемы, затем перейдите к просмотру и экспорту резюме."}
+          {activeTab === 2 && "Дальше можно добавить опыт или перейти к проектам."}
+          {activeTab === 3 && "Дальше можно добавить ручные проекты или перейти к GitHub."}
+          {activeTab === 4 && "Добавьте ручные проекты или перейти к импорту GitHub."}
+          {activeTab === 5 && "После импорта проектов можно проверить резюме или сравнить его с вакансией."}
+          {activeTab === 6 && "После анализа можно вернуться к разделам и усилить резюме."}
+          {activeTab === 7 && "Исправьте найденные проблемы, затем перейдите к просмотру и экспорту резюме."}
         </Typography>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
@@ -474,7 +482,7 @@ export default function ResumeEditor() {
           </Button>
           <Button
             variant="outlined"
-            disabled={activeTab === 6}
+            disabled={activeTab === 7}
             onClick={() => setActiveTab(activeTab + 1)}
             sx={{ minWidth: 120 }}
           >
