@@ -218,6 +218,18 @@ export function buildResumeEvidenceMap(resumeData) {
 
   const projectsParts = [];
   const githubParts = [];
+
+  const manualProjects = Array.isArray(data.projects) ? data.projects : [];
+  for (const project of manualProjects) {
+    if (project.description || project.techStack) {
+      if (project.name) projectsParts.push(project.name);
+      if (project.role) projectsParts.push(project.role);
+      if (project.description) projectsParts.push(project.description);
+      if (project.techStack) projectsParts.push(project.techStack);
+      if (project.period) projectsParts.push(project.period);
+    }
+  }
+
   for (const repo of data.github) {
     if (repo.name) projectsParts.push(repo.name);
     if (repo.description) projectsParts.push(repo.description);
