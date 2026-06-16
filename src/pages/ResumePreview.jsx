@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -33,6 +33,14 @@ import html2canvas from "html2canvas";
 import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
 
 const VALID_TEMPLATES = TEMPLATE_IDS;
+
+const PREVIEW_TEMPLATE_COMPONENTS = {
+  minimalist: MinimalistTemplate,
+  academic: AcademicTemplate,
+  github: GithubTemplate,
+  classic: ClassicTemplate,
+  modern: ModernTemplate,
+};
 
 export default function ResumePreview() {
   const { user } = useAuth();
@@ -127,15 +135,7 @@ export default function ResumePreview() {
     });
   }, [templateOverride, resume?.id]);
 
-  const previewMap = useMemo(() => ({
-    minimalist: MinimalistTemplate,
-    academic: AcademicTemplate,
-    github: GithubTemplate,
-    classic: ClassicTemplate,
-    modern: ModernTemplate,
-  }), []);
-
-  const TemplateComponent = previewMap[selectedTemplate] || MinimalistTemplate;
+  const TemplateComponent = PREVIEW_TEMPLATE_COMPONENTS[selectedTemplate] || MinimalistTemplate;
 
   const handleTemplateChange = async (_, value) => {
     if (!value) return;
