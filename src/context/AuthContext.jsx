@@ -27,10 +27,11 @@ export function AuthProvider({ children }) {
 
   // Функция выхода с опциональным редиректом
   const signOut = async (redirect = true) => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      // signOut failed silently — user will see auth state unchanged
-    } else {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // proceed with local logout even if remote signOut fails
+    } finally {
       setUser(null);
       if (redirect) window.location.href = "/login";
     }

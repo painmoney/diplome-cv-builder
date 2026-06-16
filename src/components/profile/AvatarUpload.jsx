@@ -104,8 +104,11 @@ export default function AvatarUpload({
       if (sourceImageUrl) {
         URL.revokeObjectURL(sourceImageUrl);
       }
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
     };
-  }, [sourceImageUrl]);
+  }, [sourceImageUrl, previewUrl]);
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
@@ -157,6 +160,10 @@ export default function AvatarUpload({
     try {
       const croppedFile = await getCroppedImage(sourceImageUrl, croppedAreaPixels);
       const localPreviewUrl = URL.createObjectURL(croppedFile);
+
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
 
       setAvatarFile(croppedFile);
       setPreviewUrl(localPreviewUrl);

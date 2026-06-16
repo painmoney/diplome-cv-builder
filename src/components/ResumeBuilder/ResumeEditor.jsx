@@ -73,7 +73,6 @@ export default function ResumeEditor() {
 
   // тосты (валидация / ошибки)
   const [toast, setToast] = useState({ open: false, message: "", severity: "error" });
-  const lastAutoToastRef = useRef(0);
 
   // чтобы не автосейвить во время гидрации
   const isHydratingRef = useRef(true);
@@ -262,23 +261,16 @@ export default function ResumeEditor() {
 
   const failValidation = ({ silent }) => {
     setSaveStatus("error");
-    setSaveError("validation");
+    setSaveError("Проверьте контакты в профиле");
+
+    if (silent) {
+      return;
+    }
 
     const msg = formatValidationToast(profileErrors);
 
-    // Валидация всегда открывает вкладку профиля, чтобы человек видел поля
     setActiveTab(0);
     pendingFocusRef.current = { tab: 0, target: "profile-email" };
-
-    // не спамим автосейвом
-    if (silent) {
-      const now = Date.now();
-      if (now - lastAutoToastRef.current > 7000 && msg) {
-        lastAutoToastRef.current = now;
-        setToast({ open: true, message: msg, severity: "error" });
-      }
-      return;
-    }
 
     if (msg) setToast({ open: true, message: msg, severity: "error" });
   };
@@ -347,7 +339,7 @@ export default function ResumeEditor() {
     if (saveStatus === "saving") return <Chip size="small" label="Сохранение..." />;
     if (saveStatus === "saved") return <Chip size="small" color="success" label="Сохранено" />;
     if (saveStatus === "error") {
-      const label = saveError === "validation" ? "Ошибка: неверные поля" : `Ошибка: ${saveError || "сохранения"}`;
+      const label = saveError || "сохранения";
       return <Chip size="small" color="error" label={label} />;
     }
     return <Chip size="small" variant="outlined" label="Не сохранено" />;
