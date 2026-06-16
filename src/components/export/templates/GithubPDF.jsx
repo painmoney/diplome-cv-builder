@@ -151,6 +151,8 @@ const styles = StyleSheet.create({
 
 export default function GithubPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   return (
     <Document>
@@ -196,6 +198,23 @@ export default function GithubPDF({ data }) {
                 );
               })}
             </View>
+          </View>
+        )}
+
+        {/* Manual Projects */}
+        {meaningfulProjects.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>projects</Text>
+            {meaningfulProjects.map((proj, idx) => (
+              <View key={idx} style={styles.repoBox}>
+                <Text style={styles.repoName}>{proj.name || 'project'}</Text>
+                {proj.description && <Text style={styles.repoDesc}>{proj.description}</Text>}
+                <Text style={styles.repoStars}>
+                  {[proj.role, proj.period, proj.techStack].filter(Boolean).join(' · ')}
+                </Text>
+                {proj.link && <Text style={styles.repoUrl}>{proj.link}</Text>}
+              </View>
+            ))}
           </View>
         )}
 

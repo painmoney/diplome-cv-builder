@@ -20,6 +20,8 @@ const SectionTitle = ({ children }) => (
 
 export default function ModernTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
   const primary = "#0ea5e9";
 
   return (
@@ -206,10 +208,49 @@ export default function ModernTemplate({ data }) {
           </Box>
         )}
 
+        {/* Manual Projects */}
+        {meaningfulProjects.length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <SectionTitle>Проекты</SectionTitle>
+            {meaningfulProjects.map((proj) => (
+              <Box key={proj.id} sx={{ mb: 1.5, p: 1.5, border: "1px solid #e2e8f0", borderRadius: 1 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", mb: 0.5 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.9rem" }}>
+                    {proj.name || "Проект"}
+                  </Typography>
+                  {proj.period && (
+                    <Typography variant="caption" sx={{ color: "#64748b" }}>{proj.period}</Typography>
+                  )}
+                </Box>
+                {proj.role && (
+                  <Typography variant="caption" sx={{ color: "#0ea5e9", fontWeight: 600, display: "block", mb: 0.5 }}>
+                    {proj.role}
+                  </Typography>
+                )}
+                {proj.techStack && (
+                  <Typography variant="body2" sx={{ fontSize: "8pt", color: "#64748b", mb: 0.5 }}>
+                    Стек: {proj.techStack}
+                  </Typography>
+                )}
+                {proj.description && (
+                  <Typography variant="body2" sx={{ fontSize: "8pt", color: "#475569", lineHeight: 1.5 }}>
+                    {proj.description}
+                  </Typography>
+                )}
+                {proj.link && (
+                  <Typography variant="caption" sx={{ color: "#0ea5e9", mt: 0.5, display: "block" }}>
+                    {proj.link.replace(/^https?:\/\//, "")}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+        )}
+
         {/* GitHub Projects */}
         {github && github.length > 0 && (
           <Box sx={{ mb: 2 }}>
-            <SectionTitle>Проекты</SectionTitle>
+            <SectionTitle>GitHub проекты</SectionTitle>
             {github.map((repo, idx) => (
               <Box
                 key={idx}

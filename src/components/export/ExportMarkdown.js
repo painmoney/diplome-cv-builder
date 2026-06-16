@@ -24,6 +24,8 @@ const bulletsFromText = (text) => {
 export const buildMarkdown = (resumeData) => {
   const data = normalizeResumeData(resumeData);
   const { profile, skills, education, experience, github } = data;
+  const projects = Array.isArray(data.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   const lines = [];
 
@@ -105,6 +107,21 @@ export const buildMarkdown = (resumeData) => {
     });
 
     lines.push("");
+  }
+
+  // Manual Projects
+  if (meaningfulProjects.length) {
+    lines.push(`## Проекты`);
+    meaningfulProjects.forEach((proj) => {
+      const name = safeText(proj.name) || "Проект";
+      const meta = [proj.role, proj.period].filter(Boolean).join(" — ");
+      lines.push(`### ${name}${meta ? ` — ${meta}` : ""}`);
+
+      if (proj.techStack) lines.push(`**Стек:** ${proj.techStack}`);
+      if (proj.description) lines.push(proj.description);
+      if (proj.link) lines.push(`[Ссылка](${proj.link})`);
+      lines.push("");
+    });
   }
 
   // GitHub Projects

@@ -22,6 +22,8 @@ const SectionTitle = ({ children, color = "#2e7d32" }) => (
 
 export default function AcademicTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
   const primary = "#2e7d32";
 
   return (
@@ -264,10 +266,42 @@ export default function AcademicTemplate({ data }) {
             </Box>
           )}
 
+          {/* Manual Projects */}
+          {meaningfulProjects.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              <SectionTitle>Проекты</SectionTitle>
+              {meaningfulProjects.map((proj) => (
+                <Box key={proj.id} sx={{ mb: 2.5, pl: 2, borderLeft: `4px solid ${primary}` }}>
+                  <Typography variant="h6" sx={{ fontWeight: 900, fontSize: "1.05rem", color: "#111827", mb: 0.5 }}>
+                    {proj.name || "Проект"}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: primary, fontWeight: 700, mb: 0.5 }}>
+                    {[proj.role, proj.period].filter(Boolean).join(" | ")}
+                  </Typography>
+                  {proj.techStack && (
+                    <Typography variant="body2" sx={{ color: "#6b7280", fontSize: "0.85rem", mb: 0.5 }}>
+                      Стек: {proj.techStack}
+                    </Typography>
+                  )}
+                  {proj.description && (
+                    <Typography variant="body2" sx={{ color: "#374151", lineHeight: 1.7, whiteSpace: "pre-line" }}>
+                      {proj.description}
+                    </Typography>
+                  )}
+                  {proj.link && (
+                    <Typography variant="body2" component="a" href={proj.link} target="_blank" rel="noopener noreferrer" sx={{ color: primary, fontSize: "0.85rem", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}>
+                      {proj.link.replace(/^https?:\/\//, "")}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
+
           {/* GitHub Projects */}
           {github && github.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              <SectionTitle>Проекты</SectionTitle>
+              <SectionTitle>GitHub проекты</SectionTitle>
 
               {github.map((repo, idx) => (
                 <Box

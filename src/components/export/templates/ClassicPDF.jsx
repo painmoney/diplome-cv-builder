@@ -92,6 +92,8 @@ const styles = StyleSheet.create({
 
 export default function ClassicPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   return (
     <Document>
@@ -161,10 +163,27 @@ export default function ClassicPDF({ data }) {
           </View>
         )}
 
+        {/* Manual Projects */}
+        {meaningfulProjects.length > 0 && (
+          <View>
+            <Text style={styles.sectionTitle}>Проекты</Text>
+            {meaningfulProjects.map((proj, idx) => (
+              <View key={idx} style={styles.item}>
+                <Text style={styles.itemTitle}>
+                  {proj.name || 'Проект'}{proj.role ? `, ${proj.role}` : ''}{proj.period ? ` — ${proj.period}` : ''}
+                </Text>
+                {proj.techStack && <Text style={styles.text}>Стек: {proj.techStack}</Text>}
+                {proj.description && <Text style={styles.text}>{proj.description}</Text>}
+                {proj.link && <Text style={styles.text}>{proj.link}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* GitHub Projects */}
         {github && github.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>Проекты</Text>
+            <Text style={styles.sectionTitle}>GitHub проекты</Text>
             {github.map((repo, idx) => (
               <View key={idx} style={styles.item}>
                 <Text style={styles.repoName}>

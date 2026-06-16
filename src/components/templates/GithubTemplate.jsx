@@ -21,6 +21,8 @@ const SectionTitle = ({ children }) => (
 
 export default function GithubTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   return (
     <Paper
@@ -123,6 +125,35 @@ export default function GithubTemplate({ data }) {
               );
             })}
           </Box>
+        </Box>
+      )}
+
+      {/* Manual Projects */}
+      {meaningfulProjects.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <SectionTitle>projects</SectionTitle>
+          {meaningfulProjects.map((proj) => (
+            <Box key={proj.id} sx={{ mb: 2, p: 2, bgcolor: "#161b22", border: "1px solid #30363d", borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ color: "#58a6ff", fontWeight: 900, fontSize: "1rem", mb: 0.75 }}>
+                {proj.name || "project"}
+              </Typography>
+              {proj.description && (
+                <Typography variant="body2" sx={{ color: "#8b949e", lineHeight: 1.6, mb: 1 }}>
+                  {proj.description}
+                </Typography>
+              )}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Typography variant="body2" sx={{ color: "#8b949e" }}>
+                  {[proj.role, proj.period, proj.techStack].filter(Boolean).join(" · ")}
+                </Typography>
+                {proj.link && (
+                  <Typography variant="body2" component="a" href={proj.link} target="_blank" rel="noopener noreferrer" sx={{ color: "#58a6ff", fontSize: "0.85rem", textDecoration: "none" }}>
+                    {proj.link.replace(/^https?:\/\//, "")}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          ))}
         </Box>
       )}
 

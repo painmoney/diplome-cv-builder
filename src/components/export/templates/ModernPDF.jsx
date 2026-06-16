@@ -153,6 +153,8 @@ const styles = StyleSheet.create({
 
 export default function ModernPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   return (
     <Document>
@@ -239,10 +241,29 @@ export default function ModernPDF({ data }) {
             </View>
           )}
 
+          {/* Manual Projects */}
+          {meaningfulProjects.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Проекты</Text>
+              {meaningfulProjects.map((proj, idx) => (
+                <View key={idx} style={styles.repoBox}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Text style={styles.repoName}>{proj.name || 'Проект'}</Text>
+                    {proj.period && <Text style={styles.repoMeta}>{proj.period}</Text>}
+                  </View>
+                  {proj.role && <Text style={{ fontSize: 8, color: '#0ea5e9', fontWeight: 600, marginBottom: 2 }}>{proj.role}</Text>}
+                  {proj.techStack && <Text style={styles.repoMeta}>Стек: {proj.techStack}</Text>}
+                  {proj.description && <Text style={styles.repoDesc}>{proj.description}</Text>}
+                  {proj.link && <Text style={styles.repoUrl}>{proj.link.replace(/^https?:\/\//, '')}</Text>}
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* GitHub Projects */}
           {github && github.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Проекты</Text>
+              <Text style={styles.sectionTitle}>GitHub проекты</Text>
               {github.map((repo, idx) => (
                 <View key={idx} style={styles.repoBox}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>

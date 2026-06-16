@@ -108,6 +108,8 @@ const styles = StyleSheet.create({
 
 export default function MinimalistPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   return (
     <Document>
@@ -202,6 +204,24 @@ export default function MinimalistPDF({ data }) {
                 </View>
               );
             })}
+          </View>
+        )}
+
+        {/* Manual Projects */}
+        {meaningfulProjects.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Проекты</Text>
+            {meaningfulProjects.map((proj, idx) => (
+              <View key={idx} style={styles.item}>
+                <Text style={styles.itemTitle}>{proj.name || 'Проект'}</Text>
+                <Text style={styles.itemSubtitle}>
+                  {[proj.role, proj.period].filter(Boolean).join(' | ')}
+                </Text>
+                {proj.techStack && <Text style={styles.text}>Стек: {proj.techStack}</Text>}
+                {proj.description && <Text style={styles.text}>{proj.description}</Text>}
+                {proj.link && <Text style={styles.repoUrl}>{proj.link}</Text>}
+              </View>
+            ))}
           </View>
         )}
 

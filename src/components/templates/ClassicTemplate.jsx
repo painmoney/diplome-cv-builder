@@ -22,6 +22,8 @@ const SectionTitle = ({ children }) => (
 
 export default function ClassicTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const projects = Array.isArray(data?.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   return (
     <Box
@@ -125,10 +127,41 @@ export default function ClassicTemplate({ data }) {
         </Box>
       )}
 
+      {/* Manual Projects */}
+      {meaningfulProjects.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <SectionTitle>Проекты</SectionTitle>
+          {meaningfulProjects.map((proj) => (
+            <Box key={proj.id} sx={{ mb: 1.5 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "10.5pt" }}>
+                {proj.name || "Проект"}
+                {proj.role ? `, ${proj.role}` : ""}
+                {proj.period ? ` — ${proj.period}` : ""}
+              </Typography>
+              {proj.techStack && (
+                <Typography variant="body2" sx={{ fontSize: "10pt", color: "#555" }}>
+                  Стек: {proj.techStack}
+                </Typography>
+              )}
+              {proj.description && (
+                <Typography variant="body2" sx={{ fontSize: "10pt", mt: 0.25, whiteSpace: "pre-line" }}>
+                  {proj.description}
+                </Typography>
+              )}
+              {proj.link && (
+                <Typography variant="body2" sx={{ fontSize: "9pt", color: "#555" }}>
+                  {proj.link}
+                </Typography>
+              )}
+            </Box>
+          ))}
+        </Box>
+      )}
+
       {/* GitHub Projects */}
       {github && github.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <SectionTitle>Проекты</SectionTitle>
+          <SectionTitle>GitHub проекты</SectionTitle>
           {github.map((repo, idx) => (
             <Box key={idx} sx={{ mb: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "10pt" }}>

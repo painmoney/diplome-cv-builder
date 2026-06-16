@@ -109,6 +109,8 @@ const compact = (items) => items.filter(Boolean);
 export const buildDocxDocument = (resumeData, template = "minimalist") => {
   const data = normalizeResumeData(resumeData);
   const { profile, skills, education, experience, github } = data;
+  const projects = Array.isArray(data.projects) ? data.projects : [];
+  const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
   const style = getTemplateStyle(template);
   const children = [];
@@ -230,6 +232,30 @@ export const buildDocxDocument = (resumeData, template = "minimalist") => {
 
       if (edu.description) {
         children.push(makeParagraph(edu.description, { size: 20 }));
+      }
+    });
+  }
+
+  if (meaningfulProjects.length) {
+    children.push(makeHeading("Проекты", style.accent, style.sectionPrefix));
+
+    meaningfulProjects.forEach((proj) => {
+      const name = safeText(proj.name) || "Проект";
+      const meta = [proj.role, proj.period].filter(Boolean).join(" — ");
+      children.push(makeSubheading(meta ? `${name} — ${meta}` : name));
+
+      if (proj.techStack) {
+        children.push(makeParagraph(`Стек: ${proj.techStack}`, { size: 20, after: 80 }));
+      }
+
+      if (proj.description) {
+        splitDescriptionToBullets(proj.description).forEach((item) => {
+          children.push(makeBullet(item));
+        });
+      }
+
+      if (proj.link) {
+        children.push(makeParagraph(proj.link, { size: 20, color: style.accent }));
       }
     });
   }
