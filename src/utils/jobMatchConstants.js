@@ -153,3 +153,10 @@ for (const [kwLower, meta] of ALL_KEYWORDS) {
     MULTI_WORD_KEYWORDS.push({ keyword: kwLower, ...meta });
   }
 }
+
+export const AMBIGUOUS_SINGLE_WORD_KEYWORDS = new Set([
+  "go",
+  "r",
+  "node",
+  "rest",
+]);

@@ -5,6 +5,7 @@ import {
   SYNONYMS,
   SUPPRESSIONS,
   CATEGORY_LABELS,
+  AMBIGUOUS_SINGLE_WORD_KEYWORDS,
 } from "./jobMatchConstants";
 import { normalizeResumeData, safeText, getSkillName } from "./helpers";
 import { getTechnologyMeta } from "./technologyRegistry";
@@ -12,6 +13,31 @@ import { getTechnologyMeta } from "./technologyRegistry";
 const TECHNICAL_CATEGORIES = new Set([
   "languages", "frameworks", "databases", "cloud", "tools", "methodologies",
 ]);
+
+const EXPLICIT_KEYWORD_PATTERNS = [
+  { pattern: /\bgolang\b/i, keyword: "go" },
+  { pattern: /\bgo\s+language\b/i, keyword: "go" },
+  { pattern: /\bgo\s+programming\b/i, keyword: "go" },
+  { pattern: /\bgo\s+developer\b/i, keyword: "go" },
+  { pattern: /\bbackend\s+(?:with\s+)?go\b/i, keyword: "go" },
+  { pattern: /\bgo\s+backend\b/i, keyword: "go" },
+
+  { pattern: /\br\s+language\b/i, keyword: "r" },
+  { pattern: /\br\s+programming\b/i, keyword: "r" },
+  { pattern: /\bdata\s+analysis\s+with\s+r\b/i, keyword: "r" },
+  { pattern: /\banalytics\s+with\s+r\b/i, keyword: "r" },
+  { pattern: /\br\s+scripts?\b/i, keyword: "r" },
+
+  { pattern: /\bnode\.js\b/i, keyword: "node.js" },
+  { pattern: /\bnodejs\b/i, keyword: "node.js" },
+  { pattern: /\bnode\s+backend\b/i, keyword: "node.js" },
+  { pattern: /\bnode\s+server\b/i, keyword: "node.js" },
+  { pattern: /\bnode\s+api\b/i, keyword: "node.js" },
+
+  { pattern: /\brestful(?:\s+api)?\b/i, keyword: "rest api" },
+  { pattern: /\brest\s+endpoints?\b/i, keyword: "rest api" },
+  { pattern: /\brest\s+services?\b/i, keyword: "rest api" },
+];
 
 export function getKeywordCategory(keyword) {
   const meta = ALL_KEYWORDS.get(keyword);
@@ -54,15 +80,29 @@ export function extractKeywordsFromText(text) {
   const normalized = normalizeText(text);
   const keywords = new Set();
 
+  // 1. Multi-word keywords
   for (const { keyword, original } of MULTI_WORD_KEYWORDS) {
     if (normalized.includes(keyword)) {
       keywords.add(original.toLowerCase());
     }
   }
 
+  // 2. Explicit patterns for ambiguous keywords
+  for (const { pattern, keyword } of EXPLICIT_KEYWORD_PATTERNS) {
+    if (pattern.test(normalized)) {
+      keywords.add(keyword.toLowerCase());
+    }
+  }
+
+  // 3. Single-word keywords (skip ambiguous)
   const tokens = normalized.split(" ").filter(Boolean);
   for (let raw of tokens) {
     let token = raw.replace(/^[.,;:()[\]{}!?]+|[.,;:()[\]{}!?]+$/g, "");
+
+    if (AMBIGUOUS_SINGLE_WORD_KEYWORDS.has(token)) {
+      continue;
+    }
+
     const synonym = SYNONYMS[token];
     if (synonym) {
       keywords.add(synonym.toLowerCase());
@@ -74,6 +114,7 @@ export function extractKeywordsFromText(text) {
     }
   }
 
+  // 4. Russian phrases
   const stripped = stripPunctuation(text);
   for (const [, canonical] of Object.entries(RUSSIAN_PHRASES)) {
     if (stripped.includes(canonical.toLowerCase())) {
@@ -81,6 +122,7 @@ export function extractKeywordsFromText(text) {
     }
   }
 
+  // 5. Suppressions
   for (const [parent, children] of Object.entries(SUPPRESSIONS)) {
     if (keywords.has(parent)) {
       for (const child of children) {

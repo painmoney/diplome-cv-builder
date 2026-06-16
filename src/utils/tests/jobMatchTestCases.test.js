@@ -261,11 +261,114 @@ describe("extractKeywordsFromText — Stage C-3a registry-only aliases NOT in re
   });
 });
 
-describe("Stage C-3a — risky false-positive TODOs", () => {
-  it.todo("go to production should NOT match Go after context-aware extraction is implemented");
-  it.todo("rest of the team should NOT match REST API after context-aware extraction is implemented");
-  it.todo("node in a graph should NOT match Node.js after context-aware extraction is implemented");
-  it.todo("R&D should NOT match R after context-aware extraction is implemented");
-  it.todo("js should only match JavaScript in technical context if enabled later");
-  it.todo("ts should only match TypeScript in technical context if enabled later");
+describe("extractKeywordsFromText — Stage C-3b false-positive prevention", () => {
+  it("'go to production' does NOT match Go", () => {
+    expect(extractKeywordsFromText("go to production and deploy")).not.toContain("go");
+  });
+
+  it("'go live next week' does NOT match Go", () => {
+    expect(extractKeywordsFromText("go live next week")).not.toContain("go");
+  });
+
+  it("'go ahead with deployment' does NOT match Go", () => {
+    expect(extractKeywordsFromText("go ahead with deployment")).not.toContain("go");
+  });
+
+  it("'rest of the team' does NOT match REST API", () => {
+    expect(extractKeywordsFromText("rest of the team works on frontend")).not.toContain("rest api");
+  });
+
+  it("'rest assured' does NOT match REST API", () => {
+    expect(extractKeywordsFromText("rest assured, documentation is ready")).not.toContain("rest api");
+  });
+
+  it("'take a rest' does NOT match REST API", () => {
+    expect(extractKeywordsFromText("take a rest after release")).not.toContain("rest api");
+  });
+
+  it("'node in a graph' does NOT match Node.js", () => {
+    expect(extractKeywordsFromText("each node in the graph has neighbors")).not.toContain("node.js");
+  });
+
+  it("'tree node traversal' does NOT match Node.js", () => {
+    expect(extractKeywordsFromText("tree node traversal")).not.toContain("node.js");
+  });
+
+  it("'network node' does NOT match Node.js", () => {
+    expect(extractKeywordsFromText("network node is unavailable")).not.toContain("node.js");
+  });
+
+  it("'R&D department' does NOT match R", () => {
+    expect(extractKeywordsFromText("R&D department")).not.toContain("r");
+  });
+
+  it("'option r' does NOT match R", () => {
+    expect(extractKeywordsFromText("option r is selected")).not.toContain("r");
+  });
+
+  it("'grade R' does NOT match R", () => {
+    expect(extractKeywordsFromText("grade R is required")).not.toContain("r");
+  });
+});
+
+describe("extractKeywordsFromText — Stage C-3b true-positive via explicit patterns", () => {
+  it("'Go programming language' matches Go", () => {
+    expect(extractKeywordsFromText("Go programming language")).toContain("go");
+  });
+
+  it("'backend with Go' matches Go", () => {
+    expect(extractKeywordsFromText("backend with Go")).toContain("go");
+  });
+
+  it("'Golang backend service' matches Go", () => {
+    expect(extractKeywordsFromText("Golang backend service")).toContain("go");
+  });
+
+  it("'Go developer role' matches Go", () => {
+    expect(extractKeywordsFromText("Go developer role")).toContain("go");
+  });
+
+  it("'R programming for data analysis' matches R", () => {
+    expect(extractKeywordsFromText("R programming for data analysis")).toContain("r");
+  });
+
+  it("'data analysis with R' matches R", () => {
+    expect(extractKeywordsFromText("data analysis with R")).toContain("r");
+  });
+
+  it("'R language for analytics' matches R", () => {
+    expect(extractKeywordsFromText("R language for analytics")).toContain("r");
+  });
+
+  it("'Node.js server' matches Node.js", () => {
+    expect(extractKeywordsFromText("Node.js server")).toContain("node.js");
+  });
+
+  it("'NodeJS backend' matches Node.js", () => {
+    expect(extractKeywordsFromText("NodeJS backend")).toContain("node.js");
+  });
+
+  it("'Node backend API' matches Node.js", () => {
+    expect(extractKeywordsFromText("Node backend API")).toContain("node.js");
+  });
+
+  it("'Node server with Express' matches Node.js", () => {
+    expect(extractKeywordsFromText("Node server with Express")).toContain("node.js");
+  });
+
+  it("'REST API integration' matches REST API", () => {
+    expect(extractKeywordsFromText("REST API integration")).toContain("rest api");
+  });
+
+  it("'RESTful API endpoints' matches REST API", () => {
+    expect(extractKeywordsFromText("RESTful API endpoints")).toContain("rest api");
+  });
+
+  it("'REST endpoints' matches REST API", () => {
+    expect(extractKeywordsFromText("REST endpoints")).toContain("rest api");
+  });
+
+  it("'REST services' matches REST API", () => {
+    expect(extractKeywordsFromText("REST services")).toContain("rest api");
+  });
 });
