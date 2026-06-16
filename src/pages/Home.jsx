@@ -21,7 +21,6 @@ import CodeIcon from "@mui/icons-material/Code";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import GitHubIcon from "@mui/icons-material/GitHub";
-import PaletteIcon from "@mui/icons-material/Palette";
 import PersonIcon from "@mui/icons-material/Person";
 import SearchIcon from "@mui/icons-material/Search";
 import SecurityIcon from "@mui/icons-material/Security";
@@ -43,7 +42,7 @@ export default function Home() {
 
   const primaryCta = user
     ? { label: "Перейти в Dashboard", to: "/dashboard" }
-    : { label: "Создать резюме", to: "/register" };
+    : { label: "Начать бесплатно", to: "/register" };
 
   const chips = useMemo(
     () => [
@@ -59,33 +58,18 @@ export default function Home() {
   const features = useMemo(
     () => [
       {
-        title: "AI-рекомендации без выдумывания",
-        text: "Рекомендации по 20+ критериям и генерация «О себе» на основе реального опыта.",
+        title: "AI-помощник для текстов",
+        text: "Генерация «О себе» и улучшение описания опыта на основе реальных данных.",
         icon: <AutoAwesomeIcon />,
       },
       {
-        title: "Структурированный редактор",
-        text: "Профиль, навыки, опыт, образование, GitHub — автосохранение и валидация в реальном времени.",
-        icon: <FactCheckIcon />,
-      },
-      {
-        title: "Шаблоны под разные цели",
-        text: "Минималистичный, академический и GitHub-стиль — переключаются мгновенно.",
-        icon: <PaletteIcon />,
-      },
-      {
         title: "GitHub-проекты",
-        text: "Загружайте публичные репозитории GitHub и выбирайте до 5 проектов для резюме.",
+        text: "Импорт публичных репозиториев — выберите до 5 проектов для резюме.",
         icon: <GitHubIcon />,
       },
       {
-        title: "Экспорт в один клик",
-        text: "PDF, DOCX, Markdown, PNG/JPG — готовый файл для отклика или шаринга.",
-        icon: <FileDownloadIcon />,
-      },
-      {
-        title: "Job Match и Health Check",
-        text: "Сравните резюме с вакансией: Evidence Score, совпадения, ATS-готовность и рекомендации.",
+        title: "Проверка под вакансию",
+        text: "Сравните резюме с вакансией и получите рекомендации по усилению.",
         icon: <SecurityIcon />,
       },
     ],
@@ -194,8 +178,8 @@ export default function Home() {
                 color="text.secondary"
                 sx={{ mt: 1.5, maxWidth: 720 }}
               >
-                Заполните профиль, добавьте навыки и опыт, выберите GitHub-проекты,
-                проверьте резюме и экспортируйте готовый файл для отклика.
+                Заполните профиль, добавьте навыки и опыт, проверьте резюме под вакансию
+                и экспортируйте готовый файл.
               </Typography>
 
               <Stack
@@ -208,6 +192,7 @@ export default function Home() {
                     icon={c.icon}
                     label={c.label}
                     variant="outlined"
+                    size="small"
                   />
                 ))}
               </Stack>
@@ -216,6 +201,7 @@ export default function Home() {
                 direction={{ xs: "column", sm: "row" }}
                 spacing={1.5}
                 sx={{ mt: 3 }}
+                alignItems={{ xs: "stretch", sm: "center" }}
               >
                 <Button
                   variant="contained"
@@ -226,22 +212,16 @@ export default function Home() {
                 >
                   {primaryCta.label}
                 </Button>
-                <Button
-                  variant="outlined"
-                  size="large"
-                  onClick={() => scrollToId("cv_templates")}
-                  sx={{ px: 3, py: 1.15 }}
-                >
-                  Посмотреть шаблоны
-                </Button>
-                <Button
-                  variant="text"
-                  size="large"
-                  onClick={() => navigate(user ? "/resume-editor" : "/login")}
-                  sx={{ px: 2.0, py: 1.15 }}
-                >
-                  Открыть редактор
-                </Button>
+                {!user && (
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() => scrollToId("cv_templates")}
+                    sx={{ alignSelf: { xs: "flex-start", sm: "center" } }}
+                  >
+                    Посмотреть шаблоны
+                  </Button>
+                )}
               </Stack>
 
               <Typography
@@ -249,7 +229,7 @@ export default function Home() {
                 color="text.secondary"
                 sx={{ display: "block", mt: 1.5 }}
               >
-                Защита данных • Автосохранение • Валидация • Экспорт в один клик
+                Бесплатно • Автосохранение • Экспорт в PDF, DOCX, Markdown
               </Typography>
             </Box>
           </Grid>

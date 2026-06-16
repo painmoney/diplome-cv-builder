@@ -384,10 +384,13 @@ export default function Dashboard() {
       ) : (
         <Card sx={{ mb: 3, textAlign: "center", p: 4, minHeight: 220 }}>
           <Typography variant="h6" component="h2" gutterBottom>
-            Резюме ещё не создано
+            Добро пожаловать в CV Builder
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Создайте первое IT-резюме за несколько минут.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Создайте своё первое IT-резюме прямо сейчас
+            Начните с профиля — добавьте имя, контакты и краткое описание опыта.
           </Typography>
           <Button
             variant="contained"
