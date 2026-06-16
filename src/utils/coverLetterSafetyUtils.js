@@ -452,3 +452,140 @@ export function validateJobMatchAdviceText(text, {
 
   return { ok: violations.length === 0, violations };
 }
+
+export function getEvidenceBreakdownSummary({
+  confirmedExperience = [],
+  confirmedProjects = [],
+  declaredOnly = [],
+  missingEvidence = [],
+}) {
+  const groups = [];
+
+  if (confirmedExperience.length > 0) {
+    groups.push({
+      key: "confirmed_experience",
+      label: "Подтверждено опытом",
+      keywords: confirmedExperience.map(formatKeywordName),
+      color: "success",
+      description: "Эти технологии подтверждены описанием опыта работы в резюме.",
+    });
+  }
+
+  if (confirmedProjects.length > 0) {
+    groups.push({
+      key: "confirmed_projects",
+      label: "Подтверждено проектами / GitHub",
+      keywords: confirmedProjects.map(formatKeywordName),
+      color: "info",
+      description: "Эти технологии найдены в названиях или описаниях ваших проектов.",
+    });
+  }
+
+  if (declaredOnly.length > 0) {
+    groups.push({
+      key: "declared_only",
+      label: "Указано только в навыках",
+      keywords: declaredOnly.map(formatKeywordName),
+      color: "warning",
+      description: "Эти технологии есть в списке навыков, но не подтверждены опытом или проектами.",
+    });
+  }
+
+  if (missingEvidence.length > 0) {
+    groups.push({
+      key: "missing",
+      label: "Не найдено в резюме",
+      keywords: missingEvidence.map(formatKeywordName),
+      color: "error",
+      description: "Эти технологии требуются вакансией, но отсутствуют в вашем резюме.",
+    });
+  }
+
+  return groups;
+}
+
+export function buildSafeNextActions({
+  confirmedExperience = [],
+  confirmedProjects = [],
+  declaredOnly = [],
+  missingEvidence = [],
+  evidenceScore,
+}) {
+  const actions = [];
+
+  if (missingEvidence.length > 0) {
+    const names = formatKeywordList(missingEvidence);
+    actions.push({
+      type: "warning",
+      text: `Не добавляйте ${names} как опыт, если его не было. Лучше подтвердить смежный опыт проектом, курсом или реальной задачей.`,
+    });
+  }
+
+  if (declaredOnly.length >= confirmedExperience.length && confirmedExperience.length > 0) {
+    actions.push({
+      type: "info",
+      text: "Подкрепите заявленные навыки примерами в опыте или проектах.",
+    });
+  }
+
+  if (evidenceScore != null && evidenceScore < 60) {
+    actions.push({
+      type: "info",
+      text: "Добавьте в опыт конкретные результаты: метрики, задачи, технологии, масштаб.",
+    });
+  }
+
+  if (confirmedProjects.length === 0 && confirmedExperience.length > 0) {
+    actions.push({
+      type: "info",
+      text: "Добавьте GitHub-проект, который подтверждает стек вакансии.",
+    });
+  }
+
+  if (confirmedExperience.length > 0 && evidenceScore != null && evidenceScore >= 70) {
+    actions.push({
+      type: "success",
+      text: "Резюме уже можно использовать для отклика, но проверьте формулировки под вакансию.",
+    });
+  }
+
+  return actions;
+}
+
+export function buildApplicationReadiness({
+  technicalScore,
+  evidenceScore,
+  mode,
+  declaredOnly = [],
+}) {
+  const ts = technicalScore ?? 0;
+  const es = evidenceScore ?? 0;
+
+  if (ts >= 75 && es >= 70 && mode === "ai") {
+    const hasPartialEvidence = declaredOnly.length > 0;
+    return {
+      status: "ready",
+      label: "Готово к отклику",
+      description: hasPartialEvidence
+        ? "Техническое совпадение и evidence-база достаточны для отклика. Часть стека указана только в навыках — при возможности подтвердите её примерами в опыте или проектах."
+        : "Техническое совпадение и evidence-база достаточны для отклика.",
+      color: "success",
+    };
+  }
+
+  if (ts >= 50 && es >= 45) {
+    return {
+      status: "partial",
+      label: "Можно откликаться, но позиция смежная",
+      description: "Часть требований подтверждена, но не все. Позиция может потребовать адаптации.",
+      color: "warning",
+    };
+  }
+
+  return {
+    status: "needs_work",
+    label: "Лучше доработать резюме под вакансию",
+    description: "Совпадение с вакансией слабое. Рекомендуется усилить доказательную базу перед откликом.",
+    color: "error",
+  };
+}

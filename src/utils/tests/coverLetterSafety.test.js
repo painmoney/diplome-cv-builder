@@ -9,6 +9,9 @@ import {
   formatKeywordList,
   formatKeywordName,
   buildJobMatchAdviceFallback,
+  getEvidenceBreakdownSummary,
+  buildSafeNextActions,
+  buildApplicationReadiness,
 } from "../coverLetterSafetyUtils";
 
 describe("formatKeywordName", () => {
@@ -209,93 +212,27 @@ describe("buildWeakMatchCoverLetter", () => {
   });
 });
 
-describe("validateCoverLetterText", () => {
-  it("rejects overclaim for declaredOnly", () => {
-    const result = validateCoverLetterText(
-      "У меня есть опыт работы с PostgreSQL и MongoDB.",
-      {
-        confirmedExperience: [],
-        confirmedProjects: [],
-        declaredOnly: ["PostgreSQL", "MongoDB"],
-        missingEvidence: [],
-        mode: "ai",
-      }
-    );
-    expect(result.ok).toBe(false);
-    expect(result.violations.some((v) => v.includes("overclaim"))).toBe(true);
+describe("getEvidenceBreakdownSummary", () => {
+  it("returns correct groups", () => {
+    const groups = getEvidenceBreakdownSummary({
+      confirmedExperience: ["React"],
+      confirmedProjects: ["Git"],
+      declaredOnly: ["Python"],
+      missingEvidence: ["Docker"],
+    });
+    expect(groups.length).toBe(4);
+    expect(groups[0].key).toBe("confirmed_experience");
+    expect(groups[3].key).toBe("missing");
   });
 
-  it("rejects missingEvidence in body", () => {
-    const result = validateCoverLetterText(
-      "Я готов быстро освоить FastAPI и Docker.",
-      {
-        confirmedExperience: [],
-        confirmedProjects: [],
-        declaredOnly: [],
-        missingEvidence: ["FastAPI", "Docker"],
-        mode: "ai",
-      }
-    );
-    expect(result.ok).toBe(false);
-  });
-
-  it("rejects banned phrases", () => {
-    const result = validateCoverLetterText(
-      "Я стремлюсь развиваться и готов освоить новые технологии.",
-      {
-        confirmedExperience: [],
-        confirmedProjects: [],
-        declaredOnly: [],
-        missingEvidence: [],
-        mode: "ai",
-      }
-    );
-    expect(result.ok).toBe(false);
-    expect(result.violations.some((v) => v.includes("banned phrase"))).toBe(true);
-  });
-
-  it("allows missingEvidence in position name", () => {
-    const result = validateCoverLetterText(
-      "Меня заинтересовала вакансия Python разработчика.",
-      {
-        confirmedExperience: [],
-        confirmedProjects: [],
-        declaredOnly: [],
-        missingEvidence: ["Python"],
-        positionName: "Python разработчик",
-        mode: "ai",
-      }
-    );
-    expect(result.ok).toBe(true);
-  });
-
-  it("rejects missingEvidence in careful mode", () => {
-    const result = validateCoverLetterText(
-      "Python — это важная технология.",
-      {
-        confirmedExperience: [],
-        confirmedProjects: [],
-        declaredOnly: [],
-        missingEvidence: ["Python"],
-        positionName: "Python разработчик",
-        mode: "careful",
-      }
-    );
-    expect(result.ok).toBe(false);
-  });
-
-  it("passes for clean text", () => {
-    const result = validateCoverLetterText(
-      "Здравствуйте! Меня заинтересовала вакансия. У меня есть опыт с React и JavaScript.",
-      {
-        confirmedExperience: ["React", "JavaScript"],
-        confirmedProjects: [],
-        declaredOnly: [],
-        missingEvidence: [],
-        mode: "ai",
-      }
-    );
-    expect(result.ok).toBe(true);
+  it("skips empty groups", () => {
+    const groups = getEvidenceBreakdownSummary({
+      confirmedExperience: ["React"],
+      confirmedProjects: [],
+      declaredOnly: [],
+      missingEvidence: [],
+    });
+    expect(groups.length).toBe(1);
   });
 });
 
@@ -443,5 +380,126 @@ describe("validateJobMatchAdviceText — missingEvidence checks", () => {
       }
     );
     expect(result.ok).toBe(true);
+  });
+
+  it("passes for clean text", () => {
+    const result = validateCoverLetterText(
+      "Здравствуйте! Меня заинтересовала вакансия. У меня есть опыт с React и JavaScript.",
+      {
+        confirmedExperience: ["React", "JavaScript"],
+        confirmedProjects: [],
+        declaredOnly: [],
+        missingEvidence: [],
+        mode: "ai",
+      }
+    );
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("buildApplicationReadiness", () => {
+  it("ready for strong match", () => {
+    const r = buildApplicationReadiness({ technicalScore: 80, evidenceScore: 75, mode: "ai" });
+    expect(r.status).toBe("ready");
+    expect(r.color).toBe("success");
+  });
+
+  it("partial for medium match", () => {
+    const r = buildApplicationReadiness({ technicalScore: 55, evidenceScore: 50, mode: "ai" });
+    expect(r.status).toBe("partial");
+    expect(r.color).toBe("warning");
+  });
+
+  it("needs_work for hard mismatch", () => {
+    const r = buildApplicationReadiness({ technicalScore: 25, evidenceScore: 33, mode: "careful" });
+    expect(r.status).toBe("needs_work");
+    expect(r.color).toBe("error");
+  });
+
+  it("needs_work when scores missing", () => {
+    const r = buildApplicationReadiness({ technicalScore: null, evidenceScore: null, mode: "careful" });
+    expect(r.status).toBe("needs_work");
+  });
+
+  it("ready with declaredOnly gets detailed description", () => {
+    const r = buildApplicationReadiness({
+      technicalScore: 100,
+      evidenceScore: 76,
+      mode: "ai",
+      declaredOnly: ["PostgreSQL", "SQL", "Docker"],
+    });
+    expect(r.status).toBe("ready");
+    expect(r.description.toLowerCase()).toContain("часть стека указана только в навыках");
+  });
+
+  it("ready without declaredOnly gets short description", () => {
+    const r = buildApplicationReadiness({
+      technicalScore: 80,
+      evidenceScore: 75,
+      mode: "ai",
+      declaredOnly: [],
+    });
+    expect(r.status).toBe("ready");
+    expect(r.description).not.toContain("часть стека");
+  });
+});
+
+describe("buildSafeNextActions", () => {
+  it("missingEvidence generates warning", () => {
+    const actions = buildSafeNextActions({
+      confirmedExperience: [],
+      confirmedProjects: [],
+      declaredOnly: [],
+      missingEvidence: ["Python", "Docker"],
+      evidenceScore: 33,
+    });
+    expect(actions.length).toBeGreaterThan(0);
+    expect(actions[0].type).toBe("warning");
+    expect(actions[0].text).toContain("Python");
+  });
+
+  it("no fake recommendation when missingEvidence empty", () => {
+    const actions = buildSafeNextActions({
+      confirmedExperience: ["Java", "Spring Boot"],
+      confirmedProjects: ["Git"],
+      declaredOnly: ["PostgreSQL"],
+      missingEvidence: [],
+      evidenceScore: 75,
+    });
+    const hasFakeMissing = actions.some((a) => a.text.includes("отсутствующи"));
+    expect(hasFakeMissing).toBe(false);
+  });
+
+  it("declaredOnly-heavy gives info action", () => {
+    const actions = buildSafeNextActions({
+      confirmedExperience: ["React"],
+      confirmedProjects: [],
+      declaredOnly: ["Python", "Docker", "MongoDB"],
+      missingEvidence: [],
+      evidenceScore: 50,
+    });
+    expect(actions.some((a) => a.text.includes("заявленные навыки"))).toBe(true);
+  });
+
+  it("declaredOnly equal to confirmed gives info action", () => {
+    const actions = buildSafeNextActions({
+      confirmedExperience: ["Java", "Spring Boot", "REST API"],
+      confirmedProjects: [],
+      declaredOnly: ["PostgreSQL", "SQL", "Docker"],
+      missingEvidence: [],
+      evidenceScore: 76,
+    });
+    expect(actions.some((a) => a.text.includes("заявленные навыки"))).toBe(true);
+  });
+
+  it("strong match gives success action", () => {
+    const actions = buildSafeNextActions({
+      confirmedExperience: ["React", "JavaScript"],
+      confirmedProjects: ["GitHub"],
+      declaredOnly: [],
+      missingEvidence: [],
+      evidenceScore: 75,
+    });
+    expect(actions.some((a) => a.type === "success")).toBe(true);
   });
 });

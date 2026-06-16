@@ -23,7 +23,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 
 import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS } from "../../utils/jobMatchUtils";
 import { isAIAvailable, generateCoverLetter, generateJobMatchAdvice } from "../../utils/aiService";
-import { getCoverLetterMode } from "../../utils/coverLetterSafetyUtils";
+import { getCoverLetterMode, buildSafeNextActions, buildApplicationReadiness } from "../../utils/coverLetterSafetyUtils";
 import EmptyState from "../common/EmptyState";
 
 const DevScenarioPanel = import.meta.env.DEV
@@ -509,6 +509,115 @@ export default function JobMatchTab({
               </CardContent>
             </Card>
           )}
+
+          {result.totalKeywords > 0 && (() => {
+            const coverMode = getCoverLetterMode({
+              evidenceScore: result.evidenceScore,
+              technicalScore: result.technicalScore,
+              confirmedExperience: result.confirmedExperience || [],
+              confirmedProjects: result.confirmedProjects || [],
+              declaredOnly: result.declaredOnly || [],
+              missingEvidence: result.missingEvidence || [],
+            });
+            const readiness = buildApplicationReadiness({
+              technicalScore: result.technicalScore,
+              evidenceScore: result.evidenceScore,
+              mode: coverMode.mode,
+              declaredOnly: result.declaredOnly || [],
+            });
+            const nextActions = buildSafeNextActions({
+              confirmedExperience: result.confirmedExperience || [],
+              confirmedProjects: result.confirmedProjects || [],
+              declaredOnly: result.declaredOnly || [],
+              missingEvidence: result.missingEvidence || [],
+              evidenceScore: result.evidenceScore,
+            });
+
+            return (
+              <>
+                {/* Application Readiness */}
+                <Card sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                        Готовность к отклику
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={readiness.label}
+                        color={readiness.color}
+                        variant="filled"
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                      {readiness.description}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+                      <Chip
+                        size="small"
+                        label={`Техническое совпадение: ${result.technicalScore}%`}
+                        variant="outlined"
+                      />
+                      <Chip
+                        size="small"
+                        label={`Evidence Score: ${result.evidenceScore}%`}
+                        variant="outlined"
+                      />
+                      <Chip
+                        size="small"
+                        label={coverMode.mode === "ai" ? "Письмо: стандартное" : "Письмо: осторожное"}
+                        variant="outlined"
+                      />
+                    </Stack>
+                  </CardContent>
+                </Card>
+
+                {/* Why careful cover letter */}
+                {coverMode.mode === "careful" && (
+                  <Card sx={{ mb: 2 }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                        Почему письмо осторожное
+                      </Typography>
+                      <Stack spacing={1}>
+                        <Alert severity="info">
+                          CV Builder не преувеличивает опыт кандидата. Осторожный режим — осознанная защита от рискованных формулировок в сопроводительном письме.
+                        </Alert>
+                        {(result.declaredOnly || []).length > 0 && (
+                          <Alert severity="info">
+                            Технологии из «Только в навыках» считаются заявленными навыками, но не доказанным опытом. Они не попадут в письмо как опыт.
+                          </Alert>
+                        )}
+                        {(result.missingEvidence || []).length > 0 && (
+                          <Alert severity="info">
+                            Технологии, отсутствующие в резюме, не будут добавлены в письмо. Позиция может быть смежной с вашим текущим профилем, поэтому письмо делает акцент на подтверждённых сильных сторонах.
+                          </Alert>
+                        )}
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Safe next actions */}
+                {nextActions.length > 0 && (
+                  <Card sx={{ mb: 2 }}>
+                    <CardContent>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                        Что можно безопасно усилить
+                      </Typography>
+                      <Stack spacing={1}>
+                        {nextActions.map((action, idx) => (
+                          <Alert key={idx} severity={action.type}>
+                            {action.text}
+                          </Alert>
+                        ))}
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            );
+          })()}
 
           {result.totalKeywords > 0 && isAIAvailable() && (
             <Card sx={{ mb: 2 }}>
