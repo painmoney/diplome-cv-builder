@@ -367,7 +367,7 @@ export default function ResumePreview() {
             disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={handleExportPDF}
           >
-            {exportingPDF ? "Экспорт..." : "PDF"}
+            {exportingPDF ? "Сохранение..." : "Скачать PDF"}
           </Button>
 
           <Button
@@ -376,7 +376,7 @@ export default function ResumePreview() {
             disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={handleExportMarkdown}
           >
-            {exportingMD ? "Экспорт..." : "Markdown"}
+            {exportingMD ? "Сохранение..." : "Скачать Markdown"}
           </Button>
 
           <Button
@@ -385,7 +385,7 @@ export default function ResumePreview() {
             disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={handleExportDocx}
           >
-            {exportingDOCX ? "Экспорт..." : "DOCX"}
+            {exportingDOCX ? "Сохранение..." : "Скачать DOCX"}
           </Button>
 
           <Button
@@ -394,7 +394,7 @@ export default function ResumePreview() {
             disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={() => handleExportImage("png")}
           >
-            {exportingIMG === "png" ? "Экспорт..." : "PNG"}
+            {exportingIMG === "png" ? "Сохранение..." : "Скачать PNG"}
           </Button>
 
           <Button
@@ -403,10 +403,25 @@ export default function ResumePreview() {
             disabled={exportingPDF || exportingMD || exportingDOCX || exportingIMG}
             onClick={() => handleExportImage("jpg")}
           >
-            {exportingIMG === "jpg" ? "Экспорт..." : "JPG"}
+            {exportingIMG === "jpg" ? "Сохранение..." : "Скачать JPG"}
           </Button>
         </Stack>
       </Stack>
+
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+        PDF — для отправки работодателю • DOCX — для редактирования вручную • Markdown — для GitHub/портфолио
+      </Typography>
+
+      <Alert severity="info" sx={{ mb: 2 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          Перед скачиванием проверьте:
+        </Typography>
+        <Typography variant="body2" component="ul" sx={{ pl: 2, mt: 0.5 }}>
+          <li>контакты и email</li>
+          <li>опыт и проекты</li>
+          <li>выбранный шаблон</li>
+        </Typography>
+      </Alert>
 
       {/* Preview */}
       <Box
