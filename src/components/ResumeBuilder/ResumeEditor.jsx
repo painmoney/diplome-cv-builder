@@ -55,7 +55,7 @@ export default function ResumeEditor() {
   const initialTarget = location.state?.target;
 
   const [activeTab, setActiveTab] = useState(() => {
-    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 7 ? initialTab : 0;
+    return typeof initialTab === "number" && initialTab >= 0 && initialTab <= 6 ? initialTab : 0;
   });
   const [resumeTitle, setResumeTitle] = useState("Моё IT-резюме");
   const [resumeData, setResumeData] = useState(DEFAULT_RESUME_DATA);
@@ -223,8 +223,7 @@ export default function ResumeEditor() {
       1: "skills-skill",
       2: "education-institution",
       3: "experience-company",
-      4: null,
-      5: "github-username",
+      4: "github-username",
     };
 
     const finalTarget = targetId || fallbackByTab[tabIndex];
@@ -390,7 +389,6 @@ export default function ResumeEditor() {
         <Tab label="Образование" />
         <Tab label="Опыт работы" />
         <Tab label="Портфолио" />
-        <Tab label="GitHub" />
         <Tab label="Анализ вакансии" icon={<WorkIcon fontSize="small" />} iconPosition="start" />
         <Tab label="Проверка" />
       </Tabs>
@@ -416,12 +414,14 @@ export default function ResumeEditor() {
           <ExperienceBlock data={resumeData.experience} onChange={(d) => updateSection("experience", d)} />
         )}
         {activeTab === 4 && (
-          <ProjectsBlock data={resumeData.projects} onChange={(value) => updateSection("projects", value)} />
+          <Box>
+            <ProjectsBlock data={resumeData.projects} onChange={(value) => updateSection("projects", value)} />
+            <Box sx={{ mt: 4 }}>
+              <GitHubBlock data={resumeData.github} onChange={(d) => updateSection("github", d)} />
+            </Box>
+          </Box>
         )}
         {activeTab === 5 && (
-          <GitHubBlock data={resumeData.github} onChange={(d) => updateSection("github", d)} />
-        )}
-        {activeTab === 6 && (
           <JobMatchTab
             resumeData={resumeData}
             jdText={jobMatchText}
@@ -436,7 +436,7 @@ export default function ResumeEditor() {
             onLoadDevScenario={handleLoadDevScenario}
           />
         )}
-        {activeTab === 7 && (
+        {activeTab === 6 && (
           <ResumeHealthCheck
             resumeData={resumeData}
             jobMatchResult={jobMatchResult}
@@ -464,11 +464,10 @@ export default function ResumeEditor() {
           {activeTab === 0 && "Дальше добавьте ключевые навыки — они помогут собрать краткое описание и анализ вакансии."}
           {activeTab === 1 && "Дальше добавьте опыт или проекты, чтобы подтвердить навыки."}
           {activeTab === 2 && "Дальше можно добавить опыт или перейти к проектам."}
-          {activeTab === 3 && "Дальше можно добавить ручные проекты или перейти к GitHub."}
-          {activeTab === 4 && "Добавьте ручные проекты или перейти к импорту GitHub."}
-          {activeTab === 5 && "После импорта проектов можно проверить резюме или сравнить его с вакансией."}
-          {activeTab === 6 && "После анализа можно вернуться к разделам и усилить резюме."}
-          {activeTab === 7 && "Исправьте найденные проблемы, затем перейдите к просмотру и экспорту резюме."}
+          {activeTab === 3 && "Дальше можно добавить ручные проекты и GitHub-репозитории."}
+          {activeTab === 4 && "Добавьте проекты и GitHub-репозитории, затем проверьте резюме."}
+          {activeTab === 5 && "После анализа можно вернуться к разделам и усилить резюме."}
+          {activeTab === 6 && "Исправьте найденные проблемы, затем перейдите к просмотру и экспорту резюме."}
         </Typography>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
@@ -482,7 +481,7 @@ export default function ResumeEditor() {
           </Button>
           <Button
             variant="outlined"
-            disabled={activeTab === 7}
+            disabled={activeTab === 6}
             onClick={() => setActiveTab(activeTab + 1)}
             sx={{ minWidth: 120 }}
           >
