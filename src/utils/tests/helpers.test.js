@@ -4,6 +4,7 @@ import {
   normalizeUrl,
   normalizeResumeData,
   buildProfileContactLinks,
+  getResumeCompleteness,
 } from "../helpers";
 
 describe("normalizeTelegram", () => {
@@ -170,5 +171,56 @@ describe("buildProfileContactLinks", () => {
     expect(links.map((l) => l.type)).toEqual([
       "email", "phone", "location", "telegram", "github", "linkedin", "website", "habrCareer",
     ]);
+  });
+});
+
+describe("getResumeCompleteness - portfolio section", () => {
+  const baseData = {
+    profile: { name: "Test", email: "a@b.com", phone: "+7", about: "О себе тест текст для двенадцати слов минимум тут нужно больше" },
+    skills: [{ name: "React" }, { name: "Node.js" }, { name: "TypeScript" }],
+    experience: [{ company: "Co", position: "Dev", description: "Work" }],
+    education: [{ institution: "Uni" }],
+  };
+
+  it("github only => portfolio completed", () => {
+    const data = { ...baseData, github: [{ name: "repo1", url: "u" }], projects: [] };
+    const result = getResumeCompleteness(data);
+    const portfolio = result.sections.find((s) => s.key === "portfolio");
+    expect(portfolio.completed).toBe(true);
+  });
+
+  it("manual projects only => portfolio completed", () => {
+    const data = { ...baseData, github: [], projects: [{ id: "1", name: "My App", description: "A web app" }] };
+    const result = getResumeCompleteness(data);
+    const portfolio = result.sections.find((s) => s.key === "portfolio");
+    expect(portfolio.completed).toBe(true);
+  });
+
+  it("both github and projects => portfolio completed", () => {
+    const data = { ...baseData, github: [{ name: "r" }], projects: [{ id: "1", name: "P" }] };
+    const result = getResumeCompleteness(data);
+    const portfolio = result.sections.find((s) => s.key === "portfolio");
+    expect(portfolio.completed).toBe(true);
+  });
+
+  it("no github and no projects => portfolio not completed", () => {
+    const data = { ...baseData, github: [], projects: [] };
+    const result = getResumeCompleteness(data);
+    const portfolio = result.sections.find((s) => s.key === "portfolio");
+    expect(portfolio.completed).toBe(false);
+  });
+
+  it("empty project object (no name, no description) => not counted", () => {
+    const data = { ...baseData, github: [], projects: [{ id: "1" }] };
+    const result = getResumeCompleteness(data);
+    const portfolio = result.sections.find((s) => s.key === "portfolio");
+    expect(portfolio.completed).toBe(false);
+  });
+
+  it("missing projects key => portfolio not completed", () => {
+    const data = { ...baseData, github: [], projects: undefined };
+    const result = getResumeCompleteness(data);
+    const portfolio = result.sections.find((s) => s.key === "portfolio");
+    expect(portfolio.completed).toBe(false);
   });
 });

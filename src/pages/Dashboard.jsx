@@ -86,6 +86,7 @@ const TAB_MAP = {
   skills: { tab: 1, target: "skills-skill" },
   education: { tab: 2, target: "education-institution" },
   experience: { tab: 3, target: "experience-company" },
+  portfolio: { tab: 4, target: "github-username" },
   github: { tab: 4, target: "github-username" },
 };
 
@@ -325,10 +326,10 @@ export default function Dashboard() {
 
               <Grid item xs={6} sm={3}>
                 <Typography variant="caption" color="text.secondary">
-                  GitHub
+                  Портфолио
                 </Typography>
                 <Typography variant="h6" component="p">
-                  {resume.data?.github?.length || 0}
+                  {(resume.data?.github?.length || 0) + (Array.isArray(resume.data?.projects) ? resume.data.projects.filter((p) => p.name || p.description).length : 0)}
                 </Typography>
               </Grid>
             </Grid>

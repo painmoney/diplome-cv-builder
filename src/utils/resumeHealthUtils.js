@@ -40,8 +40,14 @@ const formatProjects = (c) => formatCount(c, ["проект", "проекта", 
 const formatSkills = (c) => formatCount(c, ["навык", "навыка", "навыков"]);
 
 function checkCompleteness(data) {
-  const { profile, skills, experience, education, github } = data;
+  const { profile, skills, experience, education, github, projects } = data;
   const checks = [];
+
+  const meaningfulProjects = Array.isArray(projects)
+    ? projects.filter((p) => p.name || p.description)
+    : [];
+  const portfolioReady = meaningfulProjects.length > 0 || github.length > 0;
+  const hasExperience = Array.isArray(experience) && experience.length > 0;
 
   checks.push(
     safeText(profile.name)
@@ -97,9 +103,11 @@ function checkCompleteness(data) {
   );
 
   checks.push(
-    github.length > 0
-      ? check("success", "passed", "completeness_github", "GitHub проекты добавлены", `${formatProjects(github.length)} в резюме.`)
-      : check("info", "info", "completeness_github", "GitHub проекты не добавлены", "Подключите GitHub и добавьте релевантные проекты.")
+    portfolioReady
+      ? check("success", "passed", "completeness_portfolio", "Портфолио заполнено", `${meaningfulProjects.length + github.length} проектов в резюме.`)
+      : hasExperience
+        ? check("info", "info", "completeness_portfolio", "Портфолио не добавлено", "Портфолио необязательно, но может усилить IT-резюме.")
+        : check("warning", "warning", "completeness_portfolio", "Портфолио и опыт не добавлены", "Добавьте опыт работы или хотя бы один проект/репозиторий, чтобы подтвердить навыки.")
   );
 
   const passed = checks.filter((c) => c.status === "passed").length;
@@ -219,22 +227,26 @@ function checkAtsReadiness(data) {
   return { score: Math.min(100, score), checks };
 }
 
-function checkGithub(data) {
-  const { github } = data;
+function checkPortfolio(data) {
+  const { github, projects } = data;
+  const meaningfulProjects = Array.isArray(projects)
+    ? projects.filter((p) => p.name || p.description)
+    : [];
+  const portfolioReady = meaningfulProjects.length > 0 || github.length > 0;
   const checks = [];
 
   checks.push(
-    github.length > 0
-      ? check("success", "passed", "github_selected", "GitHub проекты выбраны", `${formatProjects(github.length)} добавлено в резюме.`)
-      : check("info", "info", "github_selected", "GitHub проекты не добавлены", "Подключите GitHub и выберите проекты для резюме.")
+    portfolioReady
+      ? check("success", "passed", "portfolio_selected", "Проекты добавлены", `${formatProjects(meaningfulProjects.length + github.length)} в резюме.`)
+      : check("info", "info", "portfolio_selected", "Проекты не добавлены", "Добавьте ручные проекты или подключите GitHub.")
   );
 
   if (github.length > 0) {
     const withDesc = github.filter((r) => safeText(r.description)).length;
     checks.push(
       withDesc > 0
-        ? check("success", "passed", "github_descriptions", "Есть описания проектов", `${withDesc} из ${formatProjects(github.length)} имеют описание.`)
-        : check("warning", "warning", "github_descriptions", "Проекты без описаний", "Добавьте описание хотя бы к части проектов — это помогает рекрутерам понять ваш вклад.")
+        ? check("success", "passed", "github_descriptions", "Есть описания GitHub-проектов", `${withDesc} из ${formatProjects(github.length)} имеют описание.`)
+        : check("warning", "warning", "github_descriptions", "GitHub-проекты без описаний", "Добавьте описание хотя бы к части проектов — это помогает рекрутерам понять ваш вклад.")
     );
 
     const withLang = github.filter((r) => safeText(r.language)).length;
@@ -242,6 +254,22 @@ function checkGithub(data) {
       withLang > 0
         ? check("success", "passed", "github_language", "Указаны языки проектов", `${withLang} из ${formatProjects(github.length)} имеют указанный язык.`)
         : check("info", "info", "github_language", "Языки проектов не указаны", "Указание основного языка проекта помогает рекрутеру быстрее оценить стек.")
+    );
+  }
+
+  if (meaningfulProjects.length > 0) {
+    const withDesc = meaningfulProjects.filter((p) => safeText(p.description)).length;
+    checks.push(
+      withDesc > 0
+        ? check("success", "passed", "project_descriptions", "Есть описания проектов", `${withDesc} из ${formatProjects(meaningfulProjects.length)} имеют описание.`)
+        : check("warning", "warning", "project_descriptions", "Проекты без описаний", "Добавьте описание проекта — это поможет рекрутерам понять ваш вклад.")
+    );
+
+    const withStack = meaningfulProjects.filter((p) => safeText(p.techStack)).length;
+    checks.push(
+      withStack > 0
+        ? check("success", "passed", "project_tech_stack", "Указан стек проектов", `${withStack} из ${formatProjects(meaningfulProjects.length)} имеют указанный стек.`)
+        : check("info", "info", "project_tech_stack", "Стек проектов не указан", "Указание стека помогает рекрутеру оценить технологии.")
     );
   }
 
@@ -323,7 +351,7 @@ export function analyzeResumeHealth(resumeData, jobMatchResult = null) {
   const completeness = checkCompleteness(data);
   const contentQuality = checkContentQuality(data);
   const atsReadiness = checkAtsReadiness(data);
-  const github = checkGithub(data);
+  const github = checkPortfolio(data);
   const jobMatch = checkJobMatch(data, jobMatchResult);
 
   const categories = {

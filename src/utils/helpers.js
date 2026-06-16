@@ -127,7 +127,12 @@ export const wordCount = (text) => safeText(text).split(/\s+/).filter(Boolean).l
 
 export function getResumeCompleteness(data = {}) {
   const d = normalizeResumeData(data);
-  const { profile, skills, education, experience, github } = d;
+  const { profile, skills, education, experience, github, projects } = d;
+
+  const meaningfulProjects = Array.isArray(projects)
+    ? projects.filter((p) => p.name || p.description)
+    : [];
+  const portfolioReady = meaningfulProjects.length > 0 || github.length > 0;
 
   const sections = [
     {
@@ -177,12 +182,12 @@ export function getResumeCompleteness(data = {}) {
         : "Добавьте образование",
     },
     {
-      key: "github",
-      label: "GitHub",
-      completed: github.length >= 1,
-      helperText: github.length > 0
-        ? `${github.length} проектов`
-        : "Подключите GitHub",
+      key: "portfolio",
+      label: "Портфолио",
+      completed: portfolioReady,
+      helperText: portfolioReady
+        ? `${meaningfulProjects.length > 0 ? `${meaningfulProjects.length} проектов` : ""}${meaningfulProjects.length > 0 && github.length > 0 ? " + " : ""}${github.length > 0 ? `${github.length} GitHub` : ""}`
+        : "Добавьте проекты или подключите GitHub",
     },
   ];
 
