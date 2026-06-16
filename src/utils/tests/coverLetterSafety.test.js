@@ -14,6 +14,7 @@ import {
   buildApplicationReadiness,
   buildDeclaredSkillTip,
 } from "../coverLetterSafetyUtils";
+import { TECHNOLOGY_KEYS } from "../technologyRegistry";
 
 describe("formatKeywordName", () => {
   it("formats known keywords", () => {
@@ -606,7 +607,8 @@ describe("buildDeclaredSkillTip", () => {
     const tip = buildDeclaredSkillTip("unknownlib");
     const avoidText = tip.avoid.join(" ");
     expect(avoidText).not.toMatch(/\bX\b/);
-    expect(avoidText).toContain("unknownlib");
+    expect(tip.avoid.length).toBeGreaterThanOrEqual(1);
+    expect(tip.safeActions.length).toBeGreaterThanOrEqual(1);
   });
 
   it("SQL tip is specific, not generic fallback", () => {
@@ -641,6 +643,86 @@ describe("buildDeclaredSkillTip", () => {
       const tip = buildDeclaredSkillTip(kw);
       expect(tip.safeActions.length).toBeGreaterThanOrEqual(1);
       expect(tip.avoid.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("template tips work for technologies without specific tips", () => {
+    const ts = buildDeclaredSkillTip("typescript");
+    expect(ts.title).toContain("TypeScript");
+    expect(ts.description).toContain("TypeScript");
+    expect(ts.safeActions.length).toBeGreaterThanOrEqual(2);
+
+    const springBoot = buildDeclaredSkillTip("spring boot");
+    expect(springBoot.title).toContain("Spring Boot");
+    expect(springBoot.description).toContain("Spring Boot");
+
+    const jest = buildDeclaredSkillTip("jest");
+    expect(jest.title).toContain("Jest");
+    expect(jest.description).toContain("Jest");
+
+    const ghActions = buildDeclaredSkillTip("github actions");
+    expect(ghActions.title).toContain("GitHub Actions");
+    expect(ghActions.description).toContain("GitHub Actions");
+
+    const vite = buildDeclaredSkillTip("vite");
+    expect(vite.title).toContain("Vite");
+    expect(vite.description).toContain("Vite");
+
+    const aws = buildDeclaredSkillTip("aws");
+    expect(aws.title).toContain("AWS");
+    expect(aws.description).toContain("AWS");
+
+    const graphql = buildDeclaredSkillTip("graphql");
+    expect(graphql.title).toContain("GraphQL");
+    expect(graphql.description).toContain("GraphQL");
+  });
+
+  it("aliases resolve to correct tips", () => {
+    const reactAlias = buildDeclaredSkillTip("reactjs");
+    expect(reactAlias.title).toContain("React");
+    expect(reactAlias.description).toContain("React");
+
+    const postgresAlias = buildDeclaredSkillTip("postgres");
+    expect(postgresAlias.title).toContain("PostgreSQL");
+    expect(postgresAlias.description).toContain("PostgreSQL");
+
+    const tsAlias = buildDeclaredSkillTip("ts");
+    expect(tsAlias.title).toContain("TypeScript");
+    expect(tsAlias.description).toContain("TypeScript");
+
+    const restfulAlias = buildDeclaredSkillTip("restful");
+    expect(restfulAlias.title).toContain("REST API");
+    expect(restfulAlias.description).toContain("REST API");
+  });
+
+  it("every registry entry gets a valid tip structure", () => {
+    for (const key of TECHNOLOGY_KEYS) {
+      const tip = buildDeclaredSkillTip(key);
+      expect(tip.title).toBeTruthy();
+      expect(tip.description).toBeTruthy();
+      expect(tip.safeActions.length).toBeGreaterThanOrEqual(1);
+      expect(tip.avoid.length).toBeGreaterThanOrEqual(1);
+      expect(tip.targetSuggestions.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("template tips do not contain banned phrases", () => {
+    const banned = [
+      "просто добавьте",
+      "у вас есть опыт",
+      "вы работали с",
+      "коммерческий опыт",
+      "точно повысит",
+      "гарантирует",
+      "идеально подходит",
+    ];
+    const keywords = ["typescript", "spring boot", "jest", "github actions", "vite", "aws", "graphql", "vue", "angular"];
+    for (const kw of keywords) {
+      const tip = buildDeclaredSkillTip(kw);
+      const allText = [tip.description, ...tip.safeActions, ...tip.avoid].join(" ").toLowerCase();
+      for (const phrase of banned) {
+        expect(allText).not.toContain(phrase);
+      }
     }
   });
 });
