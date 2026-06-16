@@ -72,12 +72,6 @@ export default function GithubTemplate({ data }) {
         )}
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-          {profile?.email && (
-            <Typography variant="body2" sx={{ color: "#8b949e" }}>
-              @ {profile.email}
-            </Typography>
-          )}
-
           {(() => {
             const links = [];
             if (profile?.email) links.push(`@ ${profile.email}`);

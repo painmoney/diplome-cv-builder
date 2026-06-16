@@ -185,6 +185,21 @@ export default function ModernTemplate({ data }) {
                       {edu.degree}
                     </Typography>
                   )}
+                  {edu.institute && (
+                    <Typography variant="body2" sx={{ fontSize: "8pt", color: "#64748b" }}>
+                      Институт: {edu.institute}
+                    </Typography>
+                  )}
+                  {edu.department && (
+                    <Typography variant="body2" sx={{ fontSize: "8pt", color: "#64748b" }}>
+                      Кафедра: {edu.department}
+                    </Typography>
+                  )}
+                  {edu.program && (
+                    <Typography variant="body2" sx={{ fontSize: "8pt", color: "#64748b" }}>
+                      Направление: {edu.program}
+                    </Typography>
+                  )}
                 </Box>
               );
             })}

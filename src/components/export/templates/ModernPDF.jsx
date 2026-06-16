@@ -230,6 +230,9 @@ export default function ModernPDF({ data }) {
                       {year && <Text style={styles.itemSubtitle}>{year}</Text>}
                     </View>
                     {edu.degree && <Text style={{ fontSize: 9, color: '#0ea5e9', fontWeight: 600 }}>{edu.degree}</Text>}
+                    {edu.institute && <Text style={{ fontSize: 8, color: '#64748b' }}>Институт: {edu.institute}</Text>}
+                    {edu.department && <Text style={{ fontSize: 8, color: '#64748b' }}>Кафедра: {edu.department}</Text>}
+                    {edu.program && <Text style={{ fontSize: 8, color: '#64748b' }}>Направление: {edu.program}</Text>}
                   </View>
                 );
               })}
