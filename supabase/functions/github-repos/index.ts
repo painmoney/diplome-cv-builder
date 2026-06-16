@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
 
     const url = `https://api.github.com/users/${encodeURIComponent(
       normalizedUsername
-    )}/repos?sort=updated&per_page=5`;
+    )}/repos?sort=updated&per_page=50`;
 
     const githubResponse = await fetch(url, {
       headers: {
@@ -130,6 +130,8 @@ Deno.serve(async (req) => {
           description: repo.description,
           url: repo.html_url,
           stars: repo.stargazers_count,
+          language: repo.language || null,
+          forks: repo.forks_count ?? 0,
         }))
       : [];
 

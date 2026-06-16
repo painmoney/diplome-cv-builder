@@ -1,3 +1,5 @@
+import { supabase } from "./supabaseClient";
+
 export async function fetchGitHubRepos(username) {
   const normalizedUsername = username.trim();
 
@@ -5,52 +7,42 @@ export async function fetchGitHubRepos(username) {
     return [];
   }
 
-  const response = await fetch(
-    `https://api.github.com/users/${normalizedUsername}/repos?sort=updated&per_page=100`
-  );
+  const { data, error } = await supabase.functions.invoke("github-repos", {
+    body: { username: normalizedUsername },
+  });
 
-  if (!response.ok) {
-    let message = "";
-    try {
-      const body = await response.json();
-      message = body?.message || "";
-    } catch {
-      // ignore parse error
-    }
+  if (error) {
+    const msg = String(error?.message || error || "").toLowerCase();
 
-    if (response.status === 404) {
+    if (msg.includes("не найден") || msg.includes("not found") || msg.includes("404")) {
       throw new Error("Пользователь не найден");
     }
 
-    const isRateLimit =
-      response.status === 403 || response.status === 429 ||
-      message.toLowerCase().includes("rate limit");
-
-    if (isRateLimit) {
-      const resetHeader = response.headers.get("x-ratelimit-reset");
-      let suffix = "";
-      if (resetHeader) {
-        const resetDate = new Date(Number(resetHeader) * 1000);
-        suffix = `. Лимит сбросится в ${resetDate.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
-      }
-      throw new Error(
-        `Превышен лимит GitHub API. Попробуйте позже или используйте другой IP/VPN${suffix}`
-      );
+    if (msg.includes("лимит") || msg.includes("rate limit") || msg.includes("429")) {
+      throw new Error("Превышен лимит GitHub API. Попробуйте позже");
     }
 
-    throw new Error(
-      `Ошибка GitHub API: ${response.status}${message ? ` — ${message}` : ""}`
-    );
+    if (msg.includes("token") || msg.includes("не настроен")) {
+      throw new Error("GitHub token не настроен на сервере");
+    }
+
+    throw new Error(`Ошибка GitHub API: ${error.message || "неизвестная ошибка"}`);
   }
 
-  const repos = await response.json();
+  if (data && typeof data === "object" && data.error) {
+    throw new Error(data.error);
+  }
 
-  return repos.map((repo) => ({
+  if (!Array.isArray(data)) {
+    throw new Error("Неожиданный ответ от GitHub API");
+  }
+
+  return data.map((repo) => ({
     name: repo.name,
     description: repo.description,
-    url: repo.html_url,
-    stars: repo.stargazers_count,
+    url: repo.url,
+    stars: repo.stars ?? 0,
     language: repo.language || null,
-    forks: repo.forks_count ?? 0,
+    forks: repo.forks ?? 0,
   }));
 }
