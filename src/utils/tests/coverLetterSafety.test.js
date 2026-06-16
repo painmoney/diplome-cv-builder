@@ -725,4 +725,45 @@ describe("buildDeclaredSkillTip", () => {
       }
     }
   });
+
+  it("no Chinese/CJK artifacts in any generated tip", () => {
+    const cjkRegex = /[\u3400-\u9FFF]/;
+    for (const key of TECHNOLOGY_KEYS) {
+      const tip = buildDeclaredSkillTip(key);
+      const allText = [tip.title, tip.description, ...tip.safeActions, ...tip.avoid].join("");
+      expect(allText).not.toMatch(cjkRegex);
+    }
+  });
+
+  it("message-broker template contains correct Russian words", () => {
+    const tip = buildDeclaredSkillTip("kafka");
+    const allText = tip.safeActions.join(" ").toLowerCase();
+    expect(allText).toContain("очеред");
+    expect(allText).toContain("топик");
+    expect(allText).toMatch(/производител|потребител/);
+  });
+
+  it("architecture template for microservices contains structural terms", () => {
+    const tip = buildDeclaredSkillTip("microservices");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toMatch(/структур|модул|сервис/);
+  });
+
+  it("architecture template for mvc contains structural terms", () => {
+    const tip = buildDeclaredSkillTip("mvc");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toMatch(/структур|модул|сло/);
+  });
+
+  it("methodology template for scrum contains process terms", () => {
+    const tip = buildDeclaredSkillTip("scrum");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toMatch(/спринт|команд|процесс/);
+  });
+
+  it("methodology template for agile contains process terms", () => {
+    const tip = buildDeclaredSkillTip("agile");
+    const allText = [tip.description, ...tip.safeActions].join(" ").toLowerCase();
+    expect(allText).toMatch(/команд|процесс|релиз/);
+  });
 });

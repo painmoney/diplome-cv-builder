@@ -32,7 +32,7 @@ describe("TECHNOLOGY_REGISTRY structure", () => {
       "programming-language", "frontend-framework", "backend-framework",
       "database", "devops-tool", "cloud-platform", "testing-tool",
       "api-protocol", "version-control", "build-tool", "mobile-framework",
-      "data-ml", "message-broker", "generic",
+      "data-ml", "message-broker", "architecture", "methodology", "generic",
     ];
     for (const tech of Object.values(TECHNOLOGY_REGISTRY)) {
       expect(validTipTypes).toContain(tech.tipType);
