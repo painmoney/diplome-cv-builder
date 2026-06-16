@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { JOB_MATCH_TEST_CASES } from "../../dev/jobMatchTestCases";
 import { getCoverLetterMode } from "../coverLetterSafetyUtils";
-import { getKeywordLabel } from "../jobMatchUtils";
+import { getKeywordLabel, extractKeywordsFromText } from "../jobMatchUtils";
 
 describe("JOB_MATCH_TEST_CASES", () => {
   it("has unique ids", () => {
@@ -163,5 +163,34 @@ describe("getKeywordLabel — registry display names", () => {
   it("falls back to capitalization for unknown keywords", () => {
     expect(getKeywordLabel("unknown")).toBe("Unknown");
     expect(getKeywordLabel("customtech")).toBe("Customtech");
+  });
+});
+
+describe("extractKeywordsFromText — Stage C-1 safe additions", () => {
+  it("detects Testing Library in vacancy text", () => {
+    const result = extractKeywordsFromText("We use Testing Library for component tests");
+    expect(result).toContain("testing library");
+  });
+
+  it("detects Testing Library in resume context", () => {
+    const result = extractKeywordsFromText("React components are tested with Testing Library");
+    expect(result).toContain("testing library");
+  });
+
+  it("detects Docker Compose in vacancy text", () => {
+    const result = extractKeywordsFromText("Docker Compose is used for local development");
+    expect(result).toContain("docker compose");
+  });
+
+  it("detects Docker Compose in resume context", () => {
+    const result = extractKeywordsFromText("Configured Docker Compose for multi-service architecture");
+    expect(result).toContain("docker compose");
+  });
+});
+
+describe("display — Stage C-1 safe additions", () => {
+  it("getKeywordLabel returns correct names", () => {
+    expect(getKeywordLabel("testing library")).toBe("Testing Library");
+    expect(getKeywordLabel("docker compose")).toBe("Docker Compose");
   });
 });

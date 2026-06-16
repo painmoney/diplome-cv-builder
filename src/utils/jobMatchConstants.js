@@ -24,7 +24,7 @@ export const TECH_KEYWORDS = {
     "Docker", "Kubernetes", "Terraform", "Ansible",
     "CI/CD", "Jenkins", "GitHub Actions", "GitLab CI",
     "Nginx", "Linux", "Vagrant",
-    "Kafka",
+    "Kafka", "Docker Compose",
   ],
   tools: [
     "Git", "GitHub", "GitLab", "Jira", "Confluence",
@@ -39,7 +39,7 @@ export const TECH_KEYWORDS = {
     "HTML", "CSS", "SCSS", "SASS", "Tailwind", "Bootstrap", "MUI",
     "Material UI", "Styled Components",
     "Redux", "MobX", "Zustand", "Pinia",
-    "Jest", "Vitest", "Cypress", "Playwright", "Selenium", "Mocha",
+    "Jest", "Vitest", "Cypress", "Playwright", "Selenium", "Mocha", "Testing Library",
     "Webpack", "Vite", "Babel", "ESLint", "Prettier",
     "MVC", "MVVM", "OOP", "SOLID",
     "Multithreading", "Reactive Programming", "Highload",
