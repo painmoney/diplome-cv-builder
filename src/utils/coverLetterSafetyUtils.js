@@ -74,8 +74,11 @@ export function getPositionPhrase(positionName) {
   return position ? `вакансия ${position}` : "ваша вакансия";
 }
 
-export function buildWeakProfileSentence() {
-  return "В моём текущем резюме сильнее представлены веб-разработка, работа с API и проектный опыт.";
+export function buildWeakProfileSentence(confirmedProjects = []) {
+  if (confirmedProjects.length > 0) {
+    return "В моём текущем резюме сильнее представлены веб-разработка, работа с API и проектный опыт.";
+  }
+  return "В моём текущем резюме сильнее представлены навыки веб-разработки и работы с API.";
 }
 
 export function cleanupGeneratedText(text) {
@@ -145,7 +148,7 @@ export function buildWeakMatchCoverLetter({
   const greeting = "Здравствуйте!";
   const positionRef = getPositionPhrase(positionName);
   const companyRef = hasCompany ? ` в ${companyName}` : "";
-  const profileSentence = buildWeakProfileSentence();
+  const profileSentence = buildWeakProfileSentence(confirmedProjects);
 
   const confirmed = [...confirmedExperience, ...confirmedProjects];
   const confirmedText = formatKeywordList(confirmed);
@@ -159,16 +162,16 @@ export function buildWeakMatchCoverLetter({
 
   if (confirmed.length > 0 && declaredOnly.length > 0) {
     lines.push("");
-    lines.push(`Из требований вакансии в резюме подтверждаются ${confirmedText}. ${declaredText} указаны как навыки. Поэтому я рассматриваю позицию как смежную с моим текущим профилем и готов обсудить задачи, где мой подтверждённый опыт может быть полезен.`);
+    lines.push(`Из требований вакансии в резюме подтверждаются ${confirmedText}. ${declaredText} указаны как навыки. Поэтому я рассматриваю позицию как смежную с моим текущим профилем и готов обсудить задачи, где мои подтверждённые навыки и совпадения могут быть релевантны.`);
   } else if (confirmed.length > 0) {
     lines.push("");
-    lines.push(`Из требований вакансии в резюме подтверждаются ${confirmedText}. Поэтому я рассматриваю позицию как смежную с моим текущим профилем и готов обсудить задачи, где мой подтверждённый опыт может быть полезен.`);
+    lines.push(`Из требований вакансии в резюме подтверждаются ${confirmedText}. Поэтому я рассматриваю позицию как смежную с моим текущим профилем и готов обсудить задачи, где мои подтверждённые совпадения могут быть релевантны.`);
   } else if (declaredOnly.length > 0) {
     lines.push("");
-    lines.push(`${declaredText} указаны как навыки в резюме. Позиция выглядит смежной с моим текущим профилем, поэтому я готов обсудить задачи, где мой проектный опыт может быть полезен.`);
+    lines.push(`${declaredText} указаны как навыки в резюме. Позиция выглядит смежной с моим текущим профилем, поэтому я готов обсудить задачи, где мои навыки могут быть релевантны.`);
   } else {
     lines.push("");
-    lines.push("Позиция выглядит смежной с моим текущим профилем, поэтому я рассматриваю её только при готовности команды оценить релевантный проектный и веб-разработческий опыт.");
+    lines.push("Позиция выглядит смежной с моим текущим профилем, поэтому я рассматриваю её при наличии релевантных задач.");
   }
 
   if (name) {
