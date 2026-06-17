@@ -28,7 +28,7 @@ export default function JobMatchScenarioPanel({ onLoadDevScenario }) {
         Dev scenarios
       </Typography>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-        Подставляют тестовые данные для проверки Job Match и Cover Letter.
+        Подставляют тестовые данные для проверки Job Match, Cover Letter и evidence-логики.
       </Typography>
 
       <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", gap: 0.75 }}>

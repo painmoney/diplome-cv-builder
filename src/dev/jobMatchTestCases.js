@@ -1,186 +1,22 @@
 export const JOB_MATCH_TEST_CASES = [
   {
-    id: "python-hard-mismatch",
-    title: "Case A — Python backend mismatch",
-    description: "Низкое совпадение: Python/FastAPI/Docker/MongoDB отсутствуют в резюме",
-    expectedMode: "careful",
-    expected: [
-      "technicalScore около 40–45%",
-      "evidenceScore около 40–45%",
-      "cover letter mode: careful",
-      "missing: Python, FastAPI, Django, MongoDB, Docker",
-    ],
-    resumeData: {
-      profile: {
-        name: "Смирнов Алексей",
-        email: "smirnov@example.com",
-        phone: "+7 (900) 123-45-67",
-        about: "Frontend/Fullstack разработчик с опытом создания интерфейсов на React и бэкенд-сервисов на Java Spring Boot. Работал с REST API, PostgreSQL, Git.",
-      },
-      skills: [
-        { name: "React", level: 5 },
-        { name: "JavaScript", level: 5 },
-        { name: "CSS", level: 4 },
-        { name: "Material UI", level: 4 },
-        { name: "PostgreSQL", level: 3 },
-        { name: "SQL", level: 3 },
-        { name: "Spring Boot", level: 3 },
-        { name: "REST API", level: 4 },
-        { name: "Git", level: 4 },
-      ],
-      experience: [
-        {
-          company: "TechCorp",
-          position: "Frontend Developer",
-          period: "2023–2025",
-          description: "Разработка пользовательских интерфейсов на React с использованием Material UI. Интеграция с REST API, работа с PostgreSQL для хранения данных. Оптимизация производительности SPA.",
-        },
-        {
-          company: "WebStudio",
-          position: "Java Developer",
-          period: "2022–2023",
-          description: "Разработка бэкенд-сервисов на Java Spring Boot. Проектирование REST API, работа с PostgreSQL. Написание unit-тестов.",
-        },
-      ],
-      education: [
-        {
-          institution: "МГТУ им. Баумана",
-          degree: "Бакалавр",
-          department: "Информатика",
-          years: "2018–2022",
-        },
-      ],
-      github: [
-        {
-          name: "react-dashboard",
-          url: "https://github.com/smirnov/react-dashboard",
-          description: "Админ-панель на React + Material UI",
-          stars: 12,
-        },
-        {
-          name: "spring-rest-api",
-          url: "https://github.com/smirnov/spring-rest-api",
-          description: "REST API на Spring Boot с PostgreSQL",
-          stars: 8,
-        },
-      ],
-      template: "minimalist",
-    },
-    jobText: `Python Developer
-
-Требования:
-- Python 3.10+
-- FastAPI / Django
-- PostgreSQL, MongoDB
-- Docker, Docker Compose
-- REST API
-- Git
-
-Обязанности:
-- Разработка и поддержка бэкенд-сервисов на Python
-- Проектирование и оптимизация баз данных
-- Написание автотестов
-- Code review`,
-  },
-  {
-    id: "python-skills-stuffing",
-    title: "Case B — Python skills-stuffing",
-    description: "Python/Docker/MongoDB добавлены в skills, но не подтверждены опытом",
-    expectedMode: "careful",
-    expected: [
-      "technicalScore выше (около 60–70%)",
-      "evidenceScore выше (около 50%)",
-      "cover letter mode: careful",
-      "declaredOnly: Python, Docker, PostgreSQL, MongoDB, SQL",
-      "missing: FastAPI",
-      "обычный AI cover letter НЕ включается",
-    ],
-    resumeData: {
-      profile: {
-        name: "Смирнов Алексей",
-        email: "smirnov@example.com",
-        phone: "+7 (900) 123-45-67",
-        about: "Frontend/Fullstack разработчик с опытом создания интерфейсов на React и бэкенд-сервисов на Java Spring Boot. Работал с REST API, PostgreSQL, Git.",
-      },
-      skills: [
-        { name: "React", level: 5 },
-        { name: "JavaScript", level: 5 },
-        { name: "CSS", level: 4 },
-        { name: "Material UI", level: 4 },
-        { name: "PostgreSQL", level: 3 },
-        { name: "SQL", level: 3 },
-        { name: "Spring Boot", level: 3 },
-        { name: "REST API", level: 4 },
-        { name: "Git", level: 4 },
-        { name: "Python", level: 2 },
-        { name: "Docker", level: 2 },
-        { name: "MongoDB", level: 2 },
-      ],
-      experience: [
-        {
-          company: "TechCorp",
-          position: "Frontend Developer",
-          period: "2023–2025",
-          description: "Разработка пользовательских интерфейсов на React с использованием Material UI. Интеграция с REST API, работа с PostgreSQL для хранения данных.",
-        },
-        {
-          company: "WebStudio",
-          position: "Java Developer",
-          period: "2022–2023",
-          description: "Разработка бэкенд-сервисов на Java Spring Boot. Проектирование REST API, работа с PostgreSQL.",
-        },
-      ],
-      education: [
-        {
-          institution: "МГТУ им. Баумана",
-          degree: "Бакалавр",
-          department: "Информатика",
-          years: "2018–2022",
-        },
-      ],
-      github: [
-        {
-          name: "react-dashboard",
-          url: "https://github.com/smirnov/react-dashboard",
-          description: "Админ-панель на React + Material UI",
-          stars: 12,
-        },
-      ],
-      template: "minimalist",
-    },
-    jobText: `Python Developer
-
-Требования:
-- Python 3.10+
-- FastAPI / Django
-- PostgreSQL, MongoDB
-- Docker, Docker Compose
-- REST API
-- Git
-
-Обязанности:
-- Разработка и поддержка бэкенд-сервисов на Python
-- Проектирование и оптимизация баз данных
-- Написание автотестов`,
-  },
-  {
-    id: "frontend-strong-match",
-    title: "Case C — Frontend strong match",
+    id: "work-experience",
+    title: "Case A — Work experience",
     description: "Опыт и навыки подтверждают требования вакансии",
     expectedMode: "ai",
     expected: [
       "technicalScore выше 70%",
       "evidenceScore выше 70%",
       "cover letter mode: ai",
+      "confirmedExperience: React, TypeScript, REST API",
       "нет careful warning",
-      "кнопка: Сгенерировать сопроводительное письмо",
     ],
     resumeData: {
       profile: {
         name: "Петрова Мария",
         email: "petrova@example.com",
         phone: "+7 (999) 111-22-33",
-        about: "Frontend-разработчик с 3+ годами опыта создания SPA на React. Работаю с TypeScript, REST API, Git. Опыт работы в команде из 5 человек.",
+        about: "Frontend-разработчик с опытом создания SPA на React. Работаю с TypeScript, REST API, Git.",
       },
       skills: [
         { name: "React", level: 5 },
@@ -217,6 +53,7 @@ export const JOB_MATCH_TEST_CASES = [
           stars: 5,
         },
       ],
+      projects: [],
       template: "minimalist",
     },
     jobText: `Frontend Developer (React)
@@ -235,19 +72,220 @@ export const JOB_MATCH_TEST_CASES = [
 - Code review`,
   },
   {
-    id: "java-backend-partial",
-    title: "Case D — Java backend partial",
-    description: "Java/Spring Boot подтверждены, PostgreSQL/Docker/SQL — только в skills",
-    expectedMode: "ai",
+    id: "github-evidence",
+    title: "Case B — GitHub evidence",
+    description: "Технологии подтверждены только через GitHub-репозитории, опыта нет",
+    expectedMode: "careful",
     expected: [
-      "technicalScore выше 80%",
-      "evidenceScore выше 60%",
-      "cover letter mode: ai",
-      "confirmedExperience: Java, Spring Boot, REST API",
-      "declaredOnly: PostgreSQL, Docker, SQL",
-      "missingEvidence: []",
-      "validateCoverLetterText не должен позволять overclaim по declaredOnly",
-      "AI advice НЕ должен содержать [missing] или 'Нет отсутствующих навыков'",
+      "technicalScore выше 40%",
+      "evidenceScore: есть project evidence",
+      "confirmedProjects: TypeScript, Node.js",
+      "experience пустая — нет confirmedExperience",
+      "cover letter: careful mode",
+      "AI не должен писать 'опыт работы с TypeScript'",
+    ],
+    resumeData: {
+      profile: {
+        name: "Новиков Артём",
+        email: "novikov@example.com",
+        phone: "+7 (988) 222-33-44",
+        about: "Начинающий разработчик с базовыми знаниями JavaScript и TypeScript.",
+      },
+      skills: [
+        { name: "TypeScript", level: 3 },
+        { name: "Node.js", level: 3 },
+        { name: "JavaScript", level: 4 },
+        { name: "HTML", level: 4 },
+        { name: "CSS", level: 3 },
+      ],
+      experience: [],
+      education: [
+        {
+          institution: "МГУ",
+          degree: "Бакалавр",
+          department: "Прикладная математика",
+          years: "2020–2024",
+        },
+      ],
+      github: [
+        {
+          name: "express-api-demo",
+          url: "https://github.com/novikov/express-api-demo",
+          description: "REST API на Node.js + Express + TypeScript",
+          stars: 3,
+        },
+        {
+          name: "react-dashboard",
+          url: "https://github.com/novikov/react-dashboard",
+          description: "Админ-панель на React + TypeScript",
+          stars: 7,
+        },
+      ],
+      projects: [],
+      template: "minimalist",
+    },
+    jobText: `Fullstack Developer
+
+Требования:
+- TypeScript, JavaScript
+- Node.js / Express
+- React
+- REST API
+- Git
+
+Обязанности:
+- Разработка fullstack-приложений
+- Проектирование API
+- Работа с базами данных`,
+  },
+  {
+    id: "manual-project",
+    title: "Case C — Manual project",
+    description: "Технологии подтверждены только через ручные проекты, без опыта и GitHub",
+    expectedMode: "careful",
+    expected: [
+      "technicalScore выше 40%",
+      "confirmedProjects: React, Supabase, Vite",
+      "experience пустая — нет confirmedExperience",
+      "github пустой",
+      "cover letter: careful mode",
+      "AboutMe может писать 'проектный опыт'",
+      "AboutMe НЕ должен писать 'опыт работы'",
+    ],
+    resumeData: {
+      profile: {
+        name: "Соколова Анна",
+        email: "sokolova@example.com",
+        phone: "+7 (977) 444-55-66",
+        about: "Студентка 4 курса, изучаю React и fullstack-разработку.",
+      },
+      skills: [
+        { name: "React", level: 3 },
+        { name: "Supabase", level: 2 },
+        { name: "Vite", level: 3 },
+        { name: "Material UI", level: 3 },
+        { name: "JavaScript", level: 4 },
+        { name: "HTML", level: 4 },
+        { name: "CSS", level: 4 },
+      ],
+      experience: [],
+      education: [
+        {
+          institution: "МИФИ",
+          degree: "Бакалавр",
+          department: "Информатика и вычислительная техника",
+          years: "2021–2025",
+        },
+      ],
+      github: [],
+      projects: [
+        {
+          id: "proj_cv_builder",
+          name: "CV Builder",
+          role: "Frontend / Fullstack Developer",
+          description: "Разработал веб-приложение для создания IT-резюме с редактором, шаблонами и экспортом в PDF/DOCX/Markdown.",
+          techStack: "React, Supabase, Vite, Material UI",
+          period: "2025",
+          link: "https://cv-builder.example.com",
+        },
+        {
+          id: "proj_portfolio",
+          name: "Личный сайт-портфолио",
+          role: "Frontend Developer",
+          description: "Создал адаптивный сайт-портфолио с анимациями и контактной формой.",
+          techStack: "React, Vite, CSS",
+          period: "2024",
+          link: "",
+        },
+      ],
+      template: "minimalist",
+    },
+    jobText: `Frontend Developer
+
+Требования:
+- React
+- Supabase / PostgreSQL
+- Vite
+- Material UI
+- HTML, CSS, JavaScript
+
+Обязанности:
+- Разработка интерфейсов на React
+- Интеграция с бэкенд-сервисами
+- Оптимизация производительности`,
+  },
+  {
+    id: "skills-only",
+    title: "Case D — Skills only",
+    description: "Технологии только в навыках, нет ни опыта, ни проектов",
+    expectedMode: "careful",
+    expected: [
+      "declaredOnly: Docker, Kubernetes, CI/CD",
+      "net confirmedExperience",
+      "net confirmedProjects для этих технологий",
+      "cover letter: careful mode",
+      "AI должен использовать формулировки 'имею навыки', 'знаком'",
+    ],
+    resumeData: {
+      profile: {
+        name: "Михайлов Дмитрий",
+        email: "mikhailov@example.com",
+        phone: "+7 (966) 555-66-77",
+        about: "Frontend-разработчик с опытом работы с React и базовыми знаниями DevOps-инструментов.",
+      },
+      skills: [
+        { name: "React", level: 4 },
+        { name: "JavaScript", level: 4 },
+        { name: "TypeScript", level: 3 },
+        { name: "CSS", level: 4 },
+        { name: "Docker", level: 2 },
+        { name: "Kubernetes", level: 1 },
+        { name: "CI/CD", level: 2 },
+        { name: "Git", level: 4 },
+      ],
+      experience: [
+        {
+          company: "WebStudio",
+          position: "Frontend Developer",
+          period: "2023–2025",
+          description: "Разработка интерфейсов на React + TypeScript. Интеграция с REST API.",
+        },
+      ],
+      education: [
+        {
+          institution: "НГУ",
+          degree: "Бакалавр",
+          department: "Информатика",
+          years: "2019–2023",
+        },
+      ],
+      github: [],
+      projects: [],
+      template: "minimalist",
+    },
+    jobText: `DevOps Engineer
+
+Требования:
+- Docker, Kubernetes
+- CI/CD (GitLab CI, GitHub Actions)
+- Linux
+- Terraform
+
+Обязанности:
+- Настройка и поддержка CI/CD пайплайнов
+- Управление контейнерами и оркестрацией
+- Настройка инфраструктуры`,
+  },
+  {
+    id: "missing-evidence",
+    title: "Case E — Missing evidence",
+    description: "Технологии完全 отсутствуют в резюме",
+    expectedMode: "careful",
+    expected: [
+      "missing: Kubernetes, Terraform, AWS",
+      "нет ни confirmedExperience, ни confirmedProjects по этим технологиям",
+      "cover letter: careful mode",
+      "AI не должен упоминать отсутствующие технологии как опыт",
     ],
     resumeData: {
       profile: {
@@ -260,9 +298,8 @@ export const JOB_MATCH_TEST_CASES = [
         { name: "Java", level: 5 },
         { name: "Spring Boot", level: 5 },
         { name: "REST API", level: 4 },
-        { name: "PostgreSQL", level: 3 },
-        { name: "Docker", level: 2 },
-        { name: "SQL", level: 3 },
+        { name: "PostgreSQL", level: 4 },
+        { name: "SQL", level: 4 },
         { name: "Git", level: 4 },
         { name: "Maven", level: 4 },
       ],
@@ -271,7 +308,7 @@ export const JOB_MATCH_TEST_CASES = [
           company: "FinTech Solutions",
           position: "Java Developer",
           period: "2021–2025",
-          description: "Разработка микросервисов на Java Spring Boot. Проектирование REST API для финансовых сервисов. Интеграция с внешними API, написание unit-тестов.",
+          description: "Разработка микросервисов на Java Spring Boot. Проектирование REST API для финансовых сервисов. Интеграция с PostgreSQL.",
         },
       ],
       education: [
@@ -290,85 +327,105 @@ export const JOB_MATCH_TEST_CASES = [
           stars: 15,
         },
       ],
+      projects: [],
       template: "minimalist",
     },
-    jobText: `Backend Developer (Java)
+    jobText: `Platform Engineer
 
 Требования:
-- Java 17+
-- Spring Boot
-- PostgreSQL, SQL
+- Kubernetes
+- Terraform / Ansible
+- AWS / GCP
 - Docker
-- REST API
-- Git
+- CI/CD
+- Мониторинг (Prometheus, Grafana)
 
 Обязанности:
-- Разработка бэкенд-сервисов на Java Spring Boot
-- Проектирование REST API
-- Оптимизация SQL-запросов
-- Написание автотестов`,
+- Настройка и поддержка Kubernetes-кластеров
+- Управление инфраструктурой через Terraform
+- Настройка мониторинга и алертинга`,
   },
   {
-    id: "devops-mismatch",
-    title: "Case E — DevOps mismatch",
-    description: "Нет DevOps-опыта, только Docker/CI-CD в skills",
-    expectedMode: "careful",
+    id: "mixed-portfolio",
+    title: "Case F — Mixed portfolio",
+    description: "Опыт + ручные проекты + GitHub — проверка приоритета и разделения источников",
+    expectedMode: "ai",
     expected: [
-      "technicalScore около 30–40%",
-      "evidenceScore около 15–25%",
-      "cover letter mode: careful",
-      "missing: Kubernetes, Linux, AWS",
-      "нет готов освоить",
+      "confirmedExperience: React",
+      "confirmedProjects: TypeScript, Supabase, Node.js",
+      "experience priority сохраняется",
+      "project evidence НЕ становится work experience",
+      "cover letter: ai mode",
+      "React — можно 'опыт работы с React'",
+      "TypeScript/Supabase/Node.js — только 'проектный опыт'",
     ],
     resumeData: {
       profile: {
-        name: "Волков Игорь",
-        email: "volkov@example.com",
-        phone: "+7 (922) 333-44-55",
-        about: "Frontend-разработчик с небольшим опытом DevOps-задач: настройка Docker для локальной разработки, базовые GitHub Actions.",
+        name: "Иванова Елена",
+        email: "ivanova@example.com",
+        phone: "+7 (955) 666-77-88",
+        about: "Frontend-разработчик с опытом React. Активно развиваю навыки fullstack-разработки через личные проекты.",
       },
       skills: [
-        { name: "React", level: 4 },
-        { name: "JavaScript", level: 4 },
-        { name: "Docker", level: 2 },
-        { name: "CI/CD", level: 2 },
-        { name: "Git", level: 4 },
-        { name: "HTML", level: 4 },
+        { name: "React", level: 5 },
+        { name: "TypeScript", level: 4 },
+        { name: "Supabase", level: 3 },
+        { name: "Node.js", level: 3 },
+        { name: "JavaScript", level: 5 },
         { name: "CSS", level: 4 },
+        { name: "REST API", level: 4 },
+        { name: "Git", level: 4 },
       ],
       experience: [
         {
-          company: "WebAgency",
+          company: "Digital Agency",
           position: "Frontend Developer",
           period: "2023–2025",
-          description: "Разработка интерфейсов на React. Настройка Docker-окружения для проекта. Базовые GitHub Actions для деплоя.",
+          description: "Разработка пользовательских интерфейсов на React. Интеграция с REST API, работа с CSS-анимациями.",
         },
       ],
       education: [
         {
-          institution: "Казанский университет",
+          institution: "МГТУ",
           degree: "Бакалавр",
           department: "Информатика",
-          years: "2020–2024",
+          years: "2019–2023",
         },
       ],
-      github: [],
+      github: [
+        {
+          name: "node-api-starter",
+          url: "https://github.com/ivanova/node-api-starter",
+          description: "Шаблон REST API на Node.js + TypeScript + Express",
+          stars: 4,
+        },
+      ],
+      projects: [
+        {
+          id: "proj_saas_dashboard",
+          name: "SaaS Dashboard",
+          role: "Fullstack Developer",
+          description: "Разработал панель управления для SaaS-приложения с авторизацией, дашбордами и интеграцией с Supabase.",
+          techStack: "React, Supabase, TypeScript, Node.js",
+          period: "2025",
+          link: "https://saas-dashboard.example.com",
+        },
+      ],
       template: "minimalist",
     },
-    jobText: `DevOps Engineer
+    jobText: `Fullstack Developer
 
 Требования:
-- Docker, Kubernetes
-- Linux (Ubuntu/CentOS)
-- AWS / GCP
-- CI/CD (GitLab CI, GitHub Actions)
-- Terraform / Ansible
-- Мониторинг (Prometheus, Grafana)
+- React, TypeScript
+- Node.js / Express
+- Supabase / PostgreSQL
+- REST API
+- Git
 
 Обязанности:
-- Настройка и поддержка CI/CD пайплайнов
-- Управление контейнерами и оркестрацией
-- Настройка инфраструктуры в облаке
-- Мониторинг и алертинг`,
+- Разработка fullstack-приложений
+- Проектирование и реализация API
+- Интеграция с базами данных
+- Работа с фронтендом и бэкендом`,
   },
 ];

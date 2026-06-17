@@ -28,50 +28,18 @@ describe("JOB_MATCH_TEST_CASES", () => {
       expect(tc.resumeData.skills.length).toBeGreaterThan(0);
     }
   });
-});
 
-describe("Case A — Python backend hard mismatch", () => {
-  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "python-hard-mismatch");
-
-  it("exists", () => {
-    expect(tc).toBeTruthy();
-  });
-
-  it("getCoverLetterMode returns careful", () => {
-    const mode = getCoverLetterMode({
-      evidenceScore: 33,
-      technicalScore: 25,
-      confirmedExperience: [],
-      confirmedProjects: ["Git", "GitHub"],
-      declaredOnly: ["PostgreSQL", "SQL"],
-      missingEvidence: ["Python", "Docker", "MongoDB", "FastAPI"],
-    });
-    expect(mode.mode).toBe("careful");
+  it("manual project cases include projects array", () => {
+    const projectCases = JOB_MATCH_TEST_CASES.filter((c) => c.id === "manual-project" || c.id === "mixed-portfolio");
+    for (const tc of projectCases) {
+      expect(Array.isArray(tc.resumeData.projects)).toBe(true);
+      expect(tc.resumeData.projects.length).toBeGreaterThan(0);
+    }
   });
 });
 
-describe("Case B — Python skills-stuffing", () => {
-  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "python-skills-stuffing");
-
-  it("exists", () => {
-    expect(tc).toBeTruthy();
-  });
-
-  it("getCoverLetterMode returns careful despite higher scores", () => {
-    const mode = getCoverLetterMode({
-      evidenceScore: 51,
-      technicalScore: 63,
-      confirmedExperience: [],
-      confirmedProjects: ["Git", "GitHub"],
-      declaredOnly: ["Python", "Docker", "PostgreSQL", "MongoDB", "SQL"],
-      missingEvidence: ["FastAPI"],
-    });
-    expect(mode.mode).toBe("careful");
-  });
-});
-
-describe("Case C — Frontend strong match", () => {
-  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "frontend-strong-match");
+describe("Case A — Work experience", () => {
+  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "work-experience");
 
   it("exists", () => {
     expect(tc).toBeTruthy();
@@ -81,37 +49,24 @@ describe("Case C — Frontend strong match", () => {
     const mode = getCoverLetterMode({
       evidenceScore: 75,
       technicalScore: 80,
-      confirmedExperience: ["React", "JavaScript"],
-      confirmedProjects: ["GitHub"],
+      confirmedExperience: ["react", "typescript", "rest api"],
+      confirmedProjects: [],
       declaredOnly: [],
       missingEvidence: [],
     });
     expect(mode.mode).toBe("ai");
   });
-});
 
-describe("Case D — Java backend partial", () => {
-  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "java-backend-partial");
-
-  it("exists", () => {
-    expect(tc).toBeTruthy();
-  });
-
-  it("getCoverLetterMode returns ai", () => {
-    const mode = getCoverLetterMode({
-      evidenceScore: 75,
-      technicalScore: 100,
-      confirmedExperience: ["Java", "Spring Boot", "REST API"],
-      confirmedProjects: [],
-      declaredOnly: ["PostgreSQL", "Docker", "SQL"],
-      missingEvidence: [],
-    });
-    expect(mode.mode).toBe("ai");
+  it("experience is confirmed in resume", () => {
+    expect(tc.resumeData.experience.length).toBeGreaterThan(0);
+    const expDesc = tc.resumeData.experience.map((e) => e.description).join(" ");
+    expect(expDesc.toLowerCase()).toContain("react");
+    expect(expDesc.toLowerCase()).toContain("typescript");
   });
 });
 
-describe("Case E — DevOps mismatch", () => {
-  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "devops-mismatch");
+describe("Case B — GitHub evidence", () => {
+  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "github-evidence");
 
   it("exists", () => {
     expect(tc).toBeTruthy();
@@ -119,14 +74,176 @@ describe("Case E — DevOps mismatch", () => {
 
   it("getCoverLetterMode returns careful", () => {
     const mode = getCoverLetterMode({
-      evidenceScore: 20,
+      evidenceScore: 50,
+      technicalScore: 60,
+      confirmedExperience: [],
+      confirmedProjects: ["typescript", "node.js"],
+      declaredOnly: [],
+      missingEvidence: [],
+    });
+    expect(mode.mode).toBe("careful");
+  });
+
+  it("has no experience", () => {
+    expect(tc.resumeData.experience).toHaveLength(0);
+  });
+
+  it("has GitHub repos with relevant tech", () => {
+    expect(tc.resumeData.github.length).toBeGreaterThan(0);
+    const ghDesc = tc.resumeData.github.map((g) => `${g.description} ${g.name}`).join(" ");
+    expect(ghDesc.toLowerCase()).toContain("typescript");
+    expect(ghDesc.toLowerCase()).toContain("node");
+  });
+});
+
+describe("Case C — Manual project", () => {
+  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "manual-project");
+
+  it("exists", () => {
+    expect(tc).toBeTruthy();
+  });
+
+  it("getCoverLetterMode returns careful", () => {
+    const mode = getCoverLetterMode({
+      evidenceScore: 45,
+      technicalScore: 55,
+      confirmedExperience: [],
+      confirmedProjects: ["react", "supabase", "vite"],
+      declaredOnly: [],
+      missingEvidence: [],
+    });
+    expect(mode.mode).toBe("careful");
+  });
+
+  it("has no experience", () => {
+    expect(tc.resumeData.experience).toHaveLength(0);
+  });
+
+  it("has no GitHub", () => {
+    expect(tc.resumeData.github).toHaveLength(0);
+  });
+
+  it("has meaningful projects with techStack", () => {
+    expect(tc.resumeData.projects.length).toBeGreaterThan(0);
+    const hasTechStack = tc.resumeData.projects.some((p) => p.techStack && p.techStack.length > 0);
+    expect(hasTechStack).toBe(true);
+  });
+
+  it("project techStack contains relevant technologies", () => {
+    const allTech = tc.resumeData.projects.map((p) => p.techStack || "").join(" ").toLowerCase();
+    expect(allTech).toContain("react");
+    expect(allTech).toContain("supabase");
+  });
+});
+
+describe("Case D — Skills only", () => {
+  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "skills-only");
+
+  it("exists", () => {
+    expect(tc).toBeTruthy();
+  });
+
+  it("getCoverLetterMode returns careful", () => {
+    const mode = getCoverLetterMode({
+      evidenceScore: 35,
       technicalScore: 40,
       confirmedExperience: [],
       confirmedProjects: [],
-      declaredOnly: ["Docker", "CI/CD"],
-      missingEvidence: ["Kubernetes", "Linux", "AWS"],
+      declaredOnly: ["docker", "kubernetes", "ci/cd"],
+      missingEvidence: ["terraform"],
     });
     expect(mode.mode).toBe("careful");
+  });
+
+  it("skills-only technologies are not in experience description", () => {
+    const expDesc = tc.resumeData.experience.map((e) => e.description).join(" ").toLowerCase();
+    expect(expDesc).not.toContain("docker");
+    expect(expDesc).not.toContain("kubernetes");
+  });
+});
+
+describe("Case E — Missing evidence", () => {
+  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "missing-evidence");
+
+  it("exists", () => {
+    expect(tc).toBeTruthy();
+  });
+
+  it("getCoverLetterMode returns careful", () => {
+    const mode = getCoverLetterMode({
+      evidenceScore: 30,
+      technicalScore: 35,
+      confirmedExperience: [],
+      confirmedProjects: [],
+      declaredOnly: [],
+      missingEvidence: ["kubernetes", "terraform", "aws"],
+    });
+    expect(mode.mode).toBe("careful");
+  });
+
+  it("resume does not contain missing technologies", () => {
+    const allResumeText = [
+      ...tc.resumeData.skills.map((s) => s.name),
+      ...tc.resumeData.experience.map((e) => e.description),
+      ...tc.resumeData.github.map((g) => `${g.description} ${g.name}`),
+    ].join(" ").toLowerCase();
+    expect(allResumeText).not.toContain("kubernetes");
+    expect(allResumeText).not.toContain("terraform");
+    expect(allResumeText).not.toContain("aws");
+  });
+});
+
+describe("Case F — Mixed portfolio", () => {
+  const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "mixed-portfolio");
+
+  it("exists", () => {
+    expect(tc).toBeTruthy();
+  });
+
+  it("getCoverLetterMode returns ai", () => {
+    const mode = getCoverLetterMode({
+      evidenceScore: 65,
+      technicalScore: 70,
+      confirmedExperience: ["react"],
+      confirmedProjects: ["typescript", "supabase", "node.js"],
+      declaredOnly: [],
+      missingEvidence: [],
+    });
+    expect(mode.mode).toBe("ai");
+  });
+
+  it("has experience with React", () => {
+    expect(tc.resumeData.experience.length).toBeGreaterThan(0);
+    const expDesc = tc.resumeData.experience.map((e) => e.description).join(" ");
+    expect(expDesc.toLowerCase()).toContain("react");
+  });
+
+  it("has manual projects with Supabase/TypeScript", () => {
+    expect(tc.resumeData.projects.length).toBeGreaterThan(0);
+    const allProjectTech = tc.resumeData.projects.map((p) => p.techStack || "").join(" ").toLowerCase();
+    expect(allProjectTech).toContain("supabase");
+    expect(allProjectTech).toContain("typescript");
+  });
+
+  it("has GitHub with TypeScript/Node.js", () => {
+    expect(tc.resumeData.github.length).toBeGreaterThan(0);
+    const ghDesc = tc.resumeData.github.map((g) => `${g.description} ${g.name}`).join(" ");
+    expect(ghDesc.toLowerCase()).toContain("typescript");
+    expect(ghDesc.toLowerCase()).toContain("node");
+  });
+});
+
+describe("keyword extraction", () => {
+  it("extracts keywords from job description", () => {
+    const keywords = extractKeywordsFromText("React JavaScript TypeScript REST API");
+    expect(keywords).toContain("react");
+    expect(keywords).toContain("javascript");
+    expect(keywords).toContain("typescript");
+    expect(keywords).toContain("rest api");
+  });
+
+  it("'REST services' matches REST API", () => {
+    expect(extractKeywordsFromText("REST services")).toContain("rest api");
   });
 });
 
