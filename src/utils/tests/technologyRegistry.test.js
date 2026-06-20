@@ -170,6 +170,7 @@ describe("getTechnologyDisplayName", () => {
     expect(getTechnologyDisplayName("npm")).toBe("npm");
     expect(getTechnologyDisplayName("pnpm")).toBe("pnpm");
     expect(getTechnologyDisplayName("yarn")).toBe("yarn");
+    expect(getTechnologyDisplayName("supabase")).toBe("Supabase");
   });
 
   it("returns safe fallback for unknown", () => {
@@ -183,6 +184,7 @@ describe("getTechnologyCategory", () => {
     expect(getTechnologyCategory("react")).toBe("frameworks");
     expect(getTechnologyCategory("postgresql")).toBe("databases");
     expect(getTechnologyCategory("docker")).toBe("cloud");
+    expect(getTechnologyCategory("supabase")).toBe("databases");
   });
 
   it("returns null for unknown", () => {

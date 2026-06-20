@@ -358,6 +358,12 @@ const TECHNOLOGY_REGISTRY = {
     aliases: ["mssql", "sql server", "microsoft sql server"],
     tipType: "database",
   },
+  supabase: {
+    displayName: "Supabase",
+    category: "databases",
+    aliases: [],
+    tipType: "database",
+  },
   nosql: {
     displayName: "NoSQL",
     category: "databases",

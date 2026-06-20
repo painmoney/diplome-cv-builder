@@ -17,7 +17,7 @@ export const TECH_KEYWORDS = {
   databases: [
     "PostgreSQL", "MySQL", "MariaDB", "MongoDB", "Redis",
     "Elasticsearch", "DynamoDB", "Cassandra", "SQLite",
-    "ClickHouse", "Neo4j", "MS SQL Server", "NoSQL",
+    "ClickHouse", "Neo4j", "MS SQL Server", "Supabase", "NoSQL",
   ],
   cloud: [
     "AWS", "Azure", "GCP", "Google Cloud",

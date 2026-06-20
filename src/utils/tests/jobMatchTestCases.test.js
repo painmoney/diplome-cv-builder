@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { JOB_MATCH_TEST_CASES } from "../../dev/jobMatchTestCases";
 import { getCoverLetterMode } from "../coverLetterSafetyUtils";
-import { getKeywordLabel, extractKeywordsFromText } from "../jobMatchUtils";
+import { getKeywordLabel, extractKeywordsFromText, analyzeJobMatch } from "../jobMatchUtils";
 
 describe("JOB_MATCH_TEST_CASES", () => {
   it("has unique ids", () => {
@@ -129,10 +129,29 @@ describe("Case C — Manual project", () => {
     expect(hasTechStack).toBe(true);
   });
 
-  it("project techStack contains relevant technologies", () => {
-    const allTech = tc.resumeData.projects.map((p) => p.techStack || "").join(" ").toLowerCase();
-    expect(allTech).toContain("react");
-    expect(allTech).toContain("supabase");
+  it("analyzeJobMatch confirms Supabase in confirmedProjects", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("supabase");
+  });
+
+  it("analyzeJobMatch confirms React in confirmedProjects", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("react");
+  });
+
+  it("analyzeJobMatch confirms Vite in confirmedProjects", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("vite");
+  });
+
+  it("analyzeJobMatch does not put Supabase in confirmedExperience", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedExperience).not.toContain("supabase");
+  });
+
+  it("analyzeJobMatch does not put Supabase in missingEvidence", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.missingEvidence).not.toContain("supabase");
   });
 });
 
@@ -212,24 +231,39 @@ describe("Case F — Mixed portfolio", () => {
     expect(mode.mode).toBe("ai");
   });
 
-  it("has experience with React", () => {
-    expect(tc.resumeData.experience.length).toBeGreaterThan(0);
-    const expDesc = tc.resumeData.experience.map((e) => e.description).join(" ");
-    expect(expDesc.toLowerCase()).toContain("react");
+  it("analyzeJobMatch: React is confirmedExperience", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedExperience).toContain("react");
   });
 
-  it("has manual projects with Supabase/TypeScript", () => {
-    expect(tc.resumeData.projects.length).toBeGreaterThan(0);
-    const allProjectTech = tc.resumeData.projects.map((p) => p.techStack || "").join(" ").toLowerCase();
-    expect(allProjectTech).toContain("supabase");
-    expect(allProjectTech).toContain("typescript");
+  it("analyzeJobMatch: Supabase is confirmedProjects", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("supabase");
   });
 
-  it("has GitHub with TypeScript/Node.js", () => {
-    expect(tc.resumeData.github.length).toBeGreaterThan(0);
-    const ghDesc = tc.resumeData.github.map((g) => `${g.description} ${g.name}`).join(" ");
-    expect(ghDesc.toLowerCase()).toContain("typescript");
-    expect(ghDesc.toLowerCase()).toContain("node");
+  it("analyzeJobMatch: Supabase is not confirmedExperience", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedExperience).not.toContain("supabase");
+  });
+
+  it("analyzeJobMatch: TypeScript is confirmedProjects", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("typescript");
+  });
+
+  it("analyzeJobMatch: Node.js is confirmedProjects", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("node.js");
+  });
+
+  it("analyzeJobMatch: Git is confirmedExperience", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedExperience).toContain("git");
+  });
+
+  it("analyzeJobMatch: PostgreSQL is missingEvidence", () => {
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.missingEvidence).toContain("postgresql");
   });
 });
 
@@ -244,6 +278,26 @@ describe("keyword extraction", () => {
 
   it("'REST services' matches REST API", () => {
     expect(extractKeywordsFromText("REST services")).toContain("rest api");
+  });
+
+  it("'Supabase' is extracted as supabase", () => {
+    expect(extractKeywordsFromText("Supabase")).toContain("supabase");
+  });
+
+  it("'Supabase / PostgreSQL' extracts both technologies", () => {
+    const keywords = extractKeywordsFromText("Supabase / PostgreSQL");
+    expect(keywords).toContain("supabase");
+    expect(keywords).toContain("postgresql");
+  });
+
+  it("Supabase does not suppress PostgreSQL", () => {
+    const keywords = extractKeywordsFromText("Supabase / PostgreSQL");
+    expect(keywords).toContain("postgresql");
+  });
+
+  it("PostgreSQL does not suppress Supabase", () => {
+    const keywords = extractKeywordsFromText("PostgreSQL and Supabase");
+    expect(keywords).toContain("supabase");
   });
 });
 

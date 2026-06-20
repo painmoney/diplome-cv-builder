@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildResumeEvidenceMap, classifyKeywordEvidence } from "../jobMatchUtils";
+import { buildResumeEvidenceMap, classifyKeywordEvidence, analyzeJobMatch } from "../jobMatchUtils";
 
 const baseResume = {
   profile: { name: "Test User", email: "test@test.com", about: "Backend developer" },
@@ -143,5 +143,93 @@ describe("classifyKeywordEvidence - manual project priority", () => {
     const map = buildResumeEvidenceMap(data);
     const result = classifyKeywordEvidence("kubernetes", map);
     expect(result.status).toBe("missing");
+  });
+});
+
+describe("Supabase evidence pipeline", () => {
+  it("Supabase in manual project → confirmedProjects", () => {
+    const data = {
+      ...baseResume,
+      experience: [],
+      projects: [{ id: "1", name: "CV Builder", techStack: "React, Supabase, Vite" }],
+    };
+    const map = buildResumeEvidenceMap(data);
+    const result = classifyKeywordEvidence("supabase", map);
+    expect(result.status).toBe("confirmed_project");
+    expect(result.source).toBe("projects");
+  });
+
+  it("Supabase in experience → confirmedExperience (priority over project)", () => {
+    const data = {
+      ...baseResume,
+      experience: [{ company: "Co", position: "Dev", description: "Built app with Supabase" }],
+      projects: [{ id: "1", name: "App", techStack: "Supabase" }],
+    };
+    const map = buildResumeEvidenceMap(data);
+    const result = classifyKeywordEvidence("supabase", map);
+    expect(result.status).toBe("confirmed_experience");
+    expect(result.source).toBe("experience");
+  });
+
+  it("Supabase only in skills → declared_skill", () => {
+    const data = {
+      ...baseResume,
+      skills: [{ name: "React" }, { name: "Supabase" }],
+      experience: [],
+      projects: [],
+      github: [],
+    };
+    const map = buildResumeEvidenceMap(data);
+    const result = classifyKeywordEvidence("supabase", map);
+    expect(result.status).toBe("declared_skill");
+  });
+
+  it("Supabase missing from resume → missing", () => {
+    const data = {
+      ...baseResume,
+      skills: [{ name: "React" }],
+      experience: [],
+      projects: [],
+      github: [],
+    };
+    const map = buildResumeEvidenceMap(data);
+    const result = classifyKeywordEvidence("supabase", map);
+    expect(result.status).toBe("missing");
+  });
+
+  it("analyzeJobMatch: Supabase in vacancy + project → confirmedProjects", () => {
+    const data = {
+      ...baseResume,
+      experience: [],
+      projects: [{ id: "1", name: "CV Builder", techStack: "React, Supabase, Vite" }],
+    };
+    const result = analyzeJobMatch(data, "Supabase / PostgreSQL React");
+    expect(result.confirmedProjects).toContain("supabase");
+    expect(result.confirmedProjects).toContain("react");
+  });
+
+  it("analyzeJobMatch: Supabase only in skills → declaredOnly", () => {
+    const data = {
+      ...baseResume,
+      skills: [{ name: "React" }, { name: "Supabase" }],
+      experience: [],
+      projects: [],
+      github: [],
+    };
+    const result = analyzeJobMatch(data, "Supabase React");
+    expect(result.declaredOnly).toContain("supabase");
+    expect(result.confirmedProjects).not.toContain("supabase");
+  });
+
+  it("analyzeJobMatch: Supabase missing from resume → missingEvidence", () => {
+    const data = {
+      ...baseResume,
+      skills: [{ name: "React" }],
+      experience: [],
+      projects: [],
+      github: [],
+    };
+    const result = analyzeJobMatch(data, "Supabase React");
+    expect(result.missingEvidence).toContain("supabase");
   });
 });
