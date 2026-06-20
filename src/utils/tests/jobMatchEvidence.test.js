@@ -233,3 +233,120 @@ describe("Supabase evidence pipeline", () => {
     expect(result.missingEvidence).toContain("supabase");
   });
 });
+
+describe("Manual project guard — extractResumeText consistency", () => {
+  it("techStack in manual project → found in technical matching", () => {
+    const data = {
+      ...baseResume,
+      skills: [],
+      experience: [],
+      github: [],
+      projects: [{ id: "1", name: "App", techStack: "Supabase, Vite" }],
+    };
+    const result = analyzeJobMatch(data, "Supabase Vite");
+    expect(result.found).toContain("supabase");
+    expect(result.found).toContain("vite");
+    expect(result.missing).not.toContain("supabase");
+    expect(result.missing).not.toContain("vite");
+  });
+
+  it("description in manual project → found in technical matching", () => {
+    const data = {
+      ...baseResume,
+      skills: [],
+      experience: [],
+      github: [],
+      projects: [{ id: "1", name: "App", description: "Built with PostgreSQL and Redis" }],
+    };
+    const result = analyzeJobMatch(data, "PostgreSQL Redis");
+    expect(result.found).toContain("postgresql");
+    expect(result.found).toContain("redis");
+  });
+
+  it("link-only project → not in found", () => {
+    const data = {
+      ...baseResume,
+      skills: [],
+      experience: [],
+      github: [],
+      projects: [{ id: "1", name: "App", link: "https://example.com" }],
+    };
+    const result = analyzeJobMatch(data, "App");
+    expect(result.found).not.toContain("app");
+  });
+
+  it("name-only project → not in found", () => {
+    const data = {
+      ...baseResume,
+      skills: [],
+      experience: [],
+      github: [],
+      projects: [{ id: "1", name: "Supabase Project" }],
+    };
+    const result = analyzeJobMatch(data, "Supabase");
+    expect(result.found).not.toContain("supabase");
+  });
+
+  it("empty project → not in found", () => {
+    const data = {
+      ...baseResume,
+      skills: [],
+      experience: [],
+      github: [],
+      projects: [{ id: "1" }],
+    };
+    const result = analyzeJobMatch(data, "test");
+    expect(result.found).toHaveLength(0);
+  });
+
+  it("meaningful project uses name/role after guard passes", () => {
+    const data = {
+      ...baseResume,
+      skills: [],
+      experience: [],
+      github: [],
+      projects: [{ id: "1", name: "My App", role: "Fullstack Developer", description: "Web app", techStack: "React" }],
+    };
+    const result = analyzeJobMatch(data, "React");
+    expect(result.found).toContain("react");
+  });
+
+  it("projects array is not mutated", () => {
+    const projects = [{ id: "1", name: "App", techStack: "React" }];
+    const data = { ...baseResume, projects };
+    analyzeJobMatch(data, "React");
+    expect(projects).toHaveLength(1);
+    expect(projects[0].name).toBe("App");
+  });
+});
+
+describe("Manual project — technicalScore sync", () => {
+  it("technology only in manual project → technicalScore includes it", () => {
+    const data = {
+      profile: { name: "Test", email: "t@t.com", about: "" },
+      skills: [],
+      experience: [],
+      education: [],
+      github: [],
+      projects: [{ id: "1", name: "App", techStack: "Supabase" }],
+    };
+    const result = analyzeJobMatch(data, "Supabase");
+    expect(result.technicalScore).toBe(100);
+    expect(result.found).toContain("supabase");
+    expect(result.missing).not.toContain("supabase");
+    expect(result.confirmedProjects).toContain("supabase");
+    expect(result.evidenceScore).toBeGreaterThan(0);
+  });
+
+  it("manual project and skills overlap → no double count in found", () => {
+    const data = {
+      ...baseResume,
+      experience: [],
+      github: [],
+      projects: [{ id: "1", name: "App", techStack: "React, TypeScript" }],
+    };
+    const result = analyzeJobMatch(data, "React TypeScript");
+    const reactCount = result.found.filter((k) => k === "react").length;
+    expect(reactCount).toBe(1);
+  });
+});

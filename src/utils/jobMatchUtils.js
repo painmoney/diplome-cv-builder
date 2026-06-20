@@ -172,6 +172,21 @@ function buildCategoryMap(keywords) {
   return map;
 }
 
+function collectManualProjectsText(projects) {
+  const parts = [];
+  const list = Array.isArray(projects) ? projects : [];
+  for (const project of list) {
+    if (project.description || project.techStack) {
+      if (project.name) parts.push(project.name);
+      if (project.role) parts.push(project.role);
+      if (project.description) parts.push(project.description);
+      if (project.techStack) parts.push(project.techStack);
+      if (project.period) parts.push(project.period);
+    }
+  }
+  return parts;
+}
+
 export function extractResumeText(resumeData) {
   const data = normalizeResumeData(resumeData);
   const parts = [];
@@ -197,6 +212,8 @@ export function extractResumeText(resumeData) {
     }
   }
 
+  parts.push(...collectManualProjectsText(data.projects));
+
   return normalizeText(parts.join(" "));
 }
 
@@ -219,16 +236,7 @@ export function buildResumeEvidenceMap(resumeData) {
   const projectsParts = [];
   const githubParts = [];
 
-  const manualProjects = Array.isArray(data.projects) ? data.projects : [];
-  for (const project of manualProjects) {
-    if (project.description || project.techStack) {
-      if (project.name) projectsParts.push(project.name);
-      if (project.role) projectsParts.push(project.role);
-      if (project.description) projectsParts.push(project.description);
-      if (project.techStack) projectsParts.push(project.techStack);
-      if (project.period) projectsParts.push(project.period);
-    }
-  }
+  projectsParts.push(...collectManualProjectsText(data.projects));
 
   for (const repo of data.github) {
     if (repo.name) projectsParts.push(repo.name);
