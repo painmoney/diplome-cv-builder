@@ -378,7 +378,14 @@ function generateJobMatchRecommendations(missing, resumeData, categoryMap, total
   }
 
   // Legacy recommendations (kept for backward compatibility)
-  const missingSkills = missing.filter((k) => {
+  // Exclude keywords already confirmed via experience or project evidence
+  const confirmedKeys = new Set([
+    ...confirmedExp.map((e) => e.keyword),
+    ...confirmedProj.map((e) => e.keyword),
+  ]);
+  const unconfirmedMissing = missing.filter((k) => !confirmedKeys.has(k));
+
+  const missingSkills = unconfirmedMissing.filter((k) => {
     const cat = categoryMap.get(k);
     return cat === "languages" || cat === "frameworks" || cat === "databases";
   });
@@ -393,7 +400,7 @@ function generateJobMatchRecommendations(missing, resumeData, categoryMap, total
     });
   }
 
-  const missingTech = missing.filter((k) => {
+  const missingTech = unconfirmedMissing.filter((k) => {
     const cat = categoryMap.get(k);
     return cat === "cloud" || cat === "tools" || cat === "methodologies";
   });

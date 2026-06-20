@@ -543,3 +543,102 @@ describe("extractKeywordsFromText — Stage C-3b true-positive via explicit patt
     expect(extractKeywordsFromText("REST services")).toContain("rest api");
   });
 });
+
+describe("Legacy recommendation filtering — confirmed keywords excluded", () => {
+  it("Git in confirmedProjects is not recommended as experience addition", () => {
+    const resumeData = {
+      profile: { name: "Test", email: "t@t.com", about: "" },
+      skills: [{ name: "Git" }, { name: "Docker" }],
+      experience: [],
+      education: [],
+      github: [{ name: "repo", url: "https://github.com/u/r", description: "Git project", languages: [] }],
+      projects: [{ id: "1", name: "App", techStack: "Git, Docker" }],
+    };
+    const result = analyzeJobMatch(resumeData, "Git Docker");
+    expect(result.confirmedProjects).toContain("git");
+    const expRec = result.recommendations.find((r) => r.type === "experience");
+    if (expRec) {
+      expect(expRec.text).not.toMatch(/Git/i);
+    }
+  });
+
+  it("Git in confirmedExperience is not recommended as experience addition", () => {
+    const resumeData = {
+      profile: { name: "Test", email: "t@t.com", about: "" },
+      skills: [{ name: "Git" }],
+      experience: [{ company: "Co", position: "Dev", description: "Used Git for version control" }],
+      education: [],
+      github: [],
+      projects: [],
+    };
+    const result = analyzeJobMatch(resumeData, "Git");
+    expect(result.confirmedExperience).toContain("git");
+    const expRec = result.recommendations.find((r) => r.type === "experience");
+    if (expRec) {
+      expect(expRec.text).not.toMatch(/Git/i);
+    }
+  });
+
+  it("mixed: confirmed keyword excluded, unconfirmed stays", () => {
+    const resumeData = {
+      profile: { name: "Test", email: "t@t.com", about: "" },
+      skills: [{ name: "Git" }, { name: "Docker" }],
+      experience: [],
+      education: [],
+      github: [],
+      projects: [{ id: "1", name: "App", techStack: "Git" }],
+    };
+    const result = analyzeJobMatch(resumeData, "Git Docker Linux");
+    expect(result.confirmedProjects).toContain("git");
+    const expRec = result.recommendations.find((r) => r.type === "experience");
+    if (expRec) {
+      expect(expRec.text).not.toMatch(/Git/i);
+    }
+  });
+
+  it("empty filtered list produces no legacy tech experience recommendation", () => {
+    const resumeData = {
+      profile: { name: "Test", email: "t@t.com", about: "" },
+      skills: [{ name: "Git" }],
+      experience: [],
+      education: [],
+      github: [],
+      projects: [{ id: "1", name: "App", techStack: "Git" }],
+    };
+    const result = analyzeJobMatch(resumeData, "Git");
+    expect(result.confirmedProjects).toContain("git");
+    const legacyExpRec = result.recommendations.find(
+      (r) => r.type === "experience" && r.text.includes("Упомянуть")
+    );
+    expect(legacyExpRec).toBeUndefined();
+  });
+
+  it("Case A: technicalScore and evidenceScore unchanged", () => {
+    const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "work-experience");
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.technicalScore).toBeGreaterThanOrEqual(70);
+    expect(result.evidenceScore).toBeGreaterThanOrEqual(70);
+  });
+
+  it("Case C: project evidence not promoted to experience recommendation", () => {
+    const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "manual-project");
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("supabase");
+    const expRec = result.recommendations.find((r) => r.type === "experience");
+    if (expRec) {
+      expect(expRec.text).not.toMatch(/Supabase/i);
+    }
+  });
+
+  it("Case F: project evidence not promoted to experience recommendation", () => {
+    const tc = JOB_MATCH_TEST_CASES.find((c) => c.id === "mixed-portfolio");
+    const result = analyzeJobMatch(tc.resumeData, tc.jobText);
+    expect(result.confirmedProjects).toContain("supabase");
+    expect(result.confirmedExperience).toContain("react");
+    const expRec = result.recommendations.find((r) => r.type === "experience");
+    if (expRec) {
+      expect(expRec.text).not.toMatch(/Supabase/i);
+      expect(expRec.text).not.toMatch(/React/i);
+    }
+  });
+});
