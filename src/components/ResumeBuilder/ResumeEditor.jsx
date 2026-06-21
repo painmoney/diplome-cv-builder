@@ -11,6 +11,7 @@ import {
   Chip,
   Snackbar,
   Stack,
+  useTheme,
 } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import WorkIcon from "@mui/icons-material/Work";
@@ -37,6 +38,7 @@ import RecommendationPanel from "./RecommendationPanel";
 import OnboardingChecklist from "./OnboardingChecklist";
 import { getRecommendations } from "../../utils/recommendationLogic";
 import { validateProfile, formatValidationToast } from "../../utils/validators";
+import { autosaveFingerprint } from "../../utils/autosaveFingerprint";
 
 const DEFAULT_RESUME_DATA = {
   profile: { name: "", photo: "", about: "", summary: "", email: "", phone: "" },
@@ -47,6 +49,8 @@ const DEFAULT_RESUME_DATA = {
   projects: [],
   template: "minimalist",
 };
+
+const DEFAULT_TITLE = "Моё IT-резюме";
 
 export default function ResumeEditor() {
   const { user } = useAuth();
@@ -80,6 +84,11 @@ export default function ResumeEditor() {
   const isHydratingRef = useRef(true);
   const lastHydratedRef = useRef(null);
   const autosaveTimerRef = useRef(null);
+
+  // sticky toolbar detection
+  const [isStuck, setIsStuck] = useState(false);
+  const sentinelRef = useRef(null);
+  const theme = useTheme();
 
   // mutable ref for queue (avoid stale closures)
   const userRef = useRef(user);
@@ -121,16 +130,17 @@ export default function ResumeEditor() {
 
       if (resume) {
         const normalized = normalizeLoadedResumeData(resume.data || DEFAULT_RESUME_DATA);
+        const loadedTitle = resume.title || DEFAULT_TITLE;
         setResumeData(normalized);
-        setResumeTitle(resume.title || "Моё IT-резюме");
+        setResumeTitle(loadedTitle);
         initFromLoad(resume);
         // Record hydrated snapshot to prevent autosave-on-load
-        lastHydratedRef.current = JSON.stringify(normalized);
+        lastHydratedRef.current = autosaveFingerprint(loadedTitle, normalized);
       } else {
         setResumeData(DEFAULT_RESUME_DATA);
-        setResumeTitle("Моё IT-резюме");
+        setResumeTitle(DEFAULT_TITLE);
         initFromLoad(null);
-        lastHydratedRef.current = JSON.stringify(DEFAULT_RESUME_DATA);
+        lastHydratedRef.current = autosaveFingerprint(DEFAULT_TITLE, DEFAULT_RESUME_DATA);
       }
 
       setSaveStatus("idle");
@@ -154,6 +164,19 @@ export default function ResumeEditor() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- data fetch on user change
   }, [user]);
+
+  // sticky toolbar: detect when sentinel scrolls above the sticky top
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsStuck(!entry.isIntersecting),
+      { threshold: 0, rootMargin: `-${65}px 0px 0px 0px` }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   const updateSection = (section, newData) => {
     setResumeData((prev) => {
@@ -320,8 +343,8 @@ export default function ResumeEditor() {
     if (isHydratingRef.current) return;
 
     // Skip if this is the hydrated snapshot (no user edit yet)
-    const currentSnapshot = JSON.stringify(resumeData);
-    if (lastHydratedRef.current !== null && currentSnapshot === lastHydratedRef.current) {
+    const currentFingerprint = autosaveFingerprint(resumeTitle, resumeData);
+    if (lastHydratedRef.current !== null && currentFingerprint === lastHydratedRef.current) {
       return;
     }
     // Clear hydration marker on first real edit
@@ -364,8 +387,44 @@ export default function ResumeEditor() {
 
   return (
     <Container sx={{ mt: 4, maxWidth: 1200 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, mb: 2 }}>
-        <Typography variant="h4">Редактор IT-резюме</Typography>
+      {/* Sentinel for IntersectionObserver */}
+      <div ref={sentinelRef} style={{ height: 0, margin: 0, padding: 0 }} />
+
+      <Box sx={{
+        position: "sticky",
+        top: 64,
+        zIndex: theme.zIndex.appBar - 1,
+        py: isStuck ? 0.75 : 1.5,
+        px: isStuck ? 1.5 : 0,
+        mx: isStuck ? { xs: -1, sm: -2 } : 0,
+        mb: 2,
+        borderRadius: isStuck ? "12px" : 0,
+        border: isStuck ? "1px solid" : "1px solid transparent",
+        borderColor: isStuck ? "divider" : "transparent",
+        boxShadow: isStuck
+          ? "0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)"
+          : "none",
+        bgcolor: isStuck ? "background.paper" : "transparent",
+        backdropFilter: isStuck ? "blur(12px)" : "none",
+        WebkitBackdropFilter: isStuck ? "blur(12px)" : "none",
+        transition: "all 200ms ease",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 2,
+      }}>
+        <Typography
+          variant={isStuck ? "h6" : "h4"}
+          noWrap
+          sx={{
+            fontWeight: 800,
+            minWidth: 0,
+            flex: 1,
+            transition: "font-size 200ms ease",
+          }}
+        >
+          Редактор IT-резюме
+        </Typography>
         {renderSaveChip()}
       </Box>
 
