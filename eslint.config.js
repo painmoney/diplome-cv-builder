@@ -37,4 +37,15 @@ export default [
       },
     },
   },
+  {
+    files: ["tests/**"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: globals.node,
+    },
+    rules: {
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    },
+  },
 ];
