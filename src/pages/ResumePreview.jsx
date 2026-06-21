@@ -141,7 +141,8 @@ export default function ResumePreview() {
     if (!value) return;
     setSelectedTemplate(value);
 
-    // обновляем локально для экспорта/рендера
+    // Local-only: update preview state for export/render.
+    // Persistence happens only via ResumeEditor save queue.
     setResume((prev) => {
       if (!prev) return prev;
       return {
@@ -150,19 +151,6 @@ export default function ResumePreview() {
         data: { ...(prev.data || {}), template: value },
       };
     });
-
-    // (опционально) сохраняем выбор в БД
-    if (resume?.id && user?.id) {
-      try {
-        await supabase
-          .from("resumes")
-          .update({ template: value, data: { ...(resume.data || {}), template: value } })
-          .eq("id", resume.id)
-          .eq("user_id", user.id);
-      } catch {
-        // игнор — это только удобство, не критично
-      }
-    }
   };
 
   const handleExportPDF = async () => {

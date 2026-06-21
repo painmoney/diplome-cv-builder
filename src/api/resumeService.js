@@ -60,9 +60,82 @@ const cleanText = (value) => {
   return text || null;
 };
 
+// ── RPC wrappers ─────────────────────────────────────────
+
 /**
- * Загружает основное резюме пользователя.
- * В текущей версии используется таблица resumes и агрегированное поле data.
+ * Normalize RPC TABLE result into a plain object.
+ * supabase.rpc() with RETURNS TABLE returns an array.
+ */
+function parseRpcResult(data) {
+  if (!data) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return {
+    resumeId: row.out_resume_id,
+    revision: row.out_revision,
+    updatedAt: row.out_updated_at,
+  };
+}
+
+/**
+ * Create a new resume via atomic RPC.
+ * Idempotent: same UUID + same user → returns existing metadata.
+ * @returns {{ resumeId: string, revision: number, updatedAt: string }}
+ */
+export async function createResumeFullRpc({ resumeId, title, template, data }) {
+  const { data: result, error } = await supabase.rpc("create_resume_full", {
+    p_resume_id: resumeId,
+    p_title: title,
+    p_template: template,
+    p_data: data,
+  });
+
+  if (error) throw error;
+  return parseRpcResult(result);
+}
+
+/**
+ * Update an existing resume via atomic RPC with revision check.
+ * @returns {{ resumeId: string, revision: number, updatedAt: string }}
+ */
+export async function saveResumeFullRpc({ resumeId, title, template, data, expectedRevision }) {
+  const { data: result, error } = await supabase.rpc("save_resume_full", {
+    p_resume_id: resumeId,
+    p_title: title,
+    p_template: template,
+    p_data: data,
+    p_expected_revision: expectedRevision,
+  });
+
+  if (error) throw error;
+  return parseRpcResult(result);
+}
+
+/**
+ * Save account-level profile (separate from resume RPC).
+ */
+export async function saveProfile(userId, profile = {}) {
+  const payload = {
+    user_id: userId,
+    full_name: cleanText(profile.name),
+    avatar_url: cleanText(profile.photo),
+    email: cleanText(profile.email),
+    phone: cleanText(profile.phone),
+    about: cleanText(profile.about ?? profile.summary),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(payload, { onConflict: "user_id" });
+
+  if (error) throw error;
+}
+
+// ── Load ─────────────────────────────────────────────────
+
+/**
+ * Load existing resume. Returns null if user has no resume.
  */
 export async function loadUserResume(userId) {
   const { data, error } = await supabase
@@ -81,9 +154,8 @@ export async function loadUserResume(userId) {
   };
 }
 
-/**
- * Сохраняет основную запись резюме и возвращает созданную/обновлённую строку.
- */
+// ── Legacy functions (kept for backward compat) ──────────
+
 async function upsertResume(userId, title, resumeData) {
   const payload = {
     user_id: userId,
@@ -103,11 +175,6 @@ async function upsertResume(userId, title, resumeData) {
   return data;
 }
 
-/**
- * Синхронизация profiles.
- * Профиль пользователя хранится отдельно от auth.users,
- * а также дублируется в resume.data.profile для быстрого экспорта.
- */
 async function syncProfile(userId, profile = {}) {
   const payload = {
     user_id: userId,
@@ -126,9 +193,6 @@ async function syncProfile(userId, profile = {}) {
   if (error) throw error;
 }
 
-/**
- * Полная замена дочерних записей раздела.
- */
 async function replaceRows(tableName, resumeId, rows) {
   const { error: deleteError } = await supabase
     .from(tableName)
@@ -211,10 +275,7 @@ async function syncGitHubProjects(resumeId, github = []) {
 }
 
 /**
- * Полное сохранение резюме:
- * 1. сохраняет агрегированный JSON в resumes.data;
- * 2. синхронизирует profile;
- * 3. синхронизирует нормализованные таблицы sections.
+ * Legacy full save — kept for backward compat, NOT used by new save flow.
  */
 export async function saveResumeFull(userId, title, rawResumeData) {
   const resumeData = normalizeLoadedResumeData(rawResumeData);
@@ -222,12 +283,14 @@ export async function saveResumeFull(userId, title, rawResumeData) {
   const resume = await upsertResume(userId, title, resumeData);
 
   await Promise.all([
-  syncProfile(userId, resumeData.profile),
-  syncSkills(resume.id, resumeData.skills),
-  syncEducation(resume.id, resumeData.education),
-  syncExperience(resume.id, resumeData.experience),
-  syncGitHubProjects(resume.id, resumeData.github),
-]);
+    syncProfile(userId, resumeData.profile),
+    syncSkills(resume.id, resumeData.skills),
+    syncEducation(resume.id, resumeData.education),
+    syncExperience(resume.id, resumeData.experience),
+    syncGitHubProjects(resume.id, resumeData.github),
+  ]);
 
-return resume;
+  return resume;
 }
+
+export { DEFAULT_RESUME_DATA };

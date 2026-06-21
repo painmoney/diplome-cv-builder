@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import {
   Container,
   Tabs,
@@ -17,11 +17,11 @@ import WorkIcon from "@mui/icons-material/Work";
 
 import {
   loadUserResume,
-  saveResumeFull,
   normalizeLoadedResumeData,
 } from "../../api/resumeService";
 
 import { useAuth } from "../../context/AuthContext";
+import { useResumeSaveQueue } from "../../hooks/useResumeSaveQueue";
 
 import ProfileForm from "../profile/ProfileForm";
 import EducationBlock from "./EducationBlock";
@@ -69,31 +69,44 @@ export default function ResumeEditor() {
   const [jobMatchError, setJobMatchError] = useState("");
   const [jobMatchAnalyzing, setJobMatchAnalyzing] = useState(false);
 
-  // статус сохранения
-  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
+  // save status
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error | conflict
   const [saveError, setSaveError] = useState("");
 
-  // тосты (валидация / ошибки)
+  // toast (validation / errors)
   const [toast, setToast] = useState({ open: false, message: "", severity: "error" });
 
-  // чтобы не автосейвить во время гидрации
+  // hydration guard — tracks last hydrated snapshot to prevent autosave-on-load
   const isHydratingRef = useRef(true);
+  const lastHydratedRef = useRef(null);
   const autosaveTimerRef = useRef(null);
 
+  // mutable ref for queue (avoid stale closures)
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; });
+
+  // Save queue
+  const {
+    enqueue,
+    resetGeneration,
+    initFromLoad,
+    queue,
+  } = useResumeSaveQueue({ userRef, setSaveStatus, setSaveError, setMessage });
+
   // pending focus
-  const pendingFocusRef = useRef(null); // { tab, target }
+  const pendingFocusRef = useRef(null);
   const focusTriesRef = useRef(0);
 
   const profileErrors = useMemo(() => validateProfile(resumeData.profile), [resumeData.profile]);
   const isValidForSave = useMemo(() => Object.keys(profileErrors).length === 0, [profileErrors]);
 
-  // переход из Dashboard completeness chips
+  // navigation from Dashboard completeness chips
   useEffect(() => {
     if (initialTarget) {
       pendingFocusRef.current = { tab: initialTab ?? 0, target: initialTarget };
       focusTriesRef.current = 0;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialTarget is stable from location.state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadResumeData = async () => {
@@ -107,11 +120,17 @@ export default function ResumeEditor() {
       const resume = await loadUserResume(user.id);
 
       if (resume) {
-        setResumeData(normalizeLoadedResumeData(resume.data || DEFAULT_RESUME_DATA));
+        const normalized = normalizeLoadedResumeData(resume.data || DEFAULT_RESUME_DATA);
+        setResumeData(normalized);
         setResumeTitle(resume.title || "Моё IT-резюме");
+        initFromLoad(resume);
+        // Record hydrated snapshot to prevent autosave-on-load
+        lastHydratedRef.current = JSON.stringify(normalized);
       } else {
         setResumeData(DEFAULT_RESUME_DATA);
         setResumeTitle("Моё IT-резюме");
+        initFromLoad(null);
+        lastHydratedRef.current = JSON.stringify(DEFAULT_RESUME_DATA);
       }
 
       setSaveStatus("idle");
@@ -126,13 +145,14 @@ export default function ResumeEditor() {
 
   useEffect(() => {
     if (user) {
+      resetGeneration();
       loadResumeData(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
     }
 
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- data fetch on user change
   }, [user]);
 
   const updateSection = (section, newData) => {
@@ -150,10 +170,11 @@ export default function ResumeEditor() {
     setResumeData(scenarioData);
     setJobMatchText(jobText);
     setJobMatchResult(null);
+    // Dev scenario is a user action — clear hydration snapshot
+    lastHydratedRef.current = null;
   };
 
   const flashField = (inputEl) => {
-    // пытаемся подсветить красивее — на .MuiOutlinedInput-root
     const target =
       inputEl?.closest?.(".MuiOutlinedInput-root") ||
       inputEl?.closest?.(".MuiInputBase-root") ||
@@ -186,7 +207,6 @@ export default function ResumeEditor() {
     return true;
   };
 
-  // когда вкладка уже переключилась — делаем попытки фокуса
   useEffect(() => {
     const pending = pendingFocusRef.current;
     if (!pending) return;
@@ -214,10 +234,10 @@ export default function ResumeEditor() {
 
     timer = setTimeout(tryFocus, 0);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- focusAndScroll is stable, only need activeTab
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-    const handleGoToFromRecommendations = (tabIndex, targetId) => {
+  const handleGoToFromRecommendations = (tabIndex, targetId) => {
     const fallbackByTab = {
       0: "profile-name",
       1: "skills-skill",
@@ -228,12 +248,10 @@ export default function ResumeEditor() {
 
     const finalTarget = targetId || fallbackByTab[tabIndex];
 
-    // если уже на нужной вкладке — фокусим сразу (иначе useEffect не сработает)
     if (activeTab === tabIndex) {
       pendingFocusRef.current = null;
       focusTriesRef.current = 0;
 
-      // небольшая задержка на всякий случай, чтобы DOM точно был готов
       setTimeout(() => {
         focusAndScroll(finalTarget);
       }, 0);
@@ -241,9 +259,9 @@ export default function ResumeEditor() {
       return;
     }
 
-  setActiveTab(tabIndex);
-  pendingFocusRef.current = { tab: tabIndex, target: finalTarget };
-  focusTriesRef.current = 0;
+    setActiveTab(tabIndex);
+    pendingFocusRef.current = { tab: tabIndex, target: finalTarget };
+    focusTriesRef.current = 0;
   };
 
   const handleNavigateToTarget = (tabIndex, targetId) => {
@@ -277,57 +295,51 @@ export default function ResumeEditor() {
     if (msg) setToast({ open: true, message: msg, severity: "error" });
   };
 
-  const saveResume = async ({ silent = false } = {}) => {
-    if (!user) return;
+  const saveResume = useCallback(({ title, data, silent = false } = {}) => {
+    if (!userRef.current) return;
 
     if (!isValidForSave) {
       failValidation({ silent });
       return;
     }
 
-    try {
-      if (!silent) {
-        setLoading(true);
-        setMessage("");
-      }
+    enqueue({
+      resumeId: queue.resumeId,
+      title: title || "Моё IT-резюме",
+      template: data?.template || "minimalist",
+      data: data || DEFAULT_RESUME_DATA,
+      profile: data?.profile || DEFAULT_RESUME_DATA.profile,
+      reason: silent ? "autosave" : "manual",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enqueue, isValidForSave]);
 
-      setSaveStatus("saving");
-      setSaveError("");
-
-      await saveResumeFull(user.id, resumeTitle, resumeData);
-
-      setSaveStatus("saved");
-      if (!silent) setMessage("Резюме сохранено!");
-    } catch (e) {
-      setSaveStatus("error");
-      setSaveError(e?.message || "Неизвестная ошибка");
-
-      if (!silent) {
-        setMessage(`Ошибка: ${e?.message || "Неизвестная ошибка"}`);
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  };
-
-  // Автосохранение с debounce
+  // Autosave with debounce + hydration gate
   useEffect(() => {
     if (!user) return;
     if (isHydratingRef.current) return;
 
+    // Skip if this is the hydrated snapshot (no user edit yet)
+    const currentSnapshot = JSON.stringify(resumeData);
+    if (lastHydratedRef.current !== null && currentSnapshot === lastHydratedRef.current) {
+      return;
+    }
+    // Clear hydration marker on first real edit
+    lastHydratedRef.current = null;
+
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
 
     autosaveTimerRef.current = setTimeout(() => {
-      saveResume({ silent: true });
+      saveResume({ title: resumeTitle, data: resumeData, silent: true });
     }, 1000);
 
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- saveResume is recreated each render, avoid loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumeData, resumeTitle, user]);
 
-  // Рекомендации
+  // Recommendations
   const recommendations = useMemo(() => {
     try {
       return getRecommendations(resumeData);
@@ -340,12 +352,15 @@ export default function ResumeEditor() {
     if (!isValidForSave) return <Chip size="small" color="warning" label="Проверьте email/телефон" />;
     if (saveStatus === "saving") return <Chip size="small" label="Сохранение..." />;
     if (saveStatus === "saved") return <Chip size="small" color="success" label="Сохранено" />;
+    if (saveStatus === "conflict") return <Chip size="small" color="warning" label="Конфликт версий" />;
     if (saveStatus === "error") {
       const label = saveError || "сохранения";
       return <Chip size="small" color="error" label={label} />;
     }
     return <Chip size="small" variant="outlined" label="Не сохранено" />;
   };
+
+  const isSaving = saveStatus === "saving";
 
   return (
     <Container sx={{ mt: 4, maxWidth: 1200 }}>
@@ -365,8 +380,14 @@ export default function ResumeEditor() {
       />
 
       {message && (
-        <Alert severity={message.includes("✅") ? "success" : "error"} sx={{ mb: 2 }}>
+        <Alert severity={message.includes("Сохранено") ? "success" : "error"} sx={{ mb: 2 }}>
           {message}
+        </Alert>
+      )}
+
+      {saveStatus === "conflict" && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {saveError}
         </Alert>
       )}
 
@@ -446,8 +467,13 @@ export default function ResumeEditor() {
       </Box>
 
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <Button variant="contained" size="large" onClick={() => saveResume({ silent: false })} disabled={loading}>
-          {loading ? "Сохранение..." : "Сохранить резюме"}
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => saveResume({ title: resumeTitle, data: resumeData, silent: false })}
+          disabled={loading || isSaving}
+        >
+          {isSaving ? "Сохранение..." : loading ? "Загрузка..." : "Сохранить резюме"}
         </Button>
       </Box>
 
