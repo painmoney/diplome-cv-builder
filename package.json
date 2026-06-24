@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "env:check": "node scripts/validate-env.mjs --mode development"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

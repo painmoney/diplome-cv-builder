@@ -48,4 +48,12 @@ export default [
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     },
   },
+  {
+    files: ["scripts/**"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: globals.node,
+    },
+  },
 ];
