@@ -55,7 +55,7 @@ const cleanText = (value) => {
   return text || null;
 };
 
-// ── RPC wrappers ─────────────────────────────────────────
+// ── Internal helpers ─────────────────────────────────────
 
 /**
  * Normalize RPC TABLE result into a plain object.
@@ -71,6 +71,47 @@ function parseRpcResult(data) {
     updatedAt: row.out_updated_at,
   };
 }
+
+/**
+ * Map a resumes table row to a summary object (excludes data blob).
+ */
+function mapResumeSummary(row) {
+  return {
+    resumeId: row.id,
+    title: row.title,
+    template: row.template,
+    revision: row.revision,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/**
+ * Map a resumes table row to a full loaded resume.
+ */
+function mapLoadedResume(row) {
+  return {
+    resumeId: row.id,
+    userId: row.user_id,
+    title: row.title,
+    template: row.template,
+    revision: row.revision,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    data: normalizeLoadedResumeData(row.data || {}),
+  };
+}
+
+/**
+ * Create a standardized not-found/forbidden error.
+ */
+function createNotFoundError() {
+  const err = new Error("RESUME_NOT_FOUND_OR_FORBIDDEN");
+  err.code = "P1004";
+  return err;
+}
+
+// ── RPC wrappers ─────────────────────────────────────────
 
 /**
  * Create a new resume via atomic RPC.
@@ -127,16 +168,23 @@ export async function saveProfile(userId, profile = {}) {
   if (error) throw error;
 }
 
-// ── Load ─────────────────────────────────────────────────
+// ── Legacy single-resume loader ──────────────────────────
 
 /**
  * Load existing resume. Returns null if user has no resume.
+ *
+ * Legacy compatibility only.
+ * Remove after Editor/Preview use route resumeId.
+ * Deterministic for multi-row: orders by updated_at DESC, id ASC, limits 1.
  */
 export async function loadUserResume(userId) {
   const { data, error } = await supabase
     .from("resumes")
     .select("*")
     .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw error;
@@ -147,4 +195,109 @@ export async function loadUserResume(userId) {
     ...data,
     data: normalizeLoadedResumeData(data.data || {}),
   };
+}
+
+// ── Multi-resume service functions ───────────────────────
+
+/**
+ * List all resumes for a user (summary only, no data blob).
+ * @param {string} userId
+ * @returns {Promise<Array>} Array of resume summary objects.
+ */
+export async function listUserResumes(userId) {
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from("resumes")
+    .select("id, title, template, revision, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .order("id", { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map(mapResumeSummary);
+}
+
+/**
+ * Load a single resume by its ID.
+ * RLS hides foreign resumes → returns null for both nonexistent and foreign.
+ * @param {string} resumeId
+ * @returns {Promise<Object|null>} Full loaded resume or null.
+ */
+export async function loadResumeById(resumeId) {
+  const { data, error } = await supabase
+    .from("resumes")
+    .select("*")
+    .eq("id", resumeId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) return null;
+
+  return mapLoadedResume(data);
+}
+
+/**
+ * Rename a resume by loading it and re-saving with new title.
+ * Uses revision control via saveResumeFullRpc.
+ * @param {string} resumeId
+ * @param {string} newTitle
+ * @returns {Promise<Object>} Save RPC metadata.
+ */
+export async function renameResumeById(resumeId, newTitle) {
+  const source = await loadResumeById(resumeId);
+  if (!source) throw createNotFoundError();
+
+  return saveResumeFullRpc({
+    resumeId: source.resumeId,
+    title: cleanText(newTitle) || "Untitled",
+    template: source.data.template,
+    data: source.data,
+    expectedRevision: source.revision,
+  });
+}
+
+/**
+ * Duplicate a resume by loading source and creating a new one.
+ * @param {string} sourceResumeId
+ * @param {Object} [options]
+ * @param {string} [options.title] Override default "<title> (копия)" title.
+ * @returns {Promise<Object>} Create RPC metadata.
+ */
+export async function duplicateResumeById(sourceResumeId, options = {}) {
+  const source = await loadResumeById(sourceResumeId);
+  if (!source) throw createNotFoundError();
+
+  const newId = crypto.randomUUID();
+  const title = options.title || `${source.title || "Untitled"} (копия)`;
+
+  return createResumeFullRpc({
+    resumeId: newId,
+    title,
+    template: source.data.template,
+    data: source.data,
+  });
+}
+
+/**
+ * Delete a resume by ID via RLS.
+ * FK CASCADE handles child table cleanup.
+ * @param {string} resumeId
+ * @returns {Promise<string>} The deleted resumeId.
+ */
+export async function deleteResumeById(resumeId) {
+  const { data, error } = await supabase
+    .from("resumes")
+    .delete()
+    .eq("id", resumeId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) throw createNotFoundError();
+
+  return data.id;
 }
