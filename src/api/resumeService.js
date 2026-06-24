@@ -206,6 +206,25 @@ export async function loadUserResume(userId) {
 // ── Multi-resume service functions ───────────────────────
 
 /**
+ * Create a new empty resume with defaults.
+ * @param {Object} [options]
+ * @param {string} [options.title]
+ * @param {string} [options.template]
+ * @param {Object} [options.data]
+ * @returns {Promise<Object>} Create RPC metadata.
+ */
+export async function createNewResume(options = {}) {
+  const defaultData = normalizeLoadedResumeData(options.data || {});
+  const result = await createResumeFullRpc({
+    resumeId: crypto.randomUUID(),
+    title: options.title || "Новое резюме",
+    template: options.template || defaultData.template || "minimalist",
+    data: defaultData,
+  });
+  return result;
+}
+
+/**
  * List all resumes for a user (summary only, no data blob).
  * @param {string} userId
  * @returns {Promise<Array>} Array of resume summary objects.

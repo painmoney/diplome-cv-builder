@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Container,
   Typography,
@@ -6,527 +6,366 @@ import {
   Box,
   Card,
   CardContent,
-  CardActionArea,
+  CardActions,
   Avatar,
   Grid,
   Chip,
   Snackbar,
   Alert,
-  LinearProgress,
-  Stack,
+  CircularProgress,
+  IconButton,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Divider,
 } from "@mui/material";
 import {
   Edit,
   Visibility,
-  GetApp,
-  Description,
-  PictureAsPdf,
-  Article,
+  ContentCopy,
+  Delete,
+  MoreVert,
+  Add,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "../api/supabaseClient";
-import { getAvatarUrl } from "../api/storage";
-import { getResumeCompleteness } from "../utils/helpers";
-import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
+import {
+  listUserResumes,
+  createNewResume,
+  renameResumeById,
+  duplicateResumeById,
+  deleteResumeById,
+} from "../api/resumeService";
 
-const CARD_HOVER_SX = {
-  transition: "transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease",
-  "&:hover": {
-    transform: "translateY(-2px)",
-    boxShadow: 4,
-    borderColor: "primary.main",
-  },
+const TEMPLATE_LABELS = {
+  minimalist: "Минималистичный",
+  academic: "Академический",
+  github: "GitHub-стиль",
+  classic: "Классический ATS",
+  modern: "Современный IT",
 };
 
-function QuickActionCard({ icon, title, description, onClick, disabled, loadingText }) {
+function ResumeCard({ resume, onRename, onDuplicate, onDelete }) {
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+
   return (
     <Card
       variant="outlined"
       sx={{
-        ...CARD_HOVER_SX,
-        opacity: disabled ? 0.6 : 1,
-        pointerEvents: disabled ? "none" : "auto",
+        transition: "transform 150ms ease, box-shadow 150ms ease",
+        "&:hover": { transform: "translateY(-2px)", boxShadow: 3 },
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      <CardActionArea onClick={onClick} disabled={disabled} sx={{ p: 0 }}>
-        <CardContent sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
-          <Box
-            sx={{
-              p: 1.25,
-              borderRadius: 2,
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            {icon}
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
-              {loadingText || title}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              {description}
-            </Typography>
-          </Box>
-        </CardContent>
-      </CardActionArea>
+      <CardContent sx={{ flex: 1 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+          <Typography variant="h6" component="h3" noWrap sx={{ flex: 1, minWidth: 0 }}>
+            {resume.title}
+          </Typography>
+          <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>
+            <MoreVert fontSize="small" />
+          </IconButton>
+          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+            <MenuItem onClick={() => { setAnchorEl(null); onRename(resume); }}>
+              Переименовать
+            </MenuItem>
+            <MenuItem onClick={() => { setAnchorEl(null); onDuplicate(resume); }}>
+              <ContentCopy fontSize="small" sx={{ mr: 1 }} /> Создать копию
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={() => { setAnchorEl(null); onDelete(resume); }} sx={{ color: "error.main" }}>
+              <Delete fontSize="small" sx={{ mr: 1 }} /> Удалить
+            </MenuItem>
+          </Menu>
+        </Box>
+
+        <Chip
+          label={TEMPLATE_LABELS[resume.template] || resume.template}
+          size="small"
+          sx={{ mb: 1.5 }}
+        />
+
+        <Typography variant="body2" color="text.secondary">
+          Обновлено: {new Date(resume.updatedAt).toLocaleDateString("ru-RU")}
+        </Typography>
+      </CardContent>
+
+      <Divider />
+
+      <CardActions sx={{ px: 2, py: 1 }}>
+        <Button
+          size="small"
+          startIcon={<Edit />}
+          onClick={() => navigate(`/resume-editor/${resume.resumeId}`)}
+        >
+          Редактировать
+        </Button>
+        <Button
+          size="small"
+          startIcon={<Visibility />}
+          onClick={() => navigate(`/resume-preview/${resume.resumeId}`)}
+        >
+          Просмотр
+        </Button>
+      </CardActions>
     </Card>
   );
 }
 
-const TAB_MAP = {
-  profile: { tab: 0, target: "profile-name" },
-  contacts: { tab: 0, target: "profile-email" },
-  about: { tab: 0, target: "profile-about" },
-  skills: { tab: 1, target: "skills-skill" },
-  education: { tab: 2, target: "education-institution" },
-  experience: { tab: 3, target: "experience-company" },
-  portfolio: { tab: 4, target: "github-username" },
-  github: { tab: 4, target: "github-username" },
-};
-
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const loadGenerationRef = useRef(0);
 
-  const [resume, setResume] = useState(null);
-  const [avatarUrl, setAvatarUrl] = useState(null);
-  const [loadingResume, setLoadingResume] = useState(true);
+  const [resumes, setResumes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
 
-  const [exportingPDF, setExportingPDF] = useState(false);
-  const [exportingDOCX, setExportingDOCX] = useState(false);
-  const [exportingMD, setExportingMD] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
-  const loadResume = async (userId) => {
-    setLoadingResume(true);
+  const [duplicateId, setDuplicateId] = useState(null);
 
-    const { data, error } = await supabase
-      .from("resumes")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-    if (error) {
-      setSnackbar({
-        open: true,
-        message: `Ошибка загрузки резюме: ${error.message}`,
-        severity: "error",
-      });
-      setLoadingResume(false);
-      return;
+  const loadResumes = useCallback(async () => {
+    if (!user?.id) return;
+    const gen = ++loadGenerationRef.current;
+    setLoading(true);
+    setError("");
+    try {
+      const list = await listUserResumes(user.id);
+      if (gen !== loadGenerationRef.current) return;
+      setResumes(list);
+    } catch {
+      if (gen !== loadGenerationRef.current) return;
+      setError("Не удалось загрузить резюме. Попробуйте обновить страницу.");
+    } finally {
+      if (gen === loadGenerationRef.current) setLoading(false);
     }
-
-    setResume(data || null);
-    setLoadingResume(false);
-  };
+  }, [user]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    loadResumes(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
+  }, [loadResumes]);
 
-    loadResume(user.id); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
-    setAvatarUrl(getAvatarUrl(user.id));
-  }, [user?.id]);
-
-  const handleExportPDF = async () => {
-    if (!resume) {
-      setSnackbar({
-        open: true,
-        message: "Сначала создайте резюме",
-        severity: "warning",
-      });
-      return;
-    }
-
-    setExportingPDF(true);
-
+  const handleCreate = async () => {
+    if (creating) return;
+    setCreating(true);
     try {
-      const { exportToPDF } = await import("../components/export/ExportPDF.jsx");
-      const result = await exportToPDF(resume.data, resume.template);
-
-      setSnackbar({
-        open: true,
-        message: result.message,
-        severity: result.success ? "success" : "error",
-      });
+      const result = await createNewResume();
+      navigate(`/resume-editor/${result.resumeId}`);
     } catch {
-      setSnackbar({
-        open: true,
-        message: "Ошибка при экспорте PDF",
-        severity: "error",
-      });
+      setSnackbar({ open: true, message: "Не удалось создать резюме. Попробуйте ещё раз.", severity: "error" });
     } finally {
-      setExportingPDF(false);
+      setCreating(false);
     }
   };
 
-  const handleExportDocx = async () => {
-    if (!resume) {
-      setSnackbar({
-        open: true,
-        message: "Сначала создайте резюме",
-        severity: "warning",
-      });
+  const handleRename = (resume) => {
+    setRenameTarget(resume);
+    setRenameValue(resume.title);
+    setRenameOpen(true);
+  };
+
+  const handleRenameSave = async () => {
+    if (!renameTarget || renameSaving) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === renameTarget.title) {
+      setRenameOpen(false);
       return;
     }
-
-    setExportingDOCX(true);
-
+    setRenameSaving(true);
     try {
-      const { exportToDocx } = await import("../components/export/ExportDocx");
-      const result = await exportToDocx(resume.data, resume.template);
-
-      setSnackbar({
-        open: true,
-        message: result.message,
-        severity: result.success ? "success" : "error",
-      });
-    } catch {
-      setSnackbar({
-        open: true,
-        message: "Ошибка при экспорте DOCX",
-        severity: "error",
-      });
+      await renameResumeById(renameTarget.resumeId, trimmed);
+      setSnackbar({ open: true, message: "Название резюме изменено", severity: "success" });
+      setRenameOpen(false);
+      await loadResumes();
+    } catch (err) {
+      const code = err?.code;
+      if (code === "P1005") {
+        setSnackbar({ open: true, message: "Резюме было изменено в другом окне. Список обновлён.", severity: "warning" });
+        setRenameOpen(false);
+        await loadResumes();
+      } else if (code === "P1004") {
+        setSnackbar({ open: true, message: "Резюме не найдено или у вас нет доступа к нему.", severity: "error" });
+        setRenameOpen(false);
+        await loadResumes();
+      } else {
+        setSnackbar({ open: true, message: "Не удалось переименовать резюме.", severity: "error" });
+      }
     } finally {
-      setExportingDOCX(false);
+      setRenameSaving(false);
     }
   };
 
-  const handleExportMarkdown = async () => {
-    if (!resume) {
-      setSnackbar({
-        open: true,
-        message: "Сначала создайте резюме",
-        severity: "warning",
-      });
-      return;
-    }
-
-    setExportingMD(true);
-
+  const handleDuplicate = async (resume) => {
+    if (duplicateId) return;
+    setDuplicateId(resume.resumeId);
     try {
-      const { exportToMarkdown } = await import("../components/export/ExportMarkdown");
-      const result = await exportToMarkdown(resume.data);
-
-      setSnackbar({
-        open: true,
-        message: result.message,
-        severity: result.success ? "success" : "error",
-      });
-    } catch {
-      setSnackbar({
-        open: true,
-        message: "Ошибка при экспорте Markdown",
-        severity: "error",
-      });
+      await duplicateResumeById(resume.resumeId);
+      setSnackbar({ open: true, message: "Копия резюме создана", severity: "success" });
+      await loadResumes();
+    } catch (err) {
+      if (err?.code === "P1004") {
+        setSnackbar({ open: true, message: "Резюме не найдено или у вас нет доступа к нему.", severity: "error" });
+      } else {
+        setSnackbar({ open: true, message: "Не удалось создать копию.", severity: "error" });
+      }
     } finally {
-      setExportingMD(false);
+      setDuplicateId(null);
     }
   };
 
-  const disabled = loadingResume || exportingPDF || exportingMD || exportingDOCX;
-  const profileName = resume?.data?.profile?.name || "";
+  const handleDelete = (resume) => {
+    setDeleteTarget(resume);
+    setDeleteOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || deleteSaving) return;
+    setDeleteSaving(true);
+    try {
+      await deleteResumeById(deleteTarget.resumeId);
+      setSnackbar({ open: true, message: "Резюме удалено", severity: "success" });
+      setDeleteOpen(false);
+      setDeleteTarget(null);
+      await loadResumes();
+    } catch (err) {
+      if (err?.code === "P1004") {
+        setSnackbar({ open: true, message: "Резюме уже удалено или у вас нет доступа к нему.", severity: "warning" });
+        setDeleteOpen(false);
+        setDeleteTarget(null);
+        await loadResumes();
+      } else {
+        setSnackbar({ open: true, message: "Не удалось удалить резюме.", severity: "error" });
+      }
+    } finally {
+      setDeleteSaving(false);
+    }
+  };
+
   const userInitial = user?.email?.[0]?.toUpperCase() || "U";
 
   return (
     <Container sx={{ mt: 4, maxWidth: 900 }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}>
-        <Avatar
-          src={avatarUrl || ""}
-          imgProps={{ alt: "Аватар пользователя" }}
-          sx={{ width: 80, height: 80 }}
-        >
-          {profileName?.[0]?.toUpperCase() || userInitial}
-        </Avatar>
-
-        <Box>
+        <Avatar sx={{ width: 64, height: 64 }}>{userInitial}</Avatar>
+        <Box sx={{ flex: 1 }}>
           <Typography variant="h4" component="h1">
-            {profileName || "Добро пожаловать!"}
+            Мои резюме
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {user.email}
+            {user?.email}
           </Typography>
         </Box>
+        <Button
+          variant="contained"
+          startIcon={creating ? <CircularProgress size={18} /> : <Add />}
+          onClick={handleCreate}
+          disabled={creating}
+        >
+          {creating ? "Создание..." : "Создать резюме"}
+        </Button>
       </Box>
 
-      {/* Карточка резюме */}
-      {loadingResume ? (
-        <Card sx={{ mb: 3, textAlign: "center", p: 4, minHeight: 220 }}>
-          <Typography variant="h6" component="h2" gutterBottom>
-            Загрузка резюме...
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Получение данных из Supabase
-          </Typography>
-        </Card>
-      ) : resume ? (
-        <Card sx={{ mb: 3, minHeight: 220 }}>
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 2,
-                gap: 2,
-                flexWrap: "wrap",
-              }}
-            >
-              <Typography variant="h6" component="h2">
-                {resume.title}
-              </Typography>
-              <Chip
-                label={`Шаблон: ${resume.template}`}
-                color="primary"
-                size="small"
-              />
-            </Box>
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Обновлено: {new Date(resume.updated_at).toLocaleDateString("ru-RU")}
-            </Typography>
+      {error && !loading && (
+        <Alert severity="error" sx={{ mb: 3 }} action={
+          <Button color="inherit" size="small" onClick={loadResumes}>Повторить</Button>
+        }>
+          {error}
+        </Alert>
+      )}
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={6} sm={3}>
-                <Typography variant="caption" color="text.secondary">
-                  Навыки
-                </Typography>
-                <Typography variant="h6" component="p">
-                  {resume.data?.skills?.length || 0}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={6} sm={3}>
-                <Typography variant="caption" color="text.secondary">
-                  Образование
-                </Typography>
-                <Typography variant="h6" component="p">
-                  {resume.data?.education?.length || 0}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={6} sm={3}>
-                <Typography variant="caption" color="text.secondary">
-                  Опыт
-                </Typography>
-                <Typography variant="h6" component="p">
-                  {resume.data?.experience?.length || 0}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={6} sm={3}>
-                <Typography variant="caption" color="text.secondary">
-                  Портфолио
-                </Typography>
-                <Typography variant="h6" component="p">
-                  {(resume.data?.github?.length || 0) + (Array.isArray(resume.data?.projects) ? resume.data.projects.filter((p) => p.name || p.description).length : 0)}
-                </Typography>
-              </Grid>
-            </Grid>
-
-            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              <Button
-                variant="contained"
-                startIcon={<Edit />}
-                onClick={() => navigate("/resume-editor")}
-                disabled={disabled}
-              >
-                Редактировать
-              </Button>
-
-              <Button
-                variant="outlined"
-                startIcon={<Visibility />}
-                onClick={() => navigate("/resume-preview")}
-                disabled={disabled}
-              >
-                Просмотр
-              </Button>
-
-              <Button
-                variant="outlined"
-                startIcon={<Description />}
-                onClick={handleExportMarkdown}
-                disabled={disabled}
-              >
-                {exportingMD ? "Экспорт..." : "Скачать Markdown"}
-              </Button>
-
-              <Button
-                variant="outlined"
-                startIcon={<Description />}
-                onClick={handleExportDocx}
-                disabled={disabled}
-              >
-                {exportingDOCX ? "Экспорт..." : "Скачать DOCX"}
-              </Button>
-
-              <Button
-                variant="outlined"
-                startIcon={<GetApp />}
-                onClick={handleExportPDF}
-                disabled={disabled}
-              >
-                {exportingPDF ? "Экспорт..." : "Скачать PDF"}
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card sx={{ mb: 3, textAlign: "center", p: 4, minHeight: 220 }}>
-          <Typography variant="h6" component="h2" gutterBottom>
-            Добро пожаловать в CV Builder
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Создайте первое IT-резюме за несколько минут.
-          </Typography>
+      {!loading && !error && resumes.length === 0 && (
+        <Card sx={{ textAlign: "center", p: 6 }}>
+          <Typography variant="h6" gutterBottom>У вас пока нет резюме</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Начните с профиля — добавьте имя, контакты и краткое описание опыта.
+            Создайте первое резюме и заполните его в удобном редакторе.
           </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate("/resume-editor")}
-          >
+          <Button variant="contained" startIcon={<Add />} onClick={handleCreate} disabled={creating}>
             Создать резюме
           </Button>
         </Card>
       )}
 
-      {/* Заполненность резюме */}
-      {resume && (() => {
-        const c = getResumeCompleteness(resume.data);
-        const statusColors = { low: "error", medium: "warning", high: "success", complete: "success" };
-        const statusLabels = { low: "Начните заполнять", medium: "Есть над чем поработать", high: "Почти готово", complete: "Отлично!" };
-
-        return (
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-                <Typography variant="h6" component="h2">
-                  Заполненность резюме
-                </Typography>
-                <Chip
-                  size="small"
-                  label={`${statusLabels[c.status]} · ${c.score}%`}
-                  color={statusColors[c.status]}
-                />
-              </Box>
-
-              <LinearProgress
-                variant="determinate"
-                value={c.score}
-                sx={{
-                  height: 8,
-                  borderRadius: 999,
-                  bgcolor: "action.hover",
-                  mb: 2,
-                  "& .MuiLinearProgress-bar": { borderRadius: 999 },
-                }}
+      {!loading && !error && resumes.length > 0 && (
+        <Grid container spacing={2}>
+          {resumes.map((r) => (
+            <Grid item xs={12} sm={6} md={4} key={r.resumeId}>
+              <ResumeCard
+                resume={r}
+                onRename={handleRename}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
               />
-
-              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mb: 2 }}>
-                {c.sections.map((s) => {
-                  const t = TAB_MAP[s.key] || TAB_MAP.profile;
-                  return (
-                    <Chip
-                      key={s.key}
-                      size="small"
-                      label={s.label}
-                      color={s.completed ? "success" : "warning"}
-                      variant={s.completed ? "filled" : "outlined"}
-                      title={s.helperText}
-                      onClick={() => navigate("/resume-editor", { state: { tab: t.tab, target: t.target } })}
-                      sx={{ cursor: "pointer" }}
-                    />
-                  );
-                })}
-              </Stack>
-
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => navigate("/resume-editor")}
-                disabled={disabled}
-              >
-                Продолжить редактирование
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })()}
-
-      {/* Быстрые действия */}
-      <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4 }}>
-        Быстрые действия
-      </Typography>
-
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <QuickActionCard
-            icon={<Edit />}
-            title="Редактор резюме"
-            description="Добавьте навыки, опыт и проекты"
-            onClick={() => navigate("/resume-editor")}
-            disabled={disabled}
-          />
+            </Grid>
+          ))}
         </Grid>
+      )}
 
-        <Grid item xs={12} sm={6}>
-          <QuickActionCard
-            icon={<PictureAsPdf />}
-            title="Экспорт в PDF"
-            description="Скачайте готовое резюме"
-            onClick={handleExportPDF}
-            disabled={disabled}
-            loadingText={exportingPDF ? "Экспорт PDF..." : undefined}
+      {/* Rename dialog */}
+      <Dialog open={renameOpen} onClose={() => setRenameOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Переименовать резюме</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleRenameSave(); }}
+            disabled={renameSaving}
+            sx={{ mt: 1 }}
           />
-        </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRenameOpen(false)} disabled={renameSaving}>Отмена</Button>
+          <Button onClick={handleRenameSave} variant="contained" disabled={renameSaving || !renameValue.trim()}>
+            {renameSaving ? "Сохранение..." : "Сохранить"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        <Grid item xs={12} sm={6}>
-          <QuickActionCard
-            icon={<Description />}
-            title="Экспорт в Markdown"
-            description="Для GitHub / GitLab / README.md"
-            onClick={handleExportMarkdown}
-            disabled={disabled}
-            loadingText={exportingMD ? "Экспорт Markdown..." : undefined}
-          />
-        </Grid>
+      {/* Delete dialog */}
+      <Dialog open={deleteOpen} onClose={() => !deleteSaving && setDeleteOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Удалить резюме</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Удалить резюме «{deleteTarget?.title}»? Это действие нельзя отменить.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleteSaving}>Отмена</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained" disabled={deleteSaving}>
+            {deleteSaving ? "Удаление..." : "Удалить"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        <Grid item xs={12} sm={6}>
-          <QuickActionCard
-            icon={<Article />}
-            title="Экспорт в DOCX"
-            description="Для редактирования в Microsoft Word"
-            onClick={handleExportDocx}
-            disabled={disabled}
-            loadingText={exportingDOCX ? "Экспорт DOCX..." : undefined}
-          />
-        </Grid>
-      </Grid>
-
-      {/* Backdrop экспорта */}
-      <ExportProgressBackdrop
-        open={exportingPDF || exportingDOCX || exportingMD}
-        format={exportingPDF ? "PDF" : exportingDOCX ? "DOCX" : "Markdown"}
-      />
-
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>

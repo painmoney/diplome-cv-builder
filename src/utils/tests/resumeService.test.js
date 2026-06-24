@@ -6,6 +6,7 @@ import {
   loadUserResume,
   listUserResumes,
   loadResumeById,
+  createNewResume,
   renameResumeById,
   duplicateResumeById,
   deleteResumeById,
@@ -356,6 +357,83 @@ describe("listUserResumes", () => {
 
 const UUID_R1 = "550e8400-e29b-41d4-a716-446655440001";
 const UUID_R3 = "550e8400-e29b-41d4-a716-446655440003";
+
+// ── createNewResume ──────────────────────────────────────
+
+describe("createNewResume", () => {
+  it("generates UUID and calls createResumeFullRpc", async () => {
+    mockRpc.mockResolvedValue({
+      data: [{ out_resume_id: "new-id", out_revision: 1, out_updated_at: "t" }],
+      error: null,
+    });
+
+    const result = await createNewResume();
+
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+    expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
+      p_resume_id: expect.any(String),
+      p_title: "Новое резюме",
+      p_template: "minimalist",
+    }));
+    expect(result.revision).toBe(1);
+  });
+
+  it("uses default title", async () => {
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume();
+
+    expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
+      p_title: "Новое резюме",
+    }));
+  });
+
+  it("uses default template", async () => {
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume();
+
+    expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
+      p_template: "minimalist",
+    }));
+  });
+
+  it("normalizes empty data", async () => {
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume();
+
+    const callArgs = mockRpc.mock.calls[0][1];
+    expect(callArgs.p_data.skills).toEqual([]);
+    expect(callArgs.p_data.template).toBe("minimalist");
+  });
+
+  it("supports explicit title and template", async () => {
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume({ title: "Custom", template: "academic" });
+
+    expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
+      p_title: "Custom",
+      p_template: "academic",
+    }));
+  });
+
+  it("does not call saveProfile", async () => {
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume();
+
+    expect(mockRpc).toHaveBeenCalledTimes(1);
+    expect(mockRpc.mock.calls[0][0]).toBe("create_resume_full");
+  });
+
+  it("propagates RPC error", async () => {
+    mockRpc.mockResolvedValue({ data: null, error: { code: "P1002", message: "INVALID" } });
+
+    await expect(createNewResume()).rejects.toMatchObject({ code: "P1002" });
+  });
+});
 
 // ── loadResumeById ───────────────────────────────────────
 
