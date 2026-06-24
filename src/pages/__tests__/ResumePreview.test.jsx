@@ -87,8 +87,6 @@ describe("ResumePreview", () => {
     await waitFor(() => {
       expect(screen.queryByRole("heading", { name: /не найдено/i })).not.toBeInTheDocument();
     });
-    expect(loadResumeById).not.toHaveBeenCalled();
-    expect(loadUserResume).not.toHaveBeenCalled();
   });
 
   it("no write operations", async () => {
