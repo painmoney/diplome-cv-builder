@@ -72,6 +72,16 @@ describe("Dashboard", () => {
     });
   });
 
+  it("shows template labels", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText("Минималистичный").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Академический").length).toBeGreaterThan(0);
+  });
+
   it("shows empty state for no resumes", async () => {
     listUserResumes.mockResolvedValue([]);
     renderDashboard();
@@ -252,6 +262,22 @@ describe("Dashboard", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Resume B").length).toBeGreaterThan(0);
+    });
+  });
+
+  it("retry after error shows fresh data", async () => {
+    listUserResumes.mockRejectedValueOnce(new Error("net"));
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Не удалось загрузить/).length).toBeGreaterThan(0);
+    });
+
+    listUserResumes.mockResolvedValueOnce(MOCK_LIST);
+    await userEvent.click(screen.getAllByText("Повторить")[0]);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
     });
   });
 });

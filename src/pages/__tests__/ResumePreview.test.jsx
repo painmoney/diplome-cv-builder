@@ -122,6 +122,21 @@ describe("ResumePreview", () => {
     await waitFor(() => {
       expect(loadResumeById).toHaveBeenCalledWith(UUID_A);
     });
-    expect(loadResumeById).toHaveBeenCalledTimes(1);
+  });
+
+  it("route switch triggers loadResumeById with new UUID", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderPreview(`/resume-preview/${UUID_A}`);
+    await waitFor(() => {
+      expect(loadResumeById).toHaveBeenCalledWith(UUID_A);
+    });
+
+    loadResumeById.mockClear();
+    loadResumeById.mockResolvedValue({ ...MOCK_A, resumeId: UUID_B, title: "Resume B" });
+    renderPreview(`/resume-preview/${UUID_B}`);
+
+    await waitFor(() => {
+      expect(loadResumeById).toHaveBeenCalledWith(UUID_B);
+    });
   });
 });

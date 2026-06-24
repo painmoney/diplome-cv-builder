@@ -134,11 +134,19 @@ describe("ResumeEditor routing", () => {
 
   it("legacy: calls loadUserResume", async () => {
     loadUserResume.mockResolvedValue({
-      id: UUID_A, user_id: "user-1", title: "L",
+      id: MOCK_A.resumeId, user_id: "user-1", title: "Legacy",
       template: "minimalist", revision: 1,
-      data: { profile: { name: "L" }, skills: [], template: "minimalist" },
+      data: { profile: { name: "Legacy" }, skills: [], template: "minimalist" },
     });
     renderEditor("/resume-editor");
-    await waitFor(() => expect(loadUserResume).toHaveBeenCalledWith("user-1"));
+    await waitFor(() => {
+      expect(loadUserResume).toHaveBeenCalledWith("user-1");
+    });
+  });
+
+  it("dynamic: shows loading indicator", async () => {
+    loadUserResume.mockReturnValue(new Promise(() => {}));
+    renderEditor(`/resume-editor/${MOCK_A.resumeId}`);
+    expect(screen.getAllByText(/Загрузка резюме/).length).toBeGreaterThan(0);
   });
 });
