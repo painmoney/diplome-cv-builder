@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("../../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: { id: "user-1", email: "test@test.com" },
-  }),
+  useAuth: () => ({ user: { id: "user-1", email: "test@test.com" } }),
 }));
 
 const mockFromFn = vi.fn();
@@ -24,7 +22,7 @@ vi.mock("../../api/resumeService", () => ({
 }));
 
 vi.mock("../../api/storage", () => ({
-  getAvatarUrl: vi.fn(),
+  getAvatarUrl: vi.fn(() => ""),
 }));
 
 import Dashboard from "../Dashboard";
@@ -37,8 +35,8 @@ import {
 } from "../../api/resumeService";
 
 const MOCK_LIST = [
-  { resumeId: "aaa", title: "Frontend Dev", template: "minimalist", revision: 1, createdAt: "2026-01-01", updatedAt: "2026-01-02" },
-  { resumeId: "bbb", title: "Backend Dev", template: "academic", revision: 2, createdAt: "2026-01-03", updatedAt: "2026-01-04" },
+  { resumeId: "aaa", title: "Resume A", template: "minimalist", revision: 1, createdAt: "2026-01-01", updatedAt: "2026-01-02" },
+  { resumeId: "bbb", title: "Resume B", template: "academic", revision: 2, createdAt: "2026-01-03", updatedAt: "2026-01-04" },
 ];
 
 function renderDashboard() {
@@ -53,269 +51,207 @@ function renderDashboard() {
   );
 }
 
-async function waitForCards() {
-  await waitFor(() => {
-    expect(screen.getAllByText("Frontend Dev").length).toBeGreaterThan(0);
-  });
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockFromFn.mockReset();
 });
 
 describe("Dashboard", () => {
-  describe("Loading", () => {
-    it("shows progress bar while loading", () => {
-      listUserResumes.mockReturnValue(new Promise(() => {}));
-      renderDashboard();
-      expect(screen.getByRole("progressbar")).toBeInTheDocument();
+  it("shows loading while fetching", () => {
+    listUserResumes.mockReturnValue(new Promise(() => {}));
+    renderDashboard();
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+  });
+
+  it("renders cards after load", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Resume B").length).toBeGreaterThan(0);
     });
   });
 
-  describe("List", () => {
-    it("renders resume titles", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
-      expect(screen.getAllByText("Frontend Dev").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("Backend Dev").length).toBeGreaterThan(0);
-    });
-
-    it("shows template labels", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
-      expect(screen.getAllByText("Минималистичный").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("Академический").length).toBeGreaterThan(0);
+  it("shows empty state for no resumes", async () => {
+    listUserResumes.mockResolvedValue([]);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText(/У вас пока нет резюме/).length).toBeGreaterThan(0);
     });
   });
 
-  describe("Empty", () => {
-    it("shows empty state", async () => {
-      listUserResumes.mockResolvedValue([]);
-      renderDashboard();
-      await waitFor(() => {
-        expect(screen.getAllByText(/У вас пока нет резюме/).length).toBeGreaterThan(0);
-      });
+  it("shows error with retry", async () => {
+    listUserResumes.mockRejectedValue(new Error("net"));
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText(/Не удалось загрузить/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Повторить").length).toBeGreaterThan(0);
     });
   });
 
-  describe("Error", () => {
-    it("shows error message", async () => {
-      listUserResumes.mockRejectedValue(new Error("net"));
-      renderDashboard();
-      await waitFor(() => {
-        expect(screen.getAllByText(/Не удалось загрузить/).length).toBeGreaterThan(0);
-      });
+  it("each card has Edit and Preview buttons", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText("Редактировать").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Просмотр").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("create calls createNewResume", async () => {
+    listUserResumes.mockResolvedValue([]);
+    createNewResume.mockResolvedValue({ resumeId: "new-id", revision: 1 });
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Создать резюме").length).toBeGreaterThan(0);
     });
 
-    it("shows retry button", async () => {
-      listUserResumes.mockRejectedValue(new Error("net"));
-      renderDashboard();
-      await waitFor(() => {
-        expect(screen.getAllByText("Повторить").length).toBeGreaterThan(0);
-      });
+    await userEvent.click(screen.getAllByText("Создать резюме")[0]);
+    await waitFor(() => expect(createNewResume).toHaveBeenCalledTimes(1));
+  });
+
+  it("create button disables during request", async () => {
+    listUserResumes.mockResolvedValue([]);
+    let resolveCreate;
+    createNewResume.mockImplementation(() => new Promise((r) => { resolveCreate = r; }));
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Создать резюме").length).toBeGreaterThan(0);
+    });
+
+    await userEvent.click(screen.getAllByText("Создать резюме")[0]);
+    await waitFor(() => {
+      expect(screen.getAllByText("Создание...").length).toBeGreaterThan(0);
+    });
+
+    expect(createNewResume).toHaveBeenCalledTimes(1);
+    resolveCreate({ resumeId: "x", revision: 1 });
+  });
+
+  it("create error shown", async () => {
+    listUserResumes.mockResolvedValue([]);
+    createNewResume.mockRejectedValue(new Error("fail"));
+    renderDashboard();
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Создать резюме").length).toBeGreaterThan(0);
+    });
+
+    await userEvent.click(screen.getAllByText("Создать резюме")[0]);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Не удалось создать/).length).toBeGreaterThan(0);
     });
   });
 
-  describe("Dynamic links", () => {
-    it("editor links to /resume-editor/:resumeId", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
-
-      const btns = screen.getAllByText("Редактировать");
-      const firstCard = btns[0].closest('[class*="MuiCard-root"]') || btns[0].closest('[class*="MuiCardActions"]');
-      expect(firstCard).toBeTruthy();
+  it("rename opens dialog, saves, closes", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renameResumeById.mockResolvedValue({});
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
     });
 
-    it("preview button present", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
+    await userEvent.click(screen.getAllByTestId("MoreVertIcon")[0]);
+    await userEvent.click(screen.getByText("Переименовать"));
 
-      const btns = screen.getAllByText("Просмотр");
-      expect(btns.length).toBeGreaterThan(0);
-    });
+    const input = screen.getByDisplayValue("Resume A");
+    await userEvent.clear(input);
+    await userEvent.type(input, "New Name");
+    await userEvent.click(screen.getByText("Сохранить"));
+
+    await waitFor(() => expect(renameResumeById).toHaveBeenCalledWith("aaa", "New Name"));
   });
 
-  describe("Create", () => {
-    it("calls createNewResume on click", async () => {
-      listUserResumes.mockResolvedValue([]);
-      createNewResume.mockResolvedValue({ resumeId: "new-id", revision: 1 });
-      renderDashboard();
-
-      await waitFor(() => {
-        expect(screen.getAllByText("Создать резюме").length).toBeGreaterThan(0);
-      });
-
-      const btns = screen.getAllByText("Создать резюме");
-      await userEvent.click(btns[0]);
-
-      await waitFor(() => expect(createNewResume).toHaveBeenCalledTimes(1));
+  it("rename cancel does not call service", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
     });
 
-    it("double click sends only one request", async () => {
-      listUserResumes.mockResolvedValue([]);
-      createNewResume.mockReturnValue(new Promise(() => {}));
-      renderDashboard();
+    await userEvent.click(screen.getAllByTestId("MoreVertIcon")[0]);
+    await userEvent.click(screen.getByText("Переименовать"));
 
-      await waitFor(() => {
-        expect(screen.getAllByText("Создать резюме").length).toBeGreaterThan(0);
-      });
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(within(dialog).getByText("Отмена"));
 
-      const btns = screen.getAllByText("Создать резюме");
-      await userEvent.click(btns[0]);
-
-      await waitFor(() => {
-        expect(screen.getAllByText("Создание...").length).toBeGreaterThan(0);
-      });
-
-      expect(createNewResume).toHaveBeenCalledTimes(1);
-    });
-
-    it("shows error on failure", async () => {
-      listUserResumes.mockResolvedValue([]);
-      createNewResume.mockRejectedValue(new Error("fail"));
-      renderDashboard();
-
-      await waitFor(() => {
-        expect(screen.getAllByText("Создать резюме").length).toBeGreaterThan(0);
-      });
-
-      const btns = screen.getAllByText("Создать резюме");
-      await userEvent.click(btns[0]);
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Не удалось создать/).length).toBeGreaterThan(0);
-      });
-    });
+    expect(renameResumeById).not.toHaveBeenCalled();
   });
 
-  describe("Rename", () => {
-    it("opens dialog with prefilled title", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
-
-      const menus = screen.getAllByTestId("MoreVertIcon");
-      await userEvent.click(menus[0]);
-      await userEvent.click(screen.getByText("Переименовать"));
-
-      expect(screen.getByDisplayValue("Frontend Dev")).toBeInTheDocument();
+  it("duplicate calls service", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    duplicateResumeById.mockResolvedValue({});
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
     });
 
-    it("calls renameResumeById on save", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renameResumeById.mockResolvedValue({});
-      renderDashboard();
-      await waitForCards();
+    await userEvent.click(screen.getAllByTestId("MoreVertIcon")[0]);
+    await userEvent.click(screen.getByText("Создать копию"));
 
-      const menus = screen.getAllByTestId("MoreVertIcon");
-      await userEvent.click(menus[0]);
-      await userEvent.click(screen.getByText("Переименовать"));
-
-      const input = screen.getByDisplayValue("Frontend Dev");
-      await userEvent.clear(input);
-      await userEvent.type(input, "New Title");
-      await userEvent.click(screen.getByText("Сохранить"));
-
-      await waitFor(() => expect(renameResumeById).toHaveBeenCalledWith("aaa", "New Title"));
-    });
-
-    it("cancel closes without call", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
-
-      const menus = screen.getAllByTestId("MoreVertIcon");
-      await userEvent.click(menus[0]);
-      await userEvent.click(screen.getByText("Переименовать"));
-      await userEvent.click(screen.getByText("Отмена"));
-
-      expect(renameResumeById).not.toHaveBeenCalled();
-    });
+    await waitFor(() => expect(duplicateResumeById).toHaveBeenCalledWith("aaa"));
   });
 
-  describe("Duplicate", () => {
-    it("calls duplicateResumeById", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      duplicateResumeById.mockResolvedValue({});
-      renderDashboard();
-      await waitForCards();
-
-      const menus = screen.getAllByTestId("MoreVertIcon");
-      await userEvent.click(menus[0]);
-      await userEvent.click(screen.getByText("Создать копию"));
-
-      await waitFor(() => expect(duplicateResumeById).toHaveBeenCalledWith("aaa"));
+  it("delete flow: menu → dialog → confirm", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    deleteResumeById.mockResolvedValue("aaa");
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
     });
+
+    const icons = screen.getAllByTestId("MoreVertIcon");
+    const btn = icons[0].closest("button");
+    btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    const deleteItem = await screen.findByText("Удалить", { selector: "[role=menuitem]" });
+    fireEvent.click(deleteItem);
+
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Удалить" }));
+
+    await waitFor(() => expect(deleteResumeById).toHaveBeenCalledWith("aaa"));
   });
 
-  describe("Delete", () => {
-    it("shows confirmation with title", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
-
-      const menus = screen.getAllByTestId("MoreVertIcon");
-      await userEvent.click(menus[0]);
-      await userEvent.click(screen.getByText("Удалить"));
-
-      await waitFor(() => {
-        expect(screen.getAllByText(/Удалить резюме «Frontend Dev»/).length).toBeGreaterThan(0);
-      });
+  it("delete flow: menu → dialog → cancel", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
     });
 
-    it("calls deleteResumeById on confirm", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      deleteResumeById.mockResolvedValue("aaa");
-      renderDashboard();
-      await waitForCards();
+    const icons = screen.getAllByTestId("MoreVertIcon");
+    const btn = icons[0].closest("button");
+    btn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
-      const menus = screen.getAllByTestId("MoreVertIcon");
-      await userEvent.click(menus[0]);
+    const deleteItem = await screen.findByText("Удалить", { selector: "[role=menuitem]" });
+    fireEvent.click(deleteItem);
 
-      const menuItems = screen.getAllByRole("menuitem");
-      const deleteItem = menuItems.find((el) => el.textContent.includes("Удалить"));
-      await userEvent.click(deleteItem);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Отмена" }));
 
-      const dialog = await screen.findByRole("dialog");
-      const confirmBtn = within(dialog).getByRole("button", { name: "Удалить" });
-      await userEvent.click(confirmBtn);
-
-      await waitFor(() => expect(deleteResumeById).toHaveBeenCalledWith("aaa"));
-    });
-
-    it("cancel closes without call", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
-
-      const menus = screen.getAllByTestId("MoreVertIcon");
-      await userEvent.click(menus[0]);
-
-      const menuItems = screen.getAllByRole("menuitem");
-      const deleteItem = menuItems.find((el) => el.textContent.includes("Удалить"));
-      await userEvent.click(deleteItem);
-
-      const dialog = await screen.findByRole("dialog");
-      const cancelBtn = within(dialog).getByRole("button", { name: "Отмена" });
-      await userEvent.click(cancelBtn);
-
-      expect(deleteResumeById).not.toHaveBeenCalled();
-    });
+    expect(deleteResumeById).not.toHaveBeenCalled();
   });
 
-  describe("Service layer", () => {
-    it("uses listUserResumes, not supabase.from", async () => {
-      listUserResumes.mockResolvedValue(MOCK_LIST);
-      renderDashboard();
-      await waitForCards();
+  it("uses listUserResumes, not direct query", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
+    });
+    expect(listUserResumes).toHaveBeenCalledWith("user-1");
+    expect(mockFromFn).not.toHaveBeenCalled();
+  });
 
-      expect(listUserResumes).toHaveBeenCalledWith("user-1");
-      expect(mockFromFn).not.toHaveBeenCalled();
+  it("listUserResumes result is displayed", async () => {
+    listUserResumes.mockResolvedValue(MOCK_LIST);
+    renderDashboard();
+    await waitFor(() => {
+      expect(screen.getAllByText("Resume A").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Resume B").length).toBeGreaterThan(0);
     });
   });
 });

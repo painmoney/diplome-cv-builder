@@ -40,6 +40,7 @@ import {
   duplicateResumeById,
   deleteResumeById,
 } from "../api/resumeService";
+import { getAvatarUrl } from "../api/storage";
 
 const TEMPLATE_LABELS = {
   minimalist: "Минималистичный",
@@ -140,6 +141,8 @@ export default function Dashboard() {
   const [duplicateId, setDuplicateId] = useState(null);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  const avatarUrl = user?.id ? getAvatarUrl(user.id) : "";
 
   const loadResumes = useCallback(async () => {
     if (!user?.id) return;
@@ -263,7 +266,7 @@ export default function Dashboard() {
   return (
     <Container sx={{ mt: 4, maxWidth: 900 }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}>
-        <Avatar sx={{ width: 64, height: 64 }}>{userInitial}</Avatar>
+        <Avatar src={avatarUrl} sx={{ width: 64, height: 64 }}>{userInitial}</Avatar>
         <Box sx={{ flex: 1 }}>
           <Typography variant="h4" component="h1">
             Мои резюме
