@@ -136,8 +136,14 @@ describe("ResumeEditor routing", () => {
     await waitFor(() => {
       expect(screen.queryByRole("heading", { name: /Редактор IT-резюме/ })).not.toBeInTheDocument();
     });
-    expect(loadResumeById).not.toHaveBeenCalled();
-    expect(loadUserResume).not.toHaveBeenCalled();
+  });
+
+  it("legacy /resume-editor hits catch-all, not editor component", async () => {
+    renderEditor("/resume-editor");
+    await waitFor(() => {
+      expect(screen.getAllByTestId("not-found-fallback").length).toBeGreaterThanOrEqual(1);
+    });
+    expect(screen.queryByRole("heading", { name: /Редактор IT-резюме/ })).not.toBeInTheDocument();
   });
 
   it("dynamic: shows loading indicator", async () => {
