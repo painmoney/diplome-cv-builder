@@ -20,8 +20,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "../api/supabaseClient";
-import { loadResumeById } from "../api/resumeService";
+import { loadResumeById, loadUserResume } from "../api/resumeService";
 
 import { TEMPLATE_IDS, TEMPLATE_REGISTRY } from "../utils/templateRegistry";
 import MinimalistTemplate from "../components/templates/MinimalistTemplate";
@@ -104,19 +103,29 @@ export default function ResumePreview() {
           updated_at: loaded.updatedAt,
         };
       } else {
-        const result = await supabase
-          .from("resumes")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle();
+        const loaded = await loadUserResume(user.id);
         if (generation !== loadGenerationRef.current) return;
 
-        if (result.error) {
-          setLoadError("Не удалось загрузить резюме. Попробуйте обновить страницу.");
+        if (!loaded) {
+          setSnackbar({
+            open: true,
+            message: "Резюме не найдено. Создайте его в редакторе.",
+            severity: "info",
+          });
+          setTimeout(() => navigate("/resume-editor"), 300);
           setLoading(false);
           return;
         }
-        data = result.data;
+        data = {
+          id: loaded.id,
+          user_id: loaded.user_id,
+          title: loaded.title,
+          template: loaded.template,
+          revision: loaded.revision,
+          data: loaded.data,
+          created_at: loaded.created_at,
+          updated_at: loaded.updated_at,
+        };
       }
 
       if (data) {
