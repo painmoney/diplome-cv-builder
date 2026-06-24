@@ -18,9 +18,10 @@ import {
   Image as ImageIcon,
   ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../api/supabaseClient";
+import { loadResumeById } from "../api/resumeService";
 
 import { TEMPLATE_IDS, TEMPLATE_REGISTRY } from "../utils/templateRegistry";
 import MinimalistTemplate from "../components/templates/MinimalistTemplate";
@@ -46,12 +47,16 @@ export default function ResumePreview() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { resumeId: routeResumeId } = useParams();
 
   const templateParam = String(searchParams.get("template") || "").toLowerCase();
   const templateOverride = VALID_TEMPLATES.includes(templateParam) ? templateParam : null;
 
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const loadGenerationRef = useRef(0);
 
   const [selectedTemplate, setSelectedTemplate] = useState("minimalist");
 
@@ -70,49 +75,79 @@ export default function ResumePreview() {
   const captureRef = useRef(null);
   const appliedOverrideRef = useRef("");
 
-  const loadResume = async () => {
+  const loadResume = async (resumeIdParam) => {
+    const generation = ++loadGenerationRef.current;
     setLoading(true);
+    setNotFound(false);
+    setLoadError("");
 
-    const { data, error } = await supabase
-      .from("resumes")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    try {
+      let data;
 
-    if (error) {
-      setSnackbar({
-        open: true,
-        message: "Ошибка загрузки резюме",
-        severity: "error",
-      });
-      setLoading(false);
-      return;
+      if (resumeIdParam) {
+        const loaded = await loadResumeById(resumeIdParam);
+        if (generation !== loadGenerationRef.current) return;
+
+        if (!loaded) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        data = {
+          id: loaded.resumeId,
+          user_id: loaded.userId,
+          title: loaded.title,
+          template: loaded.template,
+          revision: loaded.revision,
+          data: loaded.data,
+          created_at: loaded.createdAt,
+          updated_at: loaded.updatedAt,
+        };
+      } else {
+        const result = await supabase
+          .from("resumes")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (generation !== loadGenerationRef.current) return;
+
+        if (result.error) {
+          setLoadError("Не удалось загрузить резюме. Попробуйте обновить страницу.");
+          setLoading(false);
+          return;
+        }
+        data = result.data;
+      }
+
+      if (data) {
+        setResume(data);
+        const current =
+          String(data.template || data.data?.template || "minimalist").toLowerCase();
+        setSelectedTemplate(
+          templateOverride || (VALID_TEMPLATES.includes(current) ? current : "minimalist")
+        );
+      } else if (!resumeIdParam) {
+        setSnackbar({
+          open: true,
+          message: "Резюме не найдено. Создайте его в редакторе.",
+          severity: "info",
+        });
+        setTimeout(() => navigate("/resume-editor"), 300);
+      }
+    } catch {
+      if (generation !== loadGenerationRef.current) return;
+      setLoadError("Не удалось загрузить резюме. Попробуйте обновить страницу.");
+    } finally {
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+      }
     }
-
-    if (data) {
-      setResume(data);
-
-      const current =
-        String(data.template || data.data?.template || "minimalist").toLowerCase();
-      setSelectedTemplate(
-        templateOverride || (VALID_TEMPLATES.includes(current) ? current : "minimalist")
-      );
-    } else {
-      setSnackbar({
-        open: true,
-        message: "Резюме не найдено. Создайте его в редакторе.",
-        severity: "info",
-      });
-      setTimeout(() => navigate("/resume-editor"), 300);
-    }
-
-    setLoading(false);
   };
 
   useEffect(() => {
     if (!user) return;
-    loadResume(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps -- loadResume is stable
+    loadResume(routeResumeId || null); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount/route change
+  }, [user, routeResumeId]); // eslint-disable-line react-hooks/exhaustive-deps -- loadResume is stable
 
   // применяем override один раз (после загрузки резюме)
   useEffect(() => {
@@ -298,21 +333,31 @@ export default function ResumePreview() {
     );
   }
 
-  if (!resume) {
+  if (loadError) {
     return (
       <Box sx={{ py: 6 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800 }}>
-          Резюме не найдено
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Перейдите в редактор и создайте резюме.
-        </Typography>
-        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate("/resume-editor")}>
-          Открыть редактор
+        <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>
+        <Button variant="contained" onClick={() => navigate("/dashboard")}>
+          На главную
         </Button>
       </Box>
     );
   }
+
+  if (notFound || !resume) {
+    return (
+      <Box sx={{ py: 6 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Резюме не найдено или у вас нет доступа к нему.
+        </Alert>
+        <Button variant="contained" onClick={() => navigate("/dashboard")}>
+          На главную
+        </Button>
+      </Box>
+    );
+  }
+
+  const editorPath = routeResumeId ? `/resume-editor/${routeResumeId}` : "/resume-editor";
 
   return (
     <Box sx={{ py: 2 }}>
@@ -335,7 +380,7 @@ export default function ResumePreview() {
           <Button
             variant="outlined"
             startIcon={<Edit />}
-            onClick={() => navigate("/resume-editor")}
+            onClick={() => navigate(editorPath)}
           >
             Редактировать
           </Button>

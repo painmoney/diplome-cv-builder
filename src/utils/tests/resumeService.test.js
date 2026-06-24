@@ -354,6 +354,9 @@ describe("listUserResumes", () => {
   });
 });
 
+const UUID_R1 = "550e8400-e29b-41d4-a716-446655440001";
+const UUID_R3 = "550e8400-e29b-41d4-a716-446655440003";
+
 // ── loadResumeById ───────────────────────────────────────
 
 describe("loadResumeById", () => {
@@ -361,45 +364,45 @@ describe("loadResumeById", () => {
     const chain = createMockQuery({ data: null, error: null });
     mockFrom.mockReturnValue(chain);
 
-    await loadResumeById("r1");
+    await loadResumeById(UUID_R1);
 
-    expect(chain.eq).toHaveBeenCalledWith("id", "r1");
+    expect(chain.eq).toHaveBeenCalledWith("id", UUID_R1);
   });
 
   it("uses maybeSingle", async () => {
     const chain = createMockQuery({ data: null, error: null });
     mockFrom.mockReturnValue(chain);
 
-    await loadResumeById("r1");
+    await loadResumeById(UUID_R1);
 
     expect(chain.maybeSingle).toHaveBeenCalled();
   });
 
   it("normalizes resume data", async () => {
     const row = {
-      id: "r1", user_id: "u1", title: "T", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "T", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { skills: [{ name: "React" }], template: "minimalist" },
     };
     const chain = createMockQuery({ data: row, error: null });
     mockFrom.mockReturnValue(chain);
 
-    const result = await loadResumeById("r1");
+    const result = await loadResumeById(UUID_R1);
     expect(result.data.skills).toEqual([{ name: "React" }]);
     expect(result.data.template).toBe("minimalist");
   });
 
   it("maps metadata to camelCase", async () => {
     const row = {
-      id: "r1", user_id: "u1", title: "T", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "T", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: {},
     };
     const chain = createMockQuery({ data: row, error: null });
     mockFrom.mockReturnValue(chain);
 
-    const result = await loadResumeById("r1");
-    expect(result.resumeId).toBe("r1");
+    const result = await loadResumeById(UUID_R1);
+    expect(result.resumeId).toBe(UUID_R1);
     expect(result.userId).toBe("u1");
     expect(result.createdAt).toBe("2026-01-01");
     expect(result.updatedAt).toBe("2026-01-02");
@@ -409,7 +412,7 @@ describe("loadResumeById", () => {
     const chain = createMockQuery({ data: null, error: null });
     mockFrom.mockReturnValue(chain);
 
-    const result = await loadResumeById("nonexistent");
+    const result = await loadResumeById(UUID_R3);
     expect(result).toBeNull();
   });
 
@@ -417,7 +420,7 @@ describe("loadResumeById", () => {
     const chain = createMockQuery({ data: null, error: null });
     mockFrom.mockReturnValue(chain);
 
-    const result = await loadResumeById("foreign-id");
+    const result = await loadResumeById(UUID_R3);
     expect(result).toBeNull();
   });
 
@@ -425,7 +428,32 @@ describe("loadResumeById", () => {
     const chain = createMockQuery({ data: null, error: { message: "network error" } });
     mockFrom.mockReturnValue(chain);
 
-    await expect(loadResumeById("r1")).rejects.toThrow();
+    await expect(loadResumeById(UUID_R1)).rejects.toThrow();
+  });
+
+  it("returns null for invalid UUID without DB query", async () => {
+    await loadResumeById("not-a-uuid");
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("returns null for empty string", async () => {
+    const result = await loadResumeById("");
+    expect(result).toBeNull();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("returns null for whitespace-only string", async () => {
+    const result = await loadResumeById("   ");
+    expect(result).toBeNull();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("accepts valid UUID with uppercase", async () => {
+    const chain = createMockQuery({ data: null, error: null });
+    mockFrom.mockReturnValue(chain);
+
+    await loadResumeById("550E8400-E29B-41D4-A716-446655440000");
+    expect(mockFrom).toHaveBeenCalled();
   });
 });
 
@@ -434,7 +462,7 @@ describe("loadResumeById", () => {
 describe("renameResumeById", () => {
   it("loads fresh source and calls saveResumeFullRpc", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Old", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Old", template: "minimalist",
       revision: 2, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { skills: [{ name: "React" }], template: "minimalist" },
     };
@@ -442,15 +470,15 @@ describe("renameResumeById", () => {
     mockFrom.mockReturnValueOnce(loadChain);
 
     mockRpc.mockResolvedValue({
-      data: [{ out_resume_id: "r1", out_revision: 3, out_updated_at: "2026-01-03" }],
+      data: [{ out_resume_id: UUID_R1, out_revision: 3, out_updated_at: "2026-01-03" }],
       error: null,
     });
 
-    const result = await renameResumeById("r1", "New Title");
+    const result = await renameResumeById(UUID_R1, "New Title");
 
     expect(result.revision).toBe(3);
     expect(mockRpc).toHaveBeenCalledWith("save_resume_full", expect.objectContaining({
-      p_resume_id: "r1",
+      p_resume_id: UUID_R1,
       p_title: "New Title",
       p_expected_revision: 2,
     }));
@@ -458,7 +486,7 @@ describe("renameResumeById", () => {
 
   it("does not call saveProfile", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Old", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Old", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { template: "minimalist" },
     };
@@ -466,11 +494,11 @@ describe("renameResumeById", () => {
     mockFrom.mockReturnValueOnce(loadChain);
 
     mockRpc.mockResolvedValue({
-      data: [{ out_resume_id: "r1", out_revision: 2, out_updated_at: "t" }],
+      data: [{ out_resume_id: UUID_R1, out_revision: 2, out_updated_at: "t" }],
       error: null,
     });
 
-    await renameResumeById("r1", "New");
+    await renameResumeById(UUID_R1, "New");
 
     expect(mockRpc).toHaveBeenCalledTimes(1);
     expect(mockRpc).toHaveBeenCalledWith("save_resume_full", expect.anything());
@@ -480,12 +508,12 @@ describe("renameResumeById", () => {
     const loadChain = createMockQuery({ data: null, error: null });
     mockFrom.mockReturnValueOnce(loadChain);
 
-    await expect(renameResumeById("nonexistent", "X")).rejects.toMatchObject({ code: "P1004" });
+    await expect(renameResumeById(UUID_R3, "X")).rejects.toMatchObject({ code: "P1004" });
   });
 
   it("P1005 from save RPC propagates", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Old", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Old", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { template: "minimalist" },
     };
@@ -497,12 +525,12 @@ describe("renameResumeById", () => {
       error: { code: "P1005", message: "REVISION_CONFLICT" },
     });
 
-    await expect(renameResumeById("r1", "X")).rejects.toMatchObject({ code: "P1005" });
+    await expect(renameResumeById(UUID_R1, "X")).rejects.toMatchObject({ code: "P1005" });
   });
 
   it("empty title normalizes to Untitled", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Old", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Old", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { template: "minimalist" },
     };
@@ -510,11 +538,11 @@ describe("renameResumeById", () => {
     mockFrom.mockReturnValueOnce(loadChain);
 
     mockRpc.mockResolvedValue({
-      data: [{ out_resume_id: "r1", out_revision: 2, out_updated_at: "t" }],
+      data: [{ out_resume_id: UUID_R1, out_revision: 2, out_updated_at: "t" }],
       error: null,
     });
 
-    await renameResumeById("r1", "   ");
+    await renameResumeById(UUID_R1, "   ");
 
     expect(mockRpc).toHaveBeenCalledWith("save_resume_full", expect.objectContaining({
       p_title: "Untitled",
@@ -527,7 +555,7 @@ describe("renameResumeById", () => {
 describe("duplicateResumeById", () => {
   it("loads source by ID", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Original", template: "academic",
+      id: UUID_R1, user_id: "u1", title: "Original", template: "academic",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { skills: [{ name: "React" }], template: "academic", profile: { name: "A" } },
     };
@@ -539,7 +567,7 @@ describe("duplicateResumeById", () => {
       error: null,
     });
 
-    await duplicateResumeById("r1");
+    await duplicateResumeById(UUID_R1);
 
     expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
       p_template: "academic",
@@ -548,7 +576,7 @@ describe("duplicateResumeById", () => {
 
   it("generates new UUID", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Original", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Original", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { template: "minimalist" },
     };
@@ -560,10 +588,10 @@ describe("duplicateResumeById", () => {
       error: null,
     });
 
-    const result = await duplicateResumeById("r1");
+    const result = await duplicateResumeById(UUID_R1);
 
     const callArgs = mockRpc.mock.calls[0][1];
-    expect(callArgs.p_resume_id).not.toBe("r1");
+    expect(callArgs.p_resume_id).not.toBe(UUID_R1);
     expect(typeof callArgs.p_resume_id).toBe("string");
     expect(callArgs.p_resume_id.length).toBe(36);
     expect(result.revision).toBe(1);
@@ -575,7 +603,7 @@ describe("duplicateResumeById", () => {
       profile: { name: "A" }, projects: [{ id: "p1", name: "Proj" }],
     };
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Original", template: "academic",
+      id: UUID_R1, user_id: "u1", title: "Original", template: "academic",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: sourceData,
     };
@@ -587,7 +615,7 @@ describe("duplicateResumeById", () => {
       error: null,
     });
 
-    await duplicateResumeById("r1");
+    await duplicateResumeById(UUID_R1);
 
     const callArgs = mockRpc.mock.calls[0][1];
     expect(callArgs.p_data.profile.name).toBe("A");
@@ -596,7 +624,7 @@ describe("duplicateResumeById", () => {
 
   it("uses '<title> (копия)' as default title", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "My Resume", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "My Resume", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { template: "minimalist" },
     };
@@ -608,7 +636,7 @@ describe("duplicateResumeById", () => {
       error: null,
     });
 
-    await duplicateResumeById("r1");
+    await duplicateResumeById(UUID_R1);
 
     expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
       p_title: "My Resume (копия)",
@@ -617,7 +645,7 @@ describe("duplicateResumeById", () => {
 
   it("supports explicit title option", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Original", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Original", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { template: "minimalist" },
     };
@@ -629,7 +657,7 @@ describe("duplicateResumeById", () => {
       error: null,
     });
 
-    await duplicateResumeById("r1", { title: "Custom Title" });
+    await duplicateResumeById(UUID_R1, { title: "Custom Title" });
 
     expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
       p_title: "Custom Title",
@@ -640,12 +668,12 @@ describe("duplicateResumeById", () => {
     const loadChain = createMockQuery({ data: null, error: null });
     mockFrom.mockReturnValueOnce(loadChain);
 
-    await expect(duplicateResumeById("nonexistent")).rejects.toMatchObject({ code: "P1004" });
+    await expect(duplicateResumeById(UUID_R3)).rejects.toMatchObject({ code: "P1004" });
   });
 
   it("create RPC error propagates", async () => {
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Original", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Original", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: { template: "minimalist" },
     };
@@ -657,13 +685,13 @@ describe("duplicateResumeById", () => {
       error: { code: "P1002", message: "INVALID_RESUME_PAYLOAD" },
     });
 
-    await expect(duplicateResumeById("r1")).rejects.toMatchObject({ code: "P1002" });
+    await expect(duplicateResumeById(UUID_R1)).rejects.toMatchObject({ code: "P1002" });
   });
 
   it("source object is not mutated", async () => {
     const sourceData = { skills: [{ name: "React" }], template: "minimalist" };
     const sourceRow = {
-      id: "r1", user_id: "u1", title: "Original", template: "minimalist",
+      id: UUID_R1, user_id: "u1", title: "Original", template: "minimalist",
       revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
       data: sourceData,
     };
@@ -676,7 +704,7 @@ describe("duplicateResumeById", () => {
     });
 
     const originalTitle = sourceRow.title;
-    await duplicateResumeById("r1");
+    await duplicateResumeById(UUID_R1);
 
     expect(sourceRow.title).toBe(originalTitle);
   });
@@ -696,19 +724,19 @@ describe("deleteResumeById", () => {
   }
 
   it("deletes filtered by exact id", async () => {
-    const chain = createDeleteChain({ data: { id: "r1" }, error: null });
+    const chain = createDeleteChain({ data: { id: UUID_R1 }, error: null });
     mockFrom.mockReturnValue(chain);
 
-    const result = await deleteResumeById("r1");
+    const result = await deleteResumeById(UUID_R1);
 
-    expect(result).toBe("r1");
+    expect(result).toBe(UUID_R1);
   });
 
   it("chains select('id') and maybeSingle", async () => {
-    const chain = createDeleteChain({ data: { id: "r1" }, error: null });
+    const chain = createDeleteChain({ data: { id: UUID_R1 }, error: null });
     mockFrom.mockReturnValue(chain);
 
-    await deleteResumeById("r1");
+    await deleteResumeById(UUID_R1);
 
     expect(chain.select).toHaveBeenCalledWith("id");
     expect(chain.maybeSingle).toHaveBeenCalled();
@@ -718,21 +746,21 @@ describe("deleteResumeById", () => {
     const chain = createDeleteChain({ data: null, error: null });
     mockFrom.mockReturnValue(chain);
 
-    await expect(deleteResumeById("nonexistent")).rejects.toMatchObject({ code: "P1004" });
+    await expect(deleteResumeById(UUID_R3)).rejects.toMatchObject({ code: "P1004" });
   });
 
   it("Supabase error propagated", async () => {
     const chain = createDeleteChain({ data: null, error: { message: "db error" } });
     mockFrom.mockReturnValue(chain);
 
-    await expect(deleteResumeById("r1")).rejects.toThrow();
+    await expect(deleteResumeById(UUID_R1)).rejects.toThrow();
   });
 
   it("does not issue child-table deletes", async () => {
-    const chain = createDeleteChain({ data: { id: "r1" }, error: null });
+    const chain = createDeleteChain({ data: { id: UUID_R1 }, error: null });
     mockFrom.mockReturnValue(chain);
 
-    await deleteResumeById("r1");
+    await deleteResumeById(UUID_R1);
 
     expect(mockFrom).toHaveBeenCalledTimes(1);
     expect(mockFrom).toHaveBeenCalledWith("resumes");

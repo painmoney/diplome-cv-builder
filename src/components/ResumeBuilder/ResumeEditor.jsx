@@ -13,11 +13,12 @@ import {
   Stack,
   useTheme,
 } from "@mui/material";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import WorkIcon from "@mui/icons-material/Work";
 
 import {
   loadUserResume,
+  loadResumeById,
   normalizeLoadedResumeData,
 } from "../../api/resumeService";
 
@@ -55,6 +56,8 @@ const DEFAULT_TITLE = "Моё IT-резюме";
 export default function ResumeEditor() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { resumeId: routeResumeId } = useParams();
   const initialTab = location.state?.tab;
   const initialTarget = location.state?.target;
 
@@ -66,6 +69,9 @@ export default function ResumeEditor() {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const loadGenerationRef = useRef(0);
 
   // job match state (persisted across tab switches)
   const [jobMatchText, setJobMatchText] = useState("");
@@ -118,15 +124,27 @@ export default function ResumeEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadResumeData = async () => {
+  const loadResumeData = async (resumeIdParam) => {
     if (!user) return;
+
+    const generation = ++loadGenerationRef.current;
 
     isHydratingRef.current = true;
     setLoading(true);
     setMessage("");
+    setNotFound(false);
+    setLoadError("");
 
     try {
-      const resume = await loadUserResume(user.id);
+      let resume;
+
+      if (resumeIdParam) {
+        resume = await loadResumeById(resumeIdParam);
+      } else {
+        resume = await loadUserResume(user.id);
+      }
+
+      if (generation !== loadGenerationRef.current) return;
 
       if (resume) {
         const normalized = normalizeLoadedResumeData(resume.data || DEFAULT_RESUME_DATA);
@@ -134,36 +152,42 @@ export default function ResumeEditor() {
         setResumeData(normalized);
         setResumeTitle(loadedTitle);
         initFromLoad(resume);
-        // Record hydrated snapshot to prevent autosave-on-load
         lastHydratedRef.current = autosaveFingerprint(loadedTitle, normalized);
       } else {
-        setResumeData(DEFAULT_RESUME_DATA);
-        setResumeTitle(DEFAULT_TITLE);
-        initFromLoad(null);
-        lastHydratedRef.current = autosaveFingerprint(DEFAULT_TITLE, DEFAULT_RESUME_DATA);
+        if (resumeIdParam) {
+          setNotFound(true);
+        } else {
+          setResumeData(DEFAULT_RESUME_DATA);
+          setResumeTitle(DEFAULT_TITLE);
+          initFromLoad(null);
+          lastHydratedRef.current = autosaveFingerprint(DEFAULT_TITLE, DEFAULT_RESUME_DATA);
+        }
       }
 
       setSaveStatus("idle");
       setSaveError("");
     } catch (error) {
-      setMessage(`Ошибка загрузки: ${error.message}`);
+      if (generation !== loadGenerationRef.current) return;
+      setLoadError(error?.message || "Не удалось загрузить резюме. Попробуйте обновить страницу.");
     } finally {
-      setLoading(false);
-      isHydratingRef.current = false;
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+        isHydratingRef.current = false;
+      }
     }
   };
 
   useEffect(() => {
     if (user) {
       resetGeneration();
-      loadResumeData(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
+      loadResumeData(routeResumeId || null); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount/route change
     }
 
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- data fetch on user change
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- data fetch on user or route change
+  }, [user, routeResumeId]);
 
   // sticky toolbar: detect when sentinel scrolls above the sticky top
   useEffect(() => {
@@ -385,6 +409,46 @@ export default function ResumeEditor() {
 
   const isSaving = saveStatus === "saving";
 
+  const currentPreviewPath = queue.resumeId
+    ? `/resume-preview/${queue.resumeId}`
+    : "/resume-preview";
+
+  if (loading) {
+    return (
+      <Container sx={{ mt: 4, maxWidth: 1200 }}>
+        <Box sx={{ py: 6, display: "flex", justifyContent: "center" }}>
+          <Typography variant="h6" color="text.secondary">Загрузка резюме...</Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Container sx={{ mt: 4, maxWidth: 1200 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Резюме не найдено или у вас нет доступа к нему.
+        </Alert>
+        <Button variant="contained" onClick={() => navigate("/dashboard")}>
+          На главную
+        </Button>
+      </Container>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Container sx={{ mt: 4, maxWidth: 1200 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {loadError}
+        </Alert>
+        <Button variant="contained" onClick={() => navigate("/dashboard")}>
+          На главную
+        </Button>
+      </Container>
+    );
+  }
+
   return (
     <Container sx={{ mt: 4, maxWidth: 1200 }}>
       {/* Sentinel for IntersectionObserver */}
@@ -533,6 +597,14 @@ export default function ResumeEditor() {
           disabled={loading || isSaving}
         >
           {isSaving ? "Сохранение..." : loading ? "Загрузка..." : "Сохранить резюме"}
+        </Button>
+        <Button
+          variant="outlined"
+          size="large"
+          onClick={() => navigate(currentPreviewPath)}
+          disabled={loading}
+        >
+          Просмотр
         </Button>
       </Box>
 

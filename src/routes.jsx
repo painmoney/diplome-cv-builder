@@ -34,6 +34,7 @@ export default function AppRoutes() {
           }
         />
 
+        {/* Protected — legacy single-resume (backward compat) */}
         <Route
           path="/resume-editor"
           element={
@@ -45,6 +46,25 @@ export default function AppRoutes() {
 
         <Route
           path="/resume-preview"
+          element={
+            <ProtectedRoute>
+              <ResumePreview />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected — dynamic resume by ID */}
+        <Route
+          path="/resume-editor/:resumeId"
+          element={
+            <ProtectedRoute>
+              <ResumeEditor />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/resume-preview/:resumeId"
           element={
             <ProtectedRoute>
               <ResumePreview />

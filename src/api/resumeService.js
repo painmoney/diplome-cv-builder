@@ -57,6 +57,12 @@ const cleanText = (value) => {
 
 // ── Internal helpers ─────────────────────────────────────
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value) {
+  return typeof value === "string" && UUID_RE.test(value.trim());
+}
+
 /**
  * Normalize RPC TABLE result into a plain object.
  * supabase.rpc() with RETURNS TABLE returns an array.
@@ -222,10 +228,13 @@ export async function listUserResumes(userId) {
 /**
  * Load a single resume by its ID.
  * RLS hides foreign resumes → returns null for both nonexistent and foreign.
+ * Returns null for invalid UUID without hitting the database.
  * @param {string} resumeId
  * @returns {Promise<Object|null>} Full loaded resume or null.
  */
 export async function loadResumeById(resumeId) {
+  if (!isValidUuid(resumeId)) return null;
+
   const { data, error } = await supabase
     .from("resumes")
     .select("*")
