@@ -439,9 +439,7 @@ export default function Home() {
                     variant="text"
                     sx={{ mt: 1.5, px: 0 }}
                     onClick={() =>
-                      navigate(
-                        user ? `/resume-preview?template=${t.template}` : "/register"
-                      )
+                      navigate(user ? "/dashboard" : "/register")
                     }
                   >
                     Открыть превью →
@@ -511,7 +509,7 @@ export default function Home() {
                 <Button
                   variant="contained"
                   sx={{ mt: 2 }}
-                  onClick={() => navigate(user ? "/resume-editor" : "/register")}
+                  onClick={() => navigate(user ? "/dashboard" : "/register")}
                 >
                   {user ? "Открыть редактор" : "Начать с шаблона"}
                 </Button>

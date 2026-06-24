@@ -411,7 +411,7 @@ export default function ResumeEditor() {
 
   const currentPreviewPath = queue.resumeId
     ? `/resume-preview/${queue.resumeId}`
-    : "/resume-preview";
+    : "/dashboard";
 
   if (loading) {
     return (

@@ -112,7 +112,7 @@ export default function ResumePreview() {
             message: "Резюме не найдено. Создайте его в редакторе.",
             severity: "info",
           });
-          setTimeout(() => navigate("/resume-editor"), 300);
+          setTimeout(() => navigate("/dashboard"), 300);
           setLoading(false);
           return;
         }
@@ -141,7 +141,7 @@ export default function ResumePreview() {
           message: "Резюме не найдено. Создайте его в редакторе.",
           severity: "info",
         });
-        setTimeout(() => navigate("/resume-editor"), 300);
+        setTimeout(() => navigate("/dashboard"), 300);
       }
     } catch {
       if (generation !== loadGenerationRef.current) return;
@@ -366,7 +366,7 @@ export default function ResumePreview() {
     );
   }
 
-  const editorPath = routeResumeId ? `/resume-editor/${routeResumeId}` : "/resume-editor";
+  const editorPath = routeResumeId ? `/resume-editor/${routeResumeId}` : "/dashboard";
 
   return (
     <Box sx={{ py: 2 }}>

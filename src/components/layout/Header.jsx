@@ -15,8 +15,6 @@ import BrandLogo from "./BrandLogo";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Редактор", path: "/resume-editor" },
-  { label: "Просмотр", path: "/resume-preview" },
 ];
 
 export default function Header() {

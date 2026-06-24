@@ -77,10 +77,9 @@ function renderEditor(route) {
     <MemoryRouter initialEntries={[route]}>
       <Routes>
         <Route path="/resume-editor/:resumeId" element={<ResumeEditor />} />
-        <Route path="/resume-editor" element={<ResumeEditor />} />
-        <Route path="/resume-preview" element={<div />} />
         <Route path="/resume-preview/:resumeId" element={<div />} />
-        <Route path="/dashboard" element={<div />} />
+        <Route path="/dashboard" element={<div data-testid="dashboard-fallback" />} />
+        <Route path="*" element={<div data-testid="not-found-fallback" />} />
       </Routes>
     </MemoryRouter>
   );
@@ -132,16 +131,13 @@ describe("ResumeEditor routing", () => {
     });
   });
 
-  it("legacy: calls loadUserResume", async () => {
-    loadUserResume.mockResolvedValue({
-      id: MOCK_A.resumeId, user_id: "user-1", title: "Legacy",
-      template: "minimalist", revision: 1,
-      data: { profile: { name: "Legacy" }, skills: [], template: "minimalist" },
-    });
+  it("legacy /resume-editor no longer renders editor", async () => {
     renderEditor("/resume-editor");
     await waitFor(() => {
-      expect(loadUserResume).toHaveBeenCalledWith("user-1");
+      expect(screen.queryByRole("heading", { name: /Редактор IT-резюме/ })).not.toBeInTheDocument();
     });
+    expect(loadResumeById).not.toHaveBeenCalled();
+    expect(loadUserResume).not.toHaveBeenCalled();
   });
 
   it("dynamic: shows loading indicator", async () => {

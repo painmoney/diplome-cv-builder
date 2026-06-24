@@ -30,21 +30,14 @@ const MOCK_A = {
   data: { profile: { name: "User A" }, skills: [], template: "minimalist" },
 };
 
-const LEGACY_RESUME = {
-  id: UUID_A, user_id: "user-1", title: "Legacy", template: "minimalist",
-  revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
-  data: { profile: { name: "Legacy" }, skills: [], template: "minimalist" },
-};
-
 function renderPreview(route) {
   return render(
     <MemoryRouter initialEntries={[route]}>
       <Routes>
         <Route path="/resume-preview/:resumeId" element={<ResumePreview />} />
-        <Route path="/resume-preview" element={<ResumePreview />} />
-        <Route path="/resume-editor" element={<div />} />
         <Route path="/resume-editor/:resumeId" element={<div />} />
-        <Route path="/dashboard" element={<div />} />
+        <Route path="/dashboard" element={<div data-testid="dashboard-fallback" />} />
+        <Route path="*" element={<div data-testid="not-found-fallback" />} />
       </Routes>
     </MemoryRouter>
   );
@@ -89,16 +82,13 @@ describe("ResumePreview", () => {
     });
   });
 
-  it("legacy: calls loadUserResume", async () => {
-    loadUserResume.mockResolvedValue(LEGACY_RESUME);
+  it("legacy /resume-preview no longer renders preview", async () => {
     renderPreview("/resume-preview");
-    expect(loadUserResume).toHaveBeenCalledWith("user-1");
-  });
-
-  it("legacy: skips loadResumeById", async () => {
-    loadUserResume.mockResolvedValue(LEGACY_RESUME);
-    renderPreview("/resume-preview");
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: /не найдено/i })).not.toBeInTheDocument();
+    });
     expect(loadResumeById).not.toHaveBeenCalled();
+    expect(loadUserResume).not.toHaveBeenCalled();
   });
 
   it("no write operations", async () => {
