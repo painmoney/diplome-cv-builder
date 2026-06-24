@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
-    "env:check": "node scripts/validate-env.mjs --mode development"
+    "env:check": "node scripts/validate-env.mjs --mode development",
+    "staging:guard": "node scripts/verify-staging-target.mjs",
+    "env:check:staging": "node scripts/validate-env.mjs --mode staging",
+    "dev:staging": "npm run staging:guard && VITE_SUPABASE_URL=https://jerwfvhpoanoukxiyvwq.supabase.co vite --port 5199 --strictPort",
+    "build:staging": "npm run staging:guard && npm run env:check:staging && vite build --mode staging"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
