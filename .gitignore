@@ -11,4 +11,5 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
-supabase/.temp/
+# Supabase CLI local state
+/supabase/.temp/
