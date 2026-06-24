@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { execSync, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import net from "node:net";
 
 // ── Helpers ──────────────────────────────────────────────
@@ -34,7 +34,7 @@ function loadEnv() {
 const env = loadEnv();
 const SUPABASE_URL = env.VITE_SUPABASE_URL;
 const ANON_KEY = env.VITE_SUPABASE_ANON_KEY;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SERVICE_KEY) {
   console.error("BLOCKED: SUPABASE_SERVICE_ROLE_KEY not set");
@@ -51,14 +51,13 @@ function rec(suite, name, status, detail = "") { results.push({ suite, name, sta
 // ── Setup ────────────────────────────────────────────────
 
 let adminClient, clientA, clientB, clientC, clientD;
-let userIdA, userIdB, userIdC, userIdD;
+let userIdA, userIdC;
 
 before(async () => {
   adminClient = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 
-  const ts = Date.now();
   const emails = [`${TEST_PREFIX}-a@t.i`, `${TEST_PREFIX}-b@t.i`, `${TEST_PREFIX}-c@t.i`, `${TEST_PREFIX}-d@t.i`];
   const clients = [];
 
@@ -69,7 +68,7 @@ before(async () => {
     clients.push(createClient(SUPABASE_URL, ANON_KEY));
   }
   [clientA, clientB, clientC, clientD] = clients;
-  [userIdA, userIdB, userIdC, userIdD] = createdUserIds;
+  [userIdA, , userIdC] = createdUserIds;
 
   for (const [c, e] of [[clientA, emails[0]], [clientB, emails[1]], [clientC, emails[2]], [clientD, emails[3]]]) {
     const { error } = await c.auth.signInWithPassword({ email: e, password });
@@ -114,13 +113,13 @@ describe("A. Anon access", () => {
 
 // ── B. Owner create ──────────────────────────────────────
 
-const resumeA = crypto.randomUUID();
-createdResumeIds.push(resumeA);
+const resumeA1 = crypto.randomUUID();
+createdResumeIds.push(resumeA1);
 
 describe("B. Owner create", () => {
   it("creates with full payload", async () => {
     const { data, error } = await clientA.rpc("create_resume_full", {
-      p_resume_id: resumeA, p_title: "Test Resume", p_template: "minimalist",
+      p_resume_id: resumeA1, p_title: "Test Resume", p_template: "minimalist",
       p_data: {
         profile: { name: "Test User" },
         skills: ["React", { name: "JS" }, { name: "CSS", level: 3.7 },
@@ -139,24 +138,24 @@ describe("B. Owner create", () => {
     });
     assert.equal(error, null, error?.message);
     const row = Array.isArray(data) ? data[0] : data;
-    assert.equal(row.out_resume_id, resumeA);
+    assert.equal(row.out_resume_id, resumeA1);
     assert.equal(row.out_revision, 1);
     assert.ok(row.out_updated_at);
     rec("Create", "create success", "PASS");
   });
   it("parent belongs to A", async () => {
-    const { data } = await clientA.from("resumes").select("*").eq("id", resumeA).single();
+    const { data } = await clientA.from("resumes").select("*").eq("id", resumeA1).single();
     assert.equal(data.user_id, userIdA);
     assert.equal(data.revision, 1);
     rec("Create", "ownership", "PASS");
   });
   it("template invariant", async () => {
-    const { data } = await clientA.from("resumes").select("template,data").eq("id", resumeA).single();
+    const { data } = await clientA.from("resumes").select("template,data").eq("id", resumeA1).single();
     assert.equal(data.template, data.data.template);
     rec("Create", "template invariant", "PASS");
   });
   it("projects in JSONB", async () => {
-    const { data } = await clientA.from("resumes").select("data").eq("id", resumeA).single();
+    const { data } = await clientA.from("resumes").select("data").eq("id", resumeA1).single();
     assert.equal(data.data.projects.length, 1);
     assert.equal(data.data.projects[0].name, "Proj");
     rec("Create", "projects in JSONB", "PASS");
@@ -172,23 +171,23 @@ describe("B. Owner create", () => {
 describe("C. Same UUID idempotent retry", () => {
   it("returns success with same metadata", async () => {
     const { data, error } = await clientA.rpc("create_resume_full", {
-      p_resume_id: resumeA, p_title: "DIFFERENT TITLE", p_template: "academic",
+      p_resume_id: resumeA1, p_title: "DIFFERENT TITLE", p_template: "academic",
       p_data: { skills: [{ name: "Vue" }], template: "academic" },
     });
     assert.equal(error, null, `Retry error: ${error?.message}`);
     const row = Array.isArray(data) ? data[0] : data;
-    assert.equal(row.out_resume_id, resumeA, "Same UUID returned");
+    assert.equal(row.out_resume_id, resumeA1, "Same UUID returned");
     assert.equal(row.out_revision, 1, "Revision unchanged");
     rec("Create", "same UUID retry success", "PASS");
   });
   it("payload not overwritten", async () => {
-    const { data } = await clientA.from("resumes").select("title,data").eq("id", resumeA).single();
+    const { data } = await clientA.from("resumes").select("title,data").eq("id", resumeA1).single();
     assert.equal(data.title, "Test Resume", "Title unchanged");
     assert.equal(data.data.skills[0], "React", "Skills unchanged");
     rec("Create", "payload not overwritten", "PASS");
   });
   it("child rows not replaced", async () => {
-    const { data } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA1);
     const react = data.find((r) => r.skill_name === "React");
     assert.ok(react, "Original React skill still present");
     rec("Create", "children not replaced", "PASS");
@@ -199,181 +198,299 @@ describe("C. Same UUID idempotent retry", () => {
 
 describe("D. Child mapping", () => {
   it("skills: bare string → name, level NULL", async () => {
-    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.skill_name === "React")?.level, null);
     rec("Child", "skill bare string", "PASS");
   });
   it("skills: no level → NULL", async () => {
-    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.skill_name === "JS")?.level, null);
     rec("Child", "skill no level", "PASS");
   });
   it("skills: 3.7 → 4", async () => {
-    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.skill_name === "CSS")?.level, 4);
     rec("Child", "skill 3.7→4", "PASS");
   });
   it("skills: 0 → 1", async () => {
-    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.skill_name === "Git")?.level, 1);
     rec("Child", "skill 0→1", "PASS");
   });
   it("skills: 6 → 5", async () => {
-    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.skill_name === "PG")?.level, 5);
     rec("Child", "skill 6→5", "PASS");
   });
   it("skills: invalid → NULL", async () => {
-    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.skill_name === "Bad")?.level, null);
     rec("Child", "skill invalid→NULL", "PASS");
   });
   it("skills: huge → 5", async () => {
-    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name,level").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.skill_name === "Huge")?.level, 5);
     rec("Child", "skill huge→5", "PASS");
   });
   it("skills: blank filtered", async () => {
-    const { data } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA1);
     assert.ok(!data.find((r) => !r.skill_name?.trim()));
     assert.ok(data.length >= 7);
     rec("Child", "skill blank filtered", "PASS");
   });
   it("education: year fallback", async () => {
-    const { data } = await clientA.from("education").select("institution,years").eq("resume_id", resumeA);
+    const { data } = await clientA.from("education").select("institution,years").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.institution === "MIT")?.years, "2024");
     rec("Child", "edu year fallback", "PASS");
   });
   it("education: trimmed", async () => {
-    const { data } = await clientA.from("education").select("institution,degree").eq("resume_id", resumeA);
+    const { data } = await clientA.from("education").select("institution,degree").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.institution === "Stanford")?.degree, "MS");
     rec("Child", "edu trimmed", "PASS");
   });
   it("education: empty filtered", async () => {
-    const { data } = await clientA.from("education").select("institution").eq("resume_id", resumeA);
+    const { data } = await clientA.from("education").select("institution").eq("resume_id", resumeA1);
     assert.ok(!data.find((r) => r.institution === ""));
     rec("Child", "edu empty filtered", "PASS");
   });
   it("experience: empty position → Не указано", async () => {
-    const { data } = await clientA.from("experience").select("company,position").eq("resume_id", resumeA);
+    const { data } = await clientA.from("experience").select("company,position").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.company === "Google")?.position, "Не указано");
     rec("Child", "exp empty pos", "PASS");
   });
   it("experience: trimmed", async () => {
-    const { data } = await clientA.from("experience").select("company").eq("resume_id", resumeA);
+    const { data } = await clientA.from("experience").select("company").eq("resume_id", resumeA1);
     assert.ok(data.find((r) => r.company === "Meta"));
     rec("Child", "exp trimmed", "PASS");
   });
   it("experience: empty filtered", async () => {
-    const { data } = await clientA.from("experience").select("company").eq("resume_id", resumeA);
+    const { data } = await clientA.from("experience").select("company").eq("resume_id", resumeA1);
     assert.ok(!data.find((r) => r.company === ""));
     rec("Child", "exp empty filtered", "PASS");
   });
   it("github: stars 42", async () => {
-    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA);
+    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.project_name === "r1")?.stars, 42);
     rec("Child", "gh 42", "PASS");
   });
   it("github: stars -1", async () => {
-    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA);
+    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.project_name === "r2")?.stars, -1);
     rec("Child", "gh -1", "PASS");
   });
   it("github: 3.7→4", async () => {
-    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA);
+    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.project_name === "r3")?.stars, 4);
     rec("Child", "gh 3.7→4", "PASS");
   });
   it("github: invalid→0", async () => {
-    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA);
+    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.project_name === "r4")?.stars, 0);
     rec("Child", "gh invalid→0", "PASS");
   });
   it("github: huge→0", async () => {
-    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA);
+    const { data } = await clientA.from("github_projects").select("project_name,stars").eq("resume_id", resumeA1);
     assert.equal(data.find((r) => r.project_name === "r5")?.stars, 0);
     rec("Child", "gh huge→0", "PASS");
   });
   it("github: empty filtered", async () => {
-    const { data } = await clientA.from("github_projects").select("project_name").eq("resume_id", resumeA);
+    const { data } = await clientA.from("github_projects").select("project_name").eq("resume_id", resumeA1);
     assert.ok(!data.find((r) => r.project_name === ""));
     rec("Child", "gh empty filtered", "PASS");
   });
 });
 
-// ── E. Different UUID → P1003 ────────────────────────────
+// ── E. Multi-resume: same user creates A1 + A2 ──────────
 
-describe("E. Different UUID P1003", () => {
-  it("returns P1003", async () => {
-    const { error } = await clientA.rpc("create_resume_full", {
-      p_resume_id: crypto.randomUUID(), p_title: "X", p_template: "minimalist", p_data: { skills: [] },
+const resumeA2 = crypto.randomUUID();
+createdResumeIds.push(resumeA2);
+
+describe("E. Multi-resume same user", () => {
+  it("creates A2 with different UUID", async () => {
+    const { data, error } = await clientA.rpc("create_resume_full", {
+      p_resume_id: resumeA2, p_title: "Resume A2", p_template: "academic",
+      p_data: {
+        profile: { name: "User A2" },
+        skills: [{ name: "Python" }, { name: "Go" }],
+        education: [{ institution: "Oxford", degree: "PhD" }],
+        experience: [{ company: "Amazon", position: "SDE", period: "2021-2024" }],
+        github: [{ name: "proj-a2", stars: "10" }],
+        projects: [{ id: "pa2", name: "A2 Project", description: "Second resume project" }],
+        template: "academic",
+      },
     });
-    assert.equal(error?.code, "P1003");
-    rec("Create", "different UUID P1003", "PASS");
+    assert.equal(error, null, error?.message);
+    const row = Array.isArray(data) ? data[0] : data;
+    assert.equal(row.out_resume_id, resumeA2);
+    assert.equal(row.out_revision, 1);
+    rec("MultiResume", "A2 create success", "PASS");
   });
-  it("no extra row", async () => {
+  it("A1 and A2 have different UUIDs", async () => {
+    assert.notEqual(resumeA1, resumeA2);
+    rec("MultiResume", "UUIDs differ", "PASS");
+  });
+  it("user A has exactly 2 resumes", async () => {
     const { data } = await clientA.from("resumes").select("id").eq("user_id", userIdA);
-    assert.equal(data.length, 1);
-    rec("Create", "no extra row", "PASS");
+    assert.equal(data.length, 2);
+    rec("MultiResume", "user has 2 resumes", "PASS");
   });
 });
 
-// ── F. Valid update ──────────────────────────────────────
+// ── F. Data independence A1 vs A2 ────────────────────────
 
-describe("F. Valid update", () => {
-  it("increments revision", async () => {
+describe("F. Data independence A1 vs A2", () => {
+  it("A1 has its own title and template", async () => {
+    const { data } = await clientA.from("resumes").select("title,template").eq("id", resumeA1).single();
+    assert.equal(data.title, "Test Resume");
+    assert.equal(data.template, "minimalist");
+    rec("Independence", "A1 title/template", "PASS");
+  });
+  it("A2 has its own title and template", async () => {
+    const { data } = await clientA.from("resumes").select("title,template").eq("id", resumeA2).single();
+    assert.equal(data.title, "Resume A2");
+    assert.equal(data.template, "academic");
+    rec("Independence", "A2 title/template", "PASS");
+  });
+  it("A1 profile name is Test User", async () => {
+    const { data } = await clientA.from("resumes").select("data").eq("id", resumeA1).single();
+    assert.equal(data.data.profile.name, "Test User");
+    rec("Independence", "A1 profile", "PASS");
+  });
+  it("A2 profile name is User A2", async () => {
+    const { data } = await clientA.from("resumes").select("data").eq("id", resumeA2).single();
+    assert.equal(data.data.profile.name, "User A2");
+    rec("Independence", "A2 profile", "PASS");
+  });
+  it("A1 skills differ from A2", async () => {
+    const { data: s1 } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA1);
+    const { data: s2 } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA2);
+    const names1 = s1.map((s) => s.skill_name).sort();
+    const names2 = s2.map((s) => s.skill_name).sort();
+    assert.notDeepEqual(names1, names2);
+    assert.ok(names1.includes("React"));
+    assert.ok(names2.includes("Python"));
+    rec("Independence", "skills differ", "PASS");
+  });
+  it("A1 experience differs from A2", async () => {
+    const { data: e1 } = await clientA.from("experience").select("company").eq("resume_id", resumeA1);
+    const { data: e2 } = await clientA.from("experience").select("company").eq("resume_id", resumeA2);
+    assert.ok(e1.find((r) => r.company === "Google"));
+    assert.ok(e2.find((r) => r.company === "Amazon"));
+    assert.notDeepEqual(e1.map((r) => r.company).sort(), e2.map((r) => r.company).sort());
+    rec("Independence", "experience differs", "PASS");
+  });
+  it("A1 github projects differ from A2", async () => {
+    const { data: g1 } = await clientA.from("github_projects").select("project_name").eq("resume_id", resumeA1);
+    const { data: g2 } = await clientA.from("github_projects").select("project_name").eq("resume_id", resumeA2);
+    assert.ok(g1.find((r) => r.project_name === "r1"));
+    assert.ok(g2.find((r) => r.project_name === "proj-a2"));
+    rec("Independence", "github differs", "PASS");
+  });
+  it("A1 manual projects in JSONB differ from A2", async () => {
+    const { data: d1 } = await clientA.from("resumes").select("data").eq("id", resumeA1).single();
+    const { data: d2 } = await clientA.from("resumes").select("data").eq("id", resumeA2).single();
+    assert.equal(d1.data.projects[0].name, "Proj");
+    assert.equal(d2.data.projects[0].name, "A2 Project");
+    rec("Independence", "manual projects differ", "PASS");
+  });
+});
+
+// ── G. Save A1 leaves A2 unchanged ──────────────────────
+
+describe("G. Save A1 leaves A2 unchanged", () => {
+  it("save A1 increments revision", async () => {
     const { data, error } = await clientA.rpc("save_resume_full", {
-      p_resume_id: resumeA, p_title: "Updated", p_template: "academic",
-      p_data: { skills: [{ name: "R" }, { name: "V" }], education: [{ institution: "MIT" }], template: "academic" },
+      p_resume_id: resumeA1, p_title: "Updated A1", p_template: "minimalist",
+      p_data: {
+        profile: { name: "Updated User" },
+        skills: [{ name: "React" }, { name: "TypeScript" }],
+        education: [{ institution: "MIT" }],
+        experience: [{ company: "Google", position: "Senior Dev" }],
+        github: [{ name: "r1", stars: "42" }],
+        projects: [{ id: "p1", name: "Proj Updated", description: "Updated" }],
+        template: "minimalist",
+      },
       p_expected_revision: 1,
     });
     assert.equal(error, null, error?.message);
     assert.equal((Array.isArray(data) ? data[0] : data).out_revision, 2);
+    rec("SaveIsolation", "A1 revision 2", "PASS");
+  });
+  it("A2 revision remains 1", async () => {
+    const { data } = await clientA.from("resumes").select("revision").eq("id", resumeA2).single();
+    assert.equal(data.revision, 1);
+    rec("SaveIsolation", "A2 revision 1", "PASS");
+  });
+  it("A2 payload unchanged", async () => {
+    const { data } = await clientA.from("resumes").select("title,data").eq("id", resumeA2).single();
+    assert.equal(data.title, "Resume A2");
+    assert.equal(data.data.profile.name, "User A2");
+    rec("SaveIsolation", "A2 payload unchanged", "PASS");
+  });
+  it("A2 children unchanged", async () => {
+    const { data } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA2);
+    assert.ok(data.find((r) => r.skill_name === "Python"));
+    assert.ok(data.find((r) => r.skill_name === "Go"));
+    rec("SaveIsolation", "A2 children unchanged", "PASS");
+  });
+});
+
+// ── H. Valid update (on A1) ──────────────────────────────
+
+describe("H. Valid update", () => {
+  it("increments revision", async () => {
+    const { data, error } = await clientA.rpc("save_resume_full", {
+      p_resume_id: resumeA1, p_title: "Updated", p_template: "academic",
+      p_data: { skills: [{ name: "R" }, { name: "V" }], education: [{ institution: "MIT" }], template: "academic" },
+      p_expected_revision: 2,
+    });
+    assert.equal(error, null, error?.message);
+    assert.equal((Array.isArray(data) ? data[0] : data).out_revision, 3);
     rec("Update", "revision incremented", "PASS");
   });
   it("data matches", async () => {
-    const { data } = await clientA.from("resumes").select("title,template,data,revision").eq("id", resumeA).single();
+    const { data } = await clientA.from("resumes").select("title,template,data,revision").eq("id", resumeA1).single();
     assert.equal(data.title, "Updated");
     assert.equal(data.template, "academic");
-    assert.equal(data.revision, 2);
+    assert.equal(data.revision, 3);
     assert.equal(data.data.skills.length, 2);
     rec("Update", "data matches", "PASS");
   });
   it("children updated", async () => {
-    const { data: s } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA);
+    const { data: s } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA1);
     assert.equal(s.length, 2);
-    const { data: e } = await clientA.from("education").select("institution").eq("resume_id", resumeA);
+    const { data: e } = await clientA.from("education").select("institution").eq("resume_id", resumeA1);
     assert.equal(e.length, 1);
     assert.equal(e[0].institution, "MIT");
     rec("Update", "children updated", "PASS");
   });
 });
 
-// ── G. Stale revision ────────────────────────────────────
+// ── I. Stale revision ────────────────────────────────────
 
-describe("G. Stale revision", () => {
+describe("I. Stale revision", () => {
   it("P1005", async () => {
     const { error } = await clientA.rpc("save_resume_full", {
-      p_resume_id: resumeA, p_title: "X", p_template: "minimalist",
+      p_resume_id: resumeA1, p_title: "X", p_template: "minimalist",
       p_data: { skills: [] }, p_expected_revision: 1,
     });
     assert.equal(error?.code, "P1005");
     rec("Update", "P1005 stale", "PASS");
   });
   it("data unchanged", async () => {
-    const { data } = await clientA.from("resumes").select("title,revision").eq("id", resumeA).single();
+    const { data } = await clientA.from("resumes").select("title,revision").eq("id", resumeA1).single();
     assert.equal(data.title, "Updated");
-    assert.equal(data.revision, 2);
+    assert.equal(data.revision, 3);
     rec("Update", "data unchanged", "PASS");
   });
 });
 
-// ── H. Foreign resume ────────────────────────────────────
+// ── J. Foreign resume ────────────────────────────────────
 
-describe("H. Foreign resume", () => {
+describe("J. Foreign resume", () => {
   it("P1004", async () => {
     const { error } = await clientB.rpc("save_resume_full", {
-      p_resume_id: resumeA, p_title: "Hijack", p_template: "minimalist",
+      p_resume_id: resumeA1, p_title: "Hijack", p_template: "minimalist",
       p_data: { skills: [] }, p_expected_revision: 1,
     });
     assert.equal(error?.code, "P1004");
@@ -381,9 +498,9 @@ describe("H. Foreign resume", () => {
   });
 });
 
-// ── I. Nonexistent ───────────────────────────────────────
+// ── K. Nonexistent ───────────────────────────────────────
 
-describe("I. Nonexistent", () => {
+describe("K. Nonexistent", () => {
   it("P1004", async () => {
     const { error } = await clientB.rpc("save_resume_full", {
       p_resume_id: crypto.randomUUID(), p_title: "X", p_template: "minimalist",
@@ -394,41 +511,41 @@ describe("I. Nonexistent", () => {
   });
 });
 
-// ── J. Invalid payload ───────────────────────────────────
+// ── L. Invalid payload ───────────────────────────────────
 
-describe("J. Invalid payload", () => {
+describe("L. Invalid payload", () => {
   it("P1002", async () => {
     const { error } = await clientA.rpc("save_resume_full", {
-      p_resume_id: resumeA, p_title: "X", p_template: "minimalist",
-      p_data: { skills: { not: "array" } }, p_expected_revision: 2,
+      p_resume_id: resumeA1, p_title: "X", p_template: "minimalist",
+      p_data: { skills: { not: "array" } }, p_expected_revision: 3,
     });
     assert.equal(error?.code, "P1002");
     rec("Validation", "P1002 invalid", "PASS");
   });
   it("revision unchanged", async () => {
-    const { data } = await clientA.from("resumes").select("revision").eq("id", resumeA).single();
-    assert.equal(data.revision, 2);
+    const { data } = await clientA.from("resumes").select("revision").eq("id", resumeA1).single();
+    assert.equal(data.revision, 3);
     rec("Validation", "revision unchanged", "PASS");
   });
   it("children unchanged", async () => {
-    const { data } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA);
+    const { data } = await clientA.from("skills").select("skill_name").eq("resume_id", resumeA1);
     assert.equal(data.length, 2);
     rec("Validation", "children unchanged", "PASS");
   });
 });
 
-// ── K. Concurrent saves ──────────────────────────────────
+// ── M. Concurrent saves ──────────────────────────────────
 
-describe("K. Concurrent saves", () => {
+describe("M. Concurrent saves", () => {
   it("one wins, one P1005", async () => {
     const res = await Promise.allSettled([
       clientA.rpc("save_resume_full", {
-        p_resume_id: resumeA, p_title: "A", p_template: "minimalist",
-        p_data: { skills: [{ name: "R" }], template: "minimalist" }, p_expected_revision: 2,
+        p_resume_id: resumeA1, p_title: "A", p_template: "minimalist",
+        p_data: { skills: [{ name: "R" }], template: "minimalist" }, p_expected_revision: 3,
       }),
       clientA.rpc("save_resume_full", {
-        p_resume_id: resumeA, p_title: "B", p_template: "minimalist",
-        p_data: { skills: [{ name: "V" }], template: "minimalist" }, p_expected_revision: 2,
+        p_resume_id: resumeA1, p_title: "B", p_template: "minimalist",
+        p_data: { skills: [{ name: "V" }], template: "minimalist" }, p_expected_revision: 3,
       }),
     ]);
     let ok = 0, conflict = 0;
@@ -438,15 +555,15 @@ describe("K. Concurrent saves", () => {
     }
     assert.equal(ok, 1);
     assert.equal(conflict, 1);
-    const { data } = await clientA.from("resumes").select("revision").eq("id", resumeA).single();
-    assert.equal(data.revision, 3);
+    const { data } = await clientA.from("resumes").select("revision").eq("id", resumeA1).single();
+    assert.equal(data.revision, 4);
     rec("Concurrency", "concurrent saves", "PASS");
   });
 });
 
-// ── L. Concurrent create same UUID ───────────────────────
+// ── N. Concurrent create same UUID ───────────────────────
 
-describe("L. Concurrent create same UUID", () => {
+describe("N. Concurrent create same UUID", () => {
   it("one row, idempotent", async () => {
     const id = crypto.randomUUID();
     createdResumeIds.push(id);
@@ -465,44 +582,117 @@ describe("L. Concurrent create same UUID", () => {
   });
 });
 
-// ── M. Concurrent create different UUIDs ─────────────────
+// ── O. Concurrent create different UUIDs (both succeed) ──
 
-describe("M. Concurrent create different UUIDs", () => {
-  it("one resume per user", async () => {
-    const [id1, id2] = [crypto.randomUUID(), crypto.randomUUID()];
-    createdResumeIds.push(id1, id2);
+const resumeConc1 = crypto.randomUUID();
+const resumeConc2 = crypto.randomUUID();
+createdResumeIds.push(resumeConc1, resumeConc2);
+
+describe("O. Concurrent create different UUIDs", () => {
+  it("both succeed", async () => {
     const res = await Promise.allSettled([
-      clientD.rpc("create_resume_full", {
-        p_resume_id: id1, p_title: "D1", p_template: "minimalist", p_data: { skills: [] },
+      clientC.rpc("create_resume_full", {
+        p_resume_id: resumeConc1, p_title: "Conc1", p_template: "minimalist", p_data: { skills: [] },
       }),
-      clientD.rpc("create_resume_full", {
-        p_resume_id: id2, p_title: "D2", p_template: "minimalist", p_data: { skills: [] },
+      clientC.rpc("create_resume_full", {
+        p_resume_id: resumeConc2, p_title: "Conc2", p_template: "minimalist", p_data: { skills: [] },
       }),
     ]);
-    let p1003 = 0;
-    for (const r of res) { if (r.value?.error?.code === "P1003") p1003++; }
-    assert.equal(p1003, 1);
-    const { data } = await clientD.from("resumes").select("id").eq("user_id", userIdD);
-    assert.equal(data.length, 1);
-    rec("Concurrency", "diff UUID race", "PASS");
+    let ok = 0;
+    for (const r of res) {
+      if (!r.value?.error) ok++;
+    }
+    assert.equal(ok, 2, "Both concurrent creates should succeed");
+    rec("Concurrency", "diff UUID both succeed", "PASS");
+  });
+  it("user C has 3 resumes (same UUID race + 2 concurrent)", async () => {
+    const { data } = await clientC.from("resumes").select("id").eq("user_id", userIdC);
+    assert.equal(data.length, 3);
+    rec("Concurrency", "user C has 3 resumes", "PASS");
+  });
+  it("all revision = 1", async () => {
+    const { data } = await clientC.from("resumes").select("id,revision").eq("user_id", userIdC);
+    for (const r of data) {
+      assert.equal(r.revision, 1, `resume ${r.id} revision should be 1`);
+    }
+    rec("Concurrency", "all revision 1", "PASS");
   });
 });
 
-// ── N. Profile isolation ─────────────────────────────────
+// ── P. Per-resume revision conflict ─────────────────────
 
-describe("N. Profile isolation", () => {
+describe("P. Per-resume revision conflict", () => {
+  it("save A1 with stale revision → P1005", async () => {
+    const { error } = await clientA.rpc("save_resume_full", {
+      p_resume_id: resumeA1, p_title: "Stale", p_template: "minimalist",
+      p_data: { skills: [] }, p_expected_revision: 1,
+    });
+    assert.equal(error?.code, "P1005");
+    rec("RevisionConflict", "stale A1 P1005", "PASS");
+  });
+  it("A2 unaffected", async () => {
+    const { data } = await clientA.from("resumes").select("revision").eq("id", resumeA2).single();
+    assert.equal(data.revision, 1);
+    rec("RevisionConflict", "A2 unaffected", "PASS");
+  });
+});
+
+// ── Q. Cross-user isolation ─────────────────────────────
+
+describe("Q. Cross-user isolation", () => {
+  it("B cannot read A1 via RLS (0 rows)", async () => {
+    const { data } = await clientB.from("resumes").select("id").eq("id", resumeA1);
+    assert.equal(data.length, 0);
+    rec("Isolation", "B cannot read A1", "PASS");
+  });
+  it("B cannot read A2 via RLS (0 rows)", async () => {
+    const { data } = await clientB.from("resumes").select("id").eq("id", resumeA2);
+    assert.equal(data.length, 0);
+    rec("Isolation", "B cannot read A2", "PASS");
+  });
+  it("B save A1 → P1004", async () => {
+    const { error } = await clientB.rpc("save_resume_full", {
+      p_resume_id: resumeA1, p_title: "Hijack", p_template: "minimalist",
+      p_data: { skills: [] }, p_expected_revision: 1,
+    });
+    assert.equal(error?.code, "P1004");
+    rec("Isolation", "B save A1 P1004", "PASS");
+  });
+  it("B save A2 → P1004", async () => {
+    const { error } = await clientB.rpc("save_resume_full", {
+      p_resume_id: resumeA2, p_title: "Hijack", p_template: "minimalist",
+      p_data: { skills: [] }, p_expected_revision: 1,
+    });
+    assert.equal(error?.code, "P1004");
+    rec("Isolation", "B save A2 P1004", "PASS");
+  });
+  it("B delete A1 via RLS (0 rows affected)", async () => {
+    const { count } = await clientB.from("resumes").delete().eq("id", resumeA1);
+    assert.ok(count === 0 || count === null, `Expected 0 or null, got ${count}`);
+    rec("Isolation", "B delete A1 0 rows", "PASS");
+  });
+  it("B delete A2 via RLS (0 rows affected)", async () => {
+    const { count } = await clientB.from("resumes").delete().eq("id", resumeA2);
+    assert.ok(count === 0 || count === null, `Expected 0 or null, got ${count}`);
+    rec("Isolation", "B delete A2 0 rows", "PASS");
+  });
+});
+
+// ── R. Profile isolation ─────────────────────────────────
+
+describe("R. Profile isolation", () => {
   it("JSONB profile != profiles table", async () => {
     await clientA.from("profiles").upsert(
       { user_id: userIdA, full_name: "MARKER", updated_at: new Date().toISOString() },
       { onConflict: "user_id" }
     );
     const { error } = await clientA.rpc("save_resume_full", {
-      p_resume_id: resumeA, p_title: "X", p_template: "minimalist",
+      p_resume_id: resumeA1, p_title: "X", p_template: "minimalist",
       p_data: { profile: { name: "Other" }, skills: [], template: "minimalist" },
-      p_expected_revision: 3,
+      p_expected_revision: 4,
     });
     assert.equal(error, null, error?.message);
-    const { data: r } = await clientA.from("resumes").select("data").eq("id", resumeA).single();
+    const { data: r } = await clientA.from("resumes").select("data").eq("id", resumeA1).single();
     assert.equal(r.data.profile.name, "Other");
     const { data: p } = await clientA.from("profiles").select("full_name").eq("user_id", userIdA).single();
     assert.equal(p.full_name, "MARKER");
@@ -510,17 +700,17 @@ describe("N. Profile isolation", () => {
   });
 });
 
-// ── O. Atomic rollback ───────────────────────────────────
+// ── S. Atomic rollback ───────────────────────────────────
 
-describe("O. Atomic rollback", () => {
+describe("S. Atomic rollback", () => {
   it("NOT_EXECUTED_NO_SAFE_FAILURE_INJECTION", () => {
     rec("Atomicity", "rollback", "SKIPPED", "No safe failure injection on production schema");
   });
 });
 
-// ── Dev server smoke ─────────────────────────────────────
+// ── T. Dev server smoke ──────────────────────────────────
 
-describe("P. Dev server smoke", () => {
+describe("T. Dev server smoke", () => {
   it("starts, responds 200, stops cleanly", async () => {
     const proc = spawn("node", ["node_modules/.bin/vite", "--port", "5199", "--strictPort"], {
       cwd: process.cwd(), stdio: "pipe", env: { ...process.env },
