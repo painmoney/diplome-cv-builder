@@ -161,7 +161,7 @@ export class SaveQueue {
 
   initFromLoad(loadedResume) {
     if (loadedResume) {
-      this.resumeId = loadedResume.id;
+      this.resumeId = loadedResume.resumeId;
       this.revision = loadedResume.revision;
     } else {
       this.resumeId = crypto.randomUUID();

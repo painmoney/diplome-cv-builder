@@ -278,9 +278,9 @@ describe("SaveQueue: enqueue while stopped", () => {
 });
 
 describe("SaveQueue: initFromLoad", () => {
-  it("existing resume sets id and revision", () => {
+  it("existing resume sets resumeId and revision from loaded contract", () => {
     const { queue } = createQueue();
-    queue.initFromLoad({ id: "loaded-id", revision: 3 });
+    queue.initFromLoad({ resumeId: "loaded-id", revision: 3 });
     expect(queue.resumeId).toBe("loaded-id");
     expect(queue.revision).toBe(3);
   });
@@ -290,5 +290,20 @@ describe("SaveQueue: initFromLoad", () => {
     queue.initFromLoad(null);
     expect(queue.resumeId).toMatch(/^[\da-f-]{36}$/);
     expect(queue.revision).toBeNull();
+  });
+
+  it("subsequent save passes resumeId to saveResumeFullRpc", async () => {
+    createResumeFullRpc.mockResolvedValue({ resumeId: "r1", revision: 1, updatedAt: "t" });
+    saveResumeFullRpc.mockResolvedValue({ resumeId: "r1", revision: 2, updatedAt: "t2" });
+
+    const { queue } = createQueue();
+    queue.initFromLoad({ resumeId: "loaded-id", revision: 3 });
+
+    queue.enqueue({ resumeId: queue.resumeId, title: "T", data: { template: "minimalist" }, profile: {}, reason: "manual" });
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(saveResumeFullRpc).toHaveBeenCalledWith(
+      expect.objectContaining({ resumeId: "loaded-id", expectedRevision: 3 })
+    );
   });
 });
