@@ -712,7 +712,7 @@ describe("S. Atomic rollback", () => {
 
 describe("T. Dev server smoke", () => {
   it("starts, responds 200, stops cleanly", async () => {
-    const proc = spawn("node", ["node_modules/.bin/vite", "--port", "5199", "--strictPort"], {
+    const proc = spawn("node", ["node_modules/vite/bin/vite.js", "--port", "5199", "--strictPort"], {
       cwd: process.cwd(), stdio: "pipe", env: { ...process.env },
     });
 
