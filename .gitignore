@@ -13,3 +13,8 @@ dist/
 Thumbs.db
 # Supabase CLI local state
 /supabase/.temp/
+
+# Backup artifacts
+/backups/
+/backup-work/
+*.tar.gz.enc

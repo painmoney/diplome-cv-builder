@@ -1,0 +1,440 @@
+name: Supabase Backup Baseline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - production-development
+    paths:
+      - ".github/workflows/supabase-backup-baseline.yml"
+      - "scripts/backup/**"
+      - "docs/backup/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: primary-backup
+  cancel-in-progress: false
+
+env:
+  PRIMARY_PROJECT_REF: cxnzlarcmszvnobuoskr
+  STAGING_PROJECT_REF: jerwfvhpoanoukxiyvwq
+  BACKUP_DIR: backup-work
+  BUNDLE_NAME: cv-builder-primary
+  SUPABASE_CLI_VERSION: "2.118.0"
+
+jobs:
+  backup:
+    name: Encrypted Primary Backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: production-development
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Authenticate Supabase CLI
+        run: |
+          supabase login --token "$SUPABASE_ACCESS_TOKEN"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Target guard
+        run: |
+          set -Eeuo pipefail
+
+          if [[ "$PRIMARY_DB_URL" == *"jerwfvhpoanoukxiyvwq"* ]]; then
+            echo "::error::BLOCKED_BY_NON_PRIMARY_BACKUP_TARGET — DB URL contains staging ref"
+            exit 1
+          fi
+
+          if [[ "$PRIMARY_SUPABASE_URL" == *"jerwfvhpoanoukxiyvwq"* ]]; then
+            echo "::error::BLOCKED_BY_NON_PRIMARY_BACKUP_TARGET — Supabase URL contains staging ref"
+            exit 1
+          fi
+
+          ACTUAL_DB_HOST=$(echo "$PRIMARY_DB_URL" | grep -oP '[a-z]{20}' | head -1)
+          if [[ "$ACTUAL_DB_HOST" != "$PRIMARY_PROJECT_REF" ]]; then
+            echo "::error::BLOCKED_BY_NON_PRIMARY_BACKUP_TARGET — DB host does not match primary project ref"
+            exit 1
+          fi
+
+          echo "✅ Target guard passed — primary ref: $PRIMARY_PROJECT_REF"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+          PRIMARY_SUPABASE_URL: ${{ secrets.PRIMARY_SUPABASE_URL }}
+
+      - name: Verify migration history and DB info
+        run: |
+          set -Eeuo pipefail
+
+          echo "--- Database info ---"
+          psql "$PRIMARY_DB_URL" -c "SELECT current_database(), current_user, version();" --no-psqlrc -t -A
+
+          echo "--- Migration history ---"
+          MIGRATION_COUNT=$(psql "$PRIMARY_DB_URL" -c "SELECT count(*) FROM supabase_migrations.schema_migrations;" --no-psqlrc -t -A)
+          echo "Migration count: $MIGRATION_COUNT"
+
+          if [[ "$MIGRATION_COUNT" -ne 13 ]]; then
+            echo "::error::Expected 13 migrations, got $MIGRATION_COUNT"
+            exit 1
+          fi
+
+          echo "--- Migration versions ---"
+          psql "$PRIMARY_DB_URL" -c "SELECT version FROM supabase_migrations.schema_migrations ORDER BY version;" --no-psqlrc -t -A
+
+          echo "--- Public tables ---"
+          TABLE_COUNT=$(psql "$PRIMARY_DB_URL" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE';" --no-psqlrc -t -A)
+          echo "Public table count: $TABLE_COUNT"
+
+          if [[ "$TABLE_COUNT" -ne 7 ]]; then
+            echo "::error::Expected 7 public tables, got $TABLE_COUNT"
+            exit 1
+          fi
+
+          echo "✅ Migration history verified: $MIGRATION_COUNT versions, $TABLE_COUNT public tables"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Prepare backup directories
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$BACKUP_DIR/database"
+          mkdir -p "$BACKUP_DIR/storage/files"
+          mkdir -p "$BACKUP_DIR/project"
+          mkdir -p "$BACKUP_DIR/metadata"
+          echo "Directories created"
+
+      - name: Database dump — roles
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/roles.sql" --role-only
+          echo "roles.sql: $(wc -c < "$BACKUP_DIR/database/roles.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — public schema
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/public_schema.sql" --schema public
+          echo "public_schema.sql: $(wc -c < "$BACKUP_DIR/database/public_schema.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — public data
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/public_data.sql" --schema public --data-only --use-copy
+          echo "public_data.sql: $(wc -c < "$BACKUP_DIR/database/public_data.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — migration history schema
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/migration_history_schema.sql" --schema supabase_migrations
+          echo "migration_history_schema.sql: $(wc -c < "$BACKUP_DIR/database/migration_history_schema.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — migration history data
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/migration_history_data.sql" --schema supabase_migrations --data-only --use-copy
+          echo "migration_history_data.sql: $(wc -c < "$BACKUP_DIR/database/migration_history_data.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — auth schema
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/auth_schema.sql" --schema auth
+          echo "auth_schema.sql: $(wc -c < "$BACKUP_DIR/database/auth_schema.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — auth data
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/auth_data.sql" --schema auth --data-only --use-copy
+          echo "auth_data.sql: $(wc -c < "$BACKUP_DIR/database/auth_data.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — storage schema
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/storage_schema.sql" --schema storage
+          echo "storage_schema.sql: $(wc -c < "$BACKUP_DIR/database/storage_schema.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Database dump — storage data
+        run: |
+          set -Eeuo pipefail
+          supabase db dump --db-url "$PRIMARY_DB_URL" --file "$BACKUP_DIR/database/storage_data.sql" --schema storage --data-only --use-copy --exclude storage.buckets_vectors --exclude storage.vector_indexes
+          echo "storage_data.sql: $(wc -c < "$BACKUP_DIR/database/storage_data.sql") bytes"
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
+      - name: Verify SQL dumps
+        run: |
+          set -Eeuo pipefail
+
+          REQUIRED_FILES=(
+            "$BACKUP_DIR/database/roles.sql"
+            "$BACKUP_DIR/database/public_schema.sql"
+            "$BACKUP_DIR/database/public_data.sql"
+            "$BACKUP_DIR/database/migration_history_schema.sql"
+            "$BACKUP_DIR/database/migration_history_data.sql"
+            "$BACKUP_DIR/database/auth_schema.sql"
+            "$BACKUP_DIR/database/auth_data.sql"
+            "$BACKUP_DIR/database/storage_schema.sql"
+            "$BACKUP_DIR/database/storage_data.sql"
+          )
+
+          for f in "${REQUIRED_FILES[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "::error::Missing file: $f"
+              exit 1
+            fi
+            SIZE=$(wc -c < "$f")
+            if [[ "$SIZE" -eq 0 ]]; then
+              echo "::error::Empty file: $f"
+              exit 1
+            fi
+            echo "✅ $f — $SIZE bytes"
+          done
+
+          PUBLIC_TABLES=$(grep -c "CREATE TABLE" "$BACKUP_DIR/database/public_schema.sql" || true)
+          echo "Public tables in dump: $PUBLIC_TABLES"
+
+          MIGRATION_COUNT=$(grep -c "INSERT" "$BACKUP_DIR/database/migration_history_data.sql" || true)
+          echo "Migration INSERT count: $MIGRATION_COUNT"
+
+          if grep -q "jerwfvhpoanoukxiyvwq" "$BACKUP_DIR/database/"*.sql; then
+            echo "::error::Staging ref found in SQL dumps!"
+            exit 1
+          fi
+
+          echo "✅ All SQL dumps verified"
+
+      - name: Download storage files
+        run: |
+          set -Eeuo pipefail
+          node scripts/backup/download-storage.mjs
+        env:
+          PRIMARY_SUPABASE_URL: ${{ secrets.PRIMARY_SUPABASE_URL }}
+          PRIMARY_SERVICE_ROLE_KEY: ${{ secrets.PRIMARY_SERVICE_ROLE_KEY }}
+
+      - name: Capture project/config snapshot
+        run: |
+          set -Eeuo pipefail
+
+          cp supabase/config.toml "$BACKUP_DIR/project/supabase-config.toml"
+          mkdir -p "$BACKUP_DIR/project/supabase/migrations"
+          cp -r supabase/migrations/* "$BACKUP_DIR/project/supabase/migrations/"
+
+          if [[ -d supabase/functions ]]; then
+            mkdir -p "$BACKUP_DIR/project/supabase/functions"
+            cp -r supabase/functions/* "$BACKUP_DIR/project/supabase/functions/"
+          fi
+
+          echo "Project snapshot captured"
+          find "$BACKUP_DIR/project" -type f | head -30
+
+      - name: Capture functions inventory
+        run: |
+          set -Eeuo pipefail
+
+          FUNCTIONS_OUTPUT=$(supabase functions list --project-ref "$PRIMARY_PROJECT_REF" 2>&1 || true)
+          echo "$FUNCTIONS_OUTPUT"
+
+          node -e "
+            const lines = \$(cat <<'ENDOFFUNCTIONS'
+          $FUNCTIONS_OUTPUT
+          ENDOFUNCTIONS
+          ).split('\n');
+          const funcs = [];
+          for (const line of lines) {
+            const match = line.match(/^\s*(\S+)\s+(active|inactive)/);
+            if (match) {
+              funcs.push({ name: match[1], status: match[2] });
+            }
+          }
+          require('fs').writeFileSync('$BACKUP_DIR/metadata/functions.json', JSON.stringify({ functions: funcs, raw: lines.filter(l => l.trim()) }, null, 2));
+          "
+          echo "Functions inventory saved"
+
+      - name: Create manifest
+        run: |
+          set -Eeuo pipefail
+          node scripts/backup/create-manifest.mjs
+        env:
+          GIT_SHA: ${{ github.sha }}
+          GIT_REF: ${{ github.ref_name }}
+
+      - name: Generate checksums
+        run: |
+          set -Eeuo pipefail
+
+          cd "$BACKUP_DIR"
+          find . -type f ! -name "checksums.sha256" ! -name "*.enc" -print0 | sort -z | xargs -0 sha256sum > checksums.sha256
+          echo "Checksums generated: $(wc -l < checksums.sha256) files"
+          cat checksums.sha256
+
+      - name: Package and encrypt
+        run: |
+          set -Eeuo pipefail
+
+          cd "$BACKUP_DIR"
+
+          TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          SHORT_SHA=$(echo "$GIT_SHA" | cut -c1-7)
+          ARCHIVE_NAME="${BUNDLE_NAME}-${TIMESTAMP}-${SHORT_SHA}"
+
+          tar -czf "../${ARCHIVE_NAME}.tar.gz" .
+
+          openssl enc \
+            -aes-256-cbc \
+            -salt \
+            -pbkdf2 \
+            -iter 600000 \
+            -in "../${ARCHIVE_NAME}.tar.gz" \
+            -out "../${ARCHIVE_NAME}.tar.gz.enc" \
+            -pass env:BACKUP_ENCRYPTION_PASSPHRASE
+
+          rm "../${ARCHIVE_NAME}.tar.gz"
+
+          ENCRYPTED_SIZE=$(stat -c%s "../${ARCHIVE_NAME}.tar.gz.enc")
+          echo "Encrypted archive: ${ARCHIVE_NAME}.tar.gz.enc — ${ENCRYPTED_SIZE} bytes"
+
+          sha256sum "../${ARCHIVE_NAME}.tar.gz.enc" > "../${ARCHIVE_NAME}.tar.gz.enc.sha256"
+
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
+          echo "ENCRYPTED_SIZE=${ENCRYPTED_SIZE}" >> "$GITHUB_ENV"
+        env:
+          GIT_SHA: ${{ github.sha }}
+
+      - name: Self-verification
+        run: |
+          set -Eeuo pipefail
+
+          cd "$GITHUB_WORKPATH"
+          VERIFY_DIR=$(mktemp -d)
+
+          openssl enc \
+            -aes-256-cbc \
+            -d \
+            -pbkdf2 \
+            -iter 600000 \
+            -in "${ARCHIVE_NAME}.tar.gz.enc" \
+            -out "${VERIFY_DIR}/${ARCHIVE_NAME}.tar.gz" \
+            -pass env:BACKUP_ENCRYPTION_PASSPHRASE
+
+          mkdir -p "${VERIFY_DIR}/bundle"
+          tar -xzf "${VERIFY_DIR}/${ARCHIVE_NAME}.tar.gz" -C "${VERIFY_DIR}/bundle"
+
+          cd "${VERIFY_DIR}/bundle"
+          if sha256sum -c checksums.sha256; then
+            echo "✅ SHA-256 checksums verified"
+          else
+            echo "::error::SHA-256 checksum verification failed"
+            rm -rf "$VERIFY_DIR"
+            exit 1
+          fi
+
+          REQUIRED=(
+            "database/roles.sql"
+            "database/public_schema.sql"
+            "database/public_data.sql"
+            "database/migration_history_schema.sql"
+            "database/migration_history_data.sql"
+            "database/auth_schema.sql"
+            "database/auth_data.sql"
+            "database/storage_schema.sql"
+            "database/storage_data.sql"
+            "storage/buckets.json"
+            "storage/objects-manifest.json"
+            "metadata/manifest.json"
+            "metadata/functions.json"
+            "metadata/checksums.sha256"
+          )
+
+          for f in "${REQUIRED[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "::error::Missing required file in bundle: $f"
+              rm -rf "$VERIFY_DIR"
+              exit 1
+            fi
+          done
+          echo "✅ All required files present"
+
+          MIG_COUNT=$(grep -c "INSERT" database/migration_history_data.sql || true)
+          if [[ "$MIG_COUNT" -ne 13 ]]; then
+            echo "::error::Expected 13 migration INSERTs, got $MIG_COUNT"
+            rm -rf "$VERIFY_DIR"
+            exit 1
+          fi
+          echo "✅ Migration count: 13"
+
+          TABLE_COUNT=$(grep -c "CREATE TABLE" database/public_schema.sql || true)
+          echo "Public tables: $TABLE_COUNT"
+
+          AUTH_EXISTS=$(grep -c "auth.users" database/auth_schema.sql || true)
+          if [[ "$AUTH_EXISTS" -eq 0 ]]; then
+            echo "::error::auth.users not found in auth schema"
+            rm -rf "$VERIFY_DIR"
+            exit 1
+          fi
+          echo "✅ Auth schema contains auth.users"
+
+          if [[ -f storage/buckets.json ]]; then
+            if node -e "
+              const b = JSON.parse(require('fs').readFileSync('storage/buckets.json','utf8'));
+              const names = b.buckets ? b.buckets.map(x=>x.name||x.id) : (Array.isArray(b) ? b.map(x=>x.name||x.id) : []);
+              if (!names.includes('avatars')) { console.error('avatars bucket not found'); process.exit(1); }
+              console.log('✅ avatars bucket found');
+            "; then
+              echo "Bucket verification passed"
+            else
+              echo "::error::avatars bucket not found in buckets.json"
+              rm -rf "$VERIFY_DIR"
+              exit 1
+            fi
+          fi
+
+          rm -rf "$VERIFY_DIR"
+          echo "✅ Self-verification complete — all checks passed"
+
+      - name: Upload encrypted artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cv-builder-primary-baseline-${{ env.ARCHIVE_NAME }}
+          path: |
+            ${{ env.ARCHIVE_NAME }}.tar.gz.enc
+            ${{ env.ARCHIVE_NAME }}.tar.gz.enc.sha256
+            ${{ env.BACKUP_DIR }}/metadata/manifest.json
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Cleanup — remove unencrypted files
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          rm -rf "$BACKUP_DIR"
+          rm -f "${ARCHIVE_NAME}.tar.gz" 2>/dev/null || true
+          echo "Cleanup complete — no unencrypted backup data remains"
