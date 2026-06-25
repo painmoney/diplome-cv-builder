@@ -267,21 +267,25 @@ jobs:
           FUNCTIONS_OUTPUT=$(supabase functions list --project-ref "$PRIMARY_PROJECT_REF" 2>&1 || true)
           echo "$FUNCTIONS_OUTPUT"
 
+          echo "$FUNCTIONS_OUTPUT" > /tmp/functions-raw.txt
+
           node -e "
-            const lines = \$(cat <<'ENDOFFUNCTIONS'
-          $FUNCTIONS_OUTPUT
-          ENDOFUNCTIONS
-          ).split('\n');
-          const funcs = [];
-          for (const line of lines) {
-            const match = line.match(/^\s*(\S+)\s+(active|inactive)/);
-            if (match) {
-              funcs.push({ name: match[1], status: match[2] });
+            const fs = require('fs');
+            const raw = fs.readFileSync('/tmp/functions-raw.txt', 'utf8');
+            const lines = raw.split('\n');
+            const funcs = [];
+            for (const line of lines) {
+              const match = line.match(/^\s*(\S+)\s+(active|inactive)/);
+              if (match) {
+                funcs.push({ name: match[1], status: match[2] });
+              }
             }
-          }
-          require('fs').writeFileSync('$BACKUP_DIR/metadata/functions.json', JSON.stringify({ functions: funcs, raw: lines.filter(l => l.trim()) }, null, 2));
+            fs.writeFileSync('$BACKUP_DIR/metadata/functions.json', JSON.stringify({ functions: funcs, raw: lines.filter(l => l.trim()) }, null, 2));
           "
           echo "Functions inventory saved"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PRIMARY_PROJECT_REF: ${{ env.PRIMARY_PROJECT_REF }}
 
       - name: Create manifest
         run: |
