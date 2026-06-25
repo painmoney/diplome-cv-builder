@@ -192,3 +192,53 @@ unset BACKUP_ENCRYPTION_PASSPHRASE
 - **Storage metadata без файлов недостаточно** — файлы необходимо загрузить отдельно.
 - **Старые JWT могут стать недействительными** при другом JWT secret.
 - **Backup считается полностью доказанным** только после отдельного restore drill.
+
+---
+
+## Автоматизация backup
+
+### Еженедельный schedule
+
+Workflow `supabase-backup-baseline.yml` выполняется автоматически:
+- Расписание: понедельник, 03:17 UTC
+- Триггер: `schedule` + `workflow_dispatch`
+- Push-trigger удалён — обычные коммиты не создают backup artifacts
+
+> **Примечание:** Schedule работает только из default branch (`main`).
+> При текущем default branch `main` schedule выполняется из `main`.
+> Если default branch изменится на `production-development`, schedule продолжит работать.
+
+### Ручной backup перед migration/release
+
+```bash
+npm run backup:trigger-and-sync
+```
+
+Выполняет: dispatch workflow → ожидает SUCCESS → скачивает artifact → проверяет → заменяет local latest.
+
+### Локальная синхронизация
+
+```bash
+npm run backup:sync-latest
+```
+
+Скачивает последний успешный artifact из GitHub и заменяет `C:\cv-builder-backups\latest`.
+
+### Список последних runs
+
+```bash
+npm run backup:list
+```
+
+### Retention
+
+| Где | Сколько |
+|---|---|
+| GitHub artifacts | 2 последних backup |
+| Local `C:\cv-builder-backups\latest` | 1 последний backup |
+| Artifact retention-days | 30 |
+
+### Синхронизация
+
+Scheduled workflow выполняется на GitHub — локальный компьютер может быть выключен.
+После включения запустите `npm run backup:sync-latest` для скачивания последнего backup.

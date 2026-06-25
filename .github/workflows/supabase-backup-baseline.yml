@@ -2,13 +2,8 @@ name: Supabase Backup Baseline
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - production-development
-    paths:
-      - ".github/workflows/supabase-backup-baseline.yml"
-      - "scripts/backup/**"
-      - "docs/backup/**"
+  schedule:
+    - cron: "17 3 * * 1"
 
 permissions:
   contents: read
@@ -475,3 +470,52 @@ jobs:
           rm -rf "$BACKUP_DIR"
           rm -f "${ARCHIVE_NAME}.tar.gz" 2>/dev/null || true
           echo "Cleanup complete — no unencrypted backup data remains"
+
+  rotate-artifacts:
+    name: Rotate Old Artifacts
+    needs: backup
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Rotate backup artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const PREFIX = 'cv-builder-primary-baseline-';
+            const KEEP = 2;
+            let page = 1;
+            let allArtifacts = [];
+            while (true) {
+              const resp = await github.rest.actions.listArtifactsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+                page: page,
+              });
+              allArtifacts.push(...resp.data.artifacts);
+              if (resp.data.artifacts.length < 100) break;
+              page++;
+            }
+            const backupArtifacts = allArtifacts
+              .filter(a => a.name.startsWith(PREFIX) && !a.expired)
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            console.log(`Found ${backupArtifacts.length} backup artifacts`);
+            if (backupArtifacts.length <= KEEP) {
+              console.log('No rotation needed');
+              return;
+            }
+            const toDelete = backupArtifacts.slice(KEEP);
+            for (const art of toDelete) {
+              console.log(`Deleting: ${art.name} (${art.id})`);
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: art.id,
+              });
+            }
+            console.log(`Deleted ${toDelete.length} old artifact(s)`);

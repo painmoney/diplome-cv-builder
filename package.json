@@ -21,7 +21,10 @@
     "db:primary:status": "node scripts/supabase/safe-remote.mjs target-status --target primary",
     "db:primary:migrations": "node scripts/supabase/safe-remote.mjs migration-list --target primary",
     "db:primary:dry-run": "node scripts/supabase/safe-remote.mjs push-dry-run --target primary",
-    "safety:scan": "node scripts/supabase/scan-dangerous-commands.mjs"
+    "safety:scan": "node scripts/supabase/scan-dangerous-commands.mjs",
+    "backup:trigger-and-sync": "node scripts/backup/run-and-sync-backup.mjs",
+    "backup:sync-latest": "node scripts/backup/sync-latest-backup.mjs",
+    "backup:list": "gh run list --workflow supabase-backup-baseline.yml --branch production-development --limit 10"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
