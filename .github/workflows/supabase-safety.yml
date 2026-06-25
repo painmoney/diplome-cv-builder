@@ -41,7 +41,10 @@ jobs:
           TRACKED=$(git ls-files)
           VIOLATIONS=0
           for f in $TRACKED; do
-            if [[ "$f" == *".env"* ]] || [[ "$f" == *"credentials"* ]] || [[ "$f" == *"secret"* ]]; then
+            if [[ "$f" == *".env"* ]] && [[ "$f" != *".env.example" ]] && [[ "$f" != *".env.*.example" ]]; then
+              echo "WARNING: potentially sensitive file tracked: $f"
+              VIOLATIONS=$((VIOLATIONS + 1))
+            elif [[ "$f" == *"credentials"* ]] || [[ "$f" == *"secret"* ]]; then
               echo "WARNING: potentially sensitive file tracked: $f"
               VIOLATIONS=$((VIOLATIONS + 1))
             fi
