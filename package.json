@@ -13,7 +13,15 @@
     "staging:guard": "node scripts/verify-staging-target.mjs",
     "env:check:staging": "node scripts/validate-env.mjs --mode staging",
     "dev:staging": "npm run staging:guard && VITE_SUPABASE_URL=https://jerwfvhpoanoukxiyvwq.supabase.co vite --port 5199 --strictPort",
-    "build:staging": "npm run staging:guard && npm run env:check:staging && vite build --mode staging"
+    "build:staging": "npm run staging:guard && npm run env:check:staging && vite build --mode staging",
+    "db:staging:status": "node scripts/supabase/safe-remote.mjs target-status --target staging",
+    "db:staging:migrations": "node scripts/supabase/safe-remote.mjs migration-list --target staging",
+    "db:staging:dry-run": "node scripts/supabase/safe-remote.mjs push-dry-run --target staging",
+    "db:staging:push": "node scripts/supabase/safe-remote.mjs push-staging --target staging",
+    "db:primary:status": "node scripts/supabase/safe-remote.mjs target-status --target primary",
+    "db:primary:migrations": "node scripts/supabase/safe-remote.mjs migration-list --target primary",
+    "db:primary:dry-run": "node scripts/supabase/safe-remote.mjs push-dry-run --target primary",
+    "safety:scan": "node scripts/supabase/scan-dangerous-commands.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

@@ -49,6 +49,12 @@ export default [
     },
   },
   {
+    files: ["src/**/*.test.{js,jsx}"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ["scripts/**"],
     languageOptions: {
       ecmaVersion: 2022,

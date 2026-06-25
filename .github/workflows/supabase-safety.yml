@@ -1,0 +1,53 @@
+name: Supabase Safety Guards
+
+on:
+  pull_request:
+  push:
+    branches:
+      - production-development
+
+permissions:
+  contents: read
+
+jobs:
+  safety:
+    name: Safety Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Safety tests
+        run: npm test -- --run src/utils/tests/supabase-safety.test.js
+
+      - name: Backup manifest tests
+        run: npm test -- --run src/utils/tests/backup-manifest.test.js
+
+      - name: Dangerous-command scan
+        run: node scripts/supabase/scan-dangerous-commands.mjs
+
+      - name: Secret scan
+        run: |
+          TRACKED=$(git ls-files)
+          VIOLATIONS=0
+          for f in $TRACKED; do
+            if [[ "$f" == *".env"* ]] || [[ "$f" == *"credentials"* ]] || [[ "$f" == *"secret"* ]]; then
+              echo "WARNING: potentially sensitive file tracked: $f"
+              VIOLATIONS=$((VIOLATIONS + 1))
+            fi
+          done
+          if [[ "$VIOLATIONS" -gt 0 ]]; then
+            echo "::error::Found $VIOLATIONS potentially sensitive tracked files"
+            exit 1
+          fi
+          echo "✅ No sensitive tracked files found"

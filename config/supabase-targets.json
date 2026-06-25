@@ -1,0 +1,10 @@
+{
+  "primary": {
+    "projectRef": "cxnzlarcmszvnobuoskr",
+    "remoteWrites": "ci-only"
+  },
+  "staging": {
+    "projectRef": "jerwfvhpoanoukxiyvwq",
+    "remoteWrites": "guarded"
+  }
+}
