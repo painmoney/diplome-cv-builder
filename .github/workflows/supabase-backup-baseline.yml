@@ -287,6 +287,13 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PRIMARY_PROJECT_REF: ${{ env.PRIMARY_PROJECT_REF }}
 
+      - name: Collect database metadata
+        run: |
+          set -Eeuo pipefail
+          node scripts/backup/collect-db-metadata.mjs
+        env:
+          PRIMARY_DB_URL: ${{ secrets.PRIMARY_DB_URL }}
+
       - name: Create manifest
         run: |
           set -Eeuo pipefail
@@ -381,6 +388,7 @@ jobs:
             "metadata/manifest.json"
             "metadata/functions.json"
             "metadata/checksums.sha256"
+            "metadata/database-metadata.json"
           )
 
           for f in "${REQUIRED[@]}"; do
@@ -425,6 +433,24 @@ jobs:
               exit 1
             fi
           fi
+
+          echo "--- Manifest metadata verification ---"
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('${VERIFY_DIR}/bundle/metadata/manifest.json','utf8'));
+            let ok = true;
+            if (m.publicTables.count !== 7) { console.error('FAIL: publicTables.count=' + m.publicTables.count); ok=false; }
+            const expected = ['education','experience','github_projects','manual_projects','profiles','resumes','skills'];
+            const actual = m.publicTables.names.slice().sort();
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) { console.error('FAIL: table names mismatch'); ok=false; }
+            if (m.migrationVersions.count !== 13) { console.error('FAIL: migrationVersions.count=' + m.migrationVersions.count); ok=false; }
+            if (!m.migrationVersions.values.includes('20260625000000')) { console.error('FAIL: recovery version missing'); ok=false; }
+            if (m.restoreDrillStatus !== 'NOT_YET_PERFORMED') { console.error('FAIL: restoreDrillStatus=' + m.restoreDrillStatus); ok=false; }
+            if (m.projectRef !== 'cxnzlarcmszvnobuoskr') { console.error('FAIL: projectRef=' + m.projectRef); ok=false; }
+            if (JSON.stringify(m).includes('jerwfvhpoanoukxiyvwq')) { console.error('FAIL: staging ref in manifest'); ok=false; }
+            if (ok) console.log('✅ Manifest metadata verified');
+            else process.exit(1);
+          "
 
           rm -rf "$VERIFY_DIR"
           echo "✅ Self-verification complete — all checks passed"

@@ -6,6 +6,10 @@ const GIT_SHA = process.env.GIT_SHA || "unknown";
 const GIT_REF = process.env.GIT_REF || "unknown";
 const PROJECT_REF = "cxnzlarcmszvnobuoskr";
 
+const EXPECTED_TABLE_COUNT = 7;
+const EXPECTED_MIGRATION_COUNT = 13;
+const REQUIRED_RECOVERY_VERSION = "20260625000000";
+
 function listFilesRecursive(dir, prefix = "") {
   const entries = readdirSync(dir, { withFileTypes: true });
   const files = [];
@@ -14,43 +18,61 @@ function listFilesRecursive(dir, prefix = "") {
     if (entry.isDirectory()) {
       files.push(...listFilesRecursive(join(dir, entry.name), rel));
     } else {
-      const stat = statSync(join(dir, entry.name));
-      files.push({ path: rel, size: stat.size });
+      const s = statSync(join(dir, entry.name));
+      files.push({ path: rel, size: s.size });
     }
   }
   return files;
 }
 
-function getPublicTableNames() {
+function loadDatabaseMetadata() {
+  const metaPath = join(BACKUP_DIR, "metadata", "database-metadata.json");
+  let raw;
   try {
-    const schemaFile = join(BACKUP_DIR, "database", "public_schema.sql");
-    const content = readFileSync(schemaFile, "utf8");
-    const tables = [];
-    const regex = /CREATE TABLE (?:IF NOT EXISTS )?public\.(\w+)/g;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      tables.push(match[1]);
-    }
-    return tables;
+    raw = readFileSync(metaPath, "utf8");
   } catch {
-    return [];
+    console.error(`FATAL: database-metadata.json not found at ${metaPath}`);
+    process.exit(1);
   }
-}
 
-function getMigrationVersions() {
-  try {
-    const dataFile = join(BACKUP_DIR, "database", "migration_history_data.sql");
-    const content = readFileSync(dataFile, "utf8");
-    const versions = [];
-    const regex = /\((\d{14}),/g;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      versions.push(match[1]);
-    }
-    return versions;
-  } catch {
-    return [];
+  const meta = JSON.parse(raw);
+
+  if (!meta.publicTables || !meta.migrationVersions) {
+    console.error("FATAL: database-metadata.json missing required fields");
+    process.exit(1);
   }
+
+  if (meta.publicTables.count !== EXPECTED_TABLE_COUNT) {
+    console.error(
+      `FATAL: Expected ${EXPECTED_TABLE_COUNT} public tables, got ${meta.publicTables.count}`
+    );
+    process.exit(1);
+  }
+
+  if (meta.migrationVersions.count !== EXPECTED_MIGRATION_COUNT) {
+    console.error(
+      `FATAL: Expected ${EXPECTED_MIGRATION_COUNT} migrations, got ${meta.migrationVersions.count}`
+    );
+    process.exit(1);
+  }
+
+  if (!meta.migrationVersions.values.includes(REQUIRED_RECOVERY_VERSION)) {
+    console.error(
+      `FATAL: Recovery version ${REQUIRED_RECOVERY_VERSION} not found in migration versions`
+    );
+    process.exit(1);
+  }
+
+  const forbidden = ["dbUrl", "password", "secret", "token", "key", "passphrase", "email"];
+  const metaStr = JSON.stringify(meta).toLowerCase();
+  for (const field of forbidden) {
+    if (metaStr.includes(`"${field}"`)) {
+      console.error(`FATAL: metadata contains forbidden field: ${field}`);
+      process.exit(1);
+    }
+  }
+
+  return meta;
 }
 
 function getAuthUserCount() {
@@ -60,7 +82,9 @@ function getAuthUserCount() {
     const match = content.match(/COPY auth\.users .* FROM stdin/);
     if (!match) return 0;
     const section = content.substring(content.indexOf(match[0]));
-    const lines = section.split("\n").filter((l) => l.trim() && !l.startsWith("COPY") && l.trim() !== "\\.");
+    const lines = section
+      .split("\n")
+      .filter((l) => l.trim() && !l.startsWith("COPY") && l.trim() !== "\\.");
     return Math.max(0, lines.length - 1);
   } catch {
     return 0;
@@ -98,8 +122,7 @@ function getFunctionsInfo() {
 
 function main() {
   const timestamp = new Date().toISOString();
-  const publicTables = getPublicTableNames();
-  const migrationVersions = getMigrationVersions();
+  const dbMeta = loadDatabaseMetadata();
   const authUserCount = getAuthUserCount();
   const storageInfo = getStorageInfo();
   const functionsInfo = getFunctionsInfo();
@@ -115,12 +138,13 @@ function main() {
     supabaseCLIVersion: "2.107.0",
     postgresqlServerVersion: "see database info step",
     migrationVersions: {
-      versions: migrationVersions,
-      count: migrationVersions.length,
+      values: dbMeta.migrationVersions.values,
+      count: dbMeta.migrationVersions.count,
     },
     publicTables: {
-      names: publicTables,
-      count: publicTables.length,
+      names: dbMeta.publicTables.names,
+      count: dbMeta.publicTables.count,
+      rowCounts: dbMeta.publicTables.rowCounts,
     },
     auth: {
       userCount: authUserCount,
@@ -137,7 +161,10 @@ function main() {
     bundleFiles: bundleFiles.map((f) => f.path),
   };
 
-  writeFileSync(join(BACKUP_DIR, "metadata", "manifest.json"), JSON.stringify(manifest, null, 2));
+  writeFileSync(
+    join(BACKUP_DIR, "metadata", "manifest.json"),
+    JSON.stringify(manifest, null, 2)
+  );
 
   writeFileSync(
     join(BACKUP_DIR, "metadata", "required-secret-names.json"),
@@ -157,8 +184,9 @@ function main() {
   console.log("✅ Manifest created");
   console.log(`  Timestamp: ${timestamp}`);
   console.log(`  Project ref: ${PROJECT_REF}`);
-  console.log(`  Public tables: ${publicTables.length}`);
-  console.log(`  Migrations: ${migrationVersions.length}`);
+  console.log(`  Public tables: ${dbMeta.publicTables.count}`);
+  console.log(`  Table names: ${dbMeta.publicTables.names.join(", ")}`);
+  console.log(`  Migrations: ${dbMeta.migrationVersions.count}`);
   console.log(`  Auth users: ${authUserCount}`);
   console.log(`  Storage objects: ${storageInfo.totalObjects}`);
   console.log(`  Storage buckets: ${storageInfo.bucketNames.length}`);
