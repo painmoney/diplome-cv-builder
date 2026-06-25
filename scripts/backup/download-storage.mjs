@@ -82,7 +82,13 @@ async function main() {
     const bucketName = bucket.name || bucket.id;
     console.log(`\nProcessing bucket: ${bucketName}`);
 
-    const objects = await listAllObjects(bucketName);
+    let objects = [];
+    try {
+      objects = await listAllObjects(bucketName);
+    } catch (err) {
+      console.log(`  ⚠️ Could not list objects in ${bucketName}: ${err.message}`);
+      console.log(`  Treating bucket as empty`);
+    }
     console.log(`  Found ${objects.length} objects in ${bucketName}`);
 
     for (const obj of objects) {
