@@ -112,7 +112,7 @@ function main() {
     repository: "painmoney/diplome-cv-builder",
     gitBranch: GIT_REF,
     gitCommitSHA: GIT_SHA,
-    supabaseCLIVersion: "2.118.0",
+    supabaseCLIVersion: "2.107.0",
     postgresqlServerVersion: "see database info step",
     migrationVersions: {
       versions: migrationVersions,
