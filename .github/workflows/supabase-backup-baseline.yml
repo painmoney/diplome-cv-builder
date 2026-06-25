@@ -336,6 +336,7 @@ jobs:
           echo "ENCRYPTED_SIZE=${ENCRYPTED_SIZE}" >> "$GITHUB_ENV"
         env:
           GIT_SHA: ${{ github.sha }}
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
 
       - name: Self-verification
         run: |
@@ -427,6 +428,8 @@ jobs:
 
           rm -rf "$VERIFY_DIR"
           echo "✅ Self-verification complete — all checks passed"
+        env:
+          BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
 
       - name: Upload encrypted artifact
         uses: actions/upload-artifact@v4
