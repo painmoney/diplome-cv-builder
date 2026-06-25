@@ -342,7 +342,7 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          cd "$GITHUB_WORKPATH"
+          cd "$GITHUB_WORKSPACE"
           VERIFY_DIR=$(mktemp -d)
 
           openssl enc \
