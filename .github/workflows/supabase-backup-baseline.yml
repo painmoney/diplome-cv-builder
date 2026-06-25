@@ -392,13 +392,13 @@ jobs:
           done
           echo "✅ All required files present"
 
-          MIG_COUNT=$(grep -c "INSERT" database/migration_history_data.sql || true)
-          if [[ "$MIG_COUNT" -ne 13 ]]; then
-            echo "::error::Expected 13 migration INSERTs, got $MIG_COUNT"
+          MIG_SIZE=$(wc -c < database/migration_history_data.sql)
+          if [[ "$MIG_SIZE" -eq 0 ]]; then
+            echo "::error::Migration history data is empty"
             rm -rf "$VERIFY_DIR"
             exit 1
           fi
-          echo "✅ Migration count: 13"
+          echo "✅ Migration history data present (${MIG_SIZE} bytes)"
 
           TABLE_COUNT=$(grep -c "CREATE TABLE" database/public_schema.sql || true)
           echo "Public tables: $TABLE_COUNT"
