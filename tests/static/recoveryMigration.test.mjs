@@ -163,8 +163,10 @@ describe("validateSql", () => {
 describe("mutations", () => {
   function shouldFail(label, fn) {
     it(`catches: ${label}`, () => {
-      const errors = validateSql(fn(sql));
-      assert.ok(errors.length > 0, `"${label}" should produce errors`);
+      const mutated = fn(sql);
+      assert.notEqual(mutated, sql, `mutation "${label}" did not alter the SQL`);
+      const errors = validateSql(mutated);
+      assert.ok(errors.length > 0, `"${label}" produced changed SQL but no validation errors`);
     });
   }
 
@@ -176,14 +178,12 @@ describe("mutations", () => {
   shouldFail("remove manual_projects FK", s => s.replace(/ADD CONSTRAINT manual_projects_resume_id_fkey[\s\S]*?END\s*\$\$/g, ""));
   shouldFail("remove resumes FK", s => s.replace(/ADD CONSTRAINT resumes_user_id_fkey[\s\S]*?END\s*\$\$/g, ""));
   shouldFail("corrupt skills FK source column", s => {
-    const needle = "ADD CONSTRAINT skills_resume_id_fkey\n      FOREIGN KEY (resume_id)";
-    const idx = s.indexOf(needle);
-    return idx === -1 ? s : s.slice(0, idx) + "ADD CONSTRAINT skills_resume_id_fkey\n      FOREIGN KEY (wrong_col)" + s.slice(idx + needle.length);
+    const re = /(ADD CONSTRAINT skills_resume_id_fkey\r?\n\s*FOREIGN KEY )\(resume_id\)/;
+    return s.replace(re, "$1(wrong_col)");
   });
   shouldFail("corrupt skills FK ref table", s => {
-    const needle = "FOREIGN KEY (resume_id) REFERENCES public.resumes(id) ON DELETE CASCADE";
-    const idx = s.indexOf(needle);
-    return idx === -1 ? s : s.slice(0, idx) + "FOREIGN KEY (resume_id) REFERENCES public.wrong_table(id) ON DELETE CASCADE" + s.slice(idx + needle.length);
+    const re = /FOREIGN KEY \(resume_id\) REFERENCES public\.resumes\(id\) ON DELETE CASCADE/;
+    return s.replace(re, "FOREIGN KEY (resume_id) REFERENCES public.wrong_table(id) ON DELETE CASCADE");
   });
   shouldFail("remove all CASCADE", s => s.replaceAll("ON DELETE CASCADE", "ON DELETE RESTRICT"));
 
