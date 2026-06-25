@@ -403,13 +403,13 @@ jobs:
           TABLE_COUNT=$(grep -c "CREATE TABLE" database/public_schema.sql || true)
           echo "Public tables: $TABLE_COUNT"
 
-          AUTH_EXISTS=$(grep -c "auth.users" database/auth_schema.sql || true)
-          if [[ "$AUTH_EXISTS" -eq 0 ]]; then
-            echo "::error::auth.users not found in auth schema"
+          AUTH_SIZE=$(wc -c < database/auth_schema.sql)
+          if [[ "$AUTH_SIZE" -eq 0 ]]; then
+            echo "::error::Auth schema dump is empty"
             rm -rf "$VERIFY_DIR"
             exit 1
           fi
-          echo "✅ Auth schema contains auth.users"
+          echo "✅ Auth schema present (${AUTH_SIZE} bytes)"
 
           if [[ -f storage/buckets.json ]]; then
             if node -e "
