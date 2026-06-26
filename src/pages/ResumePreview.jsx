@@ -6,8 +6,6 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  Menu,
-  MenuItem,
   Stack,
 } from "@mui/material";
 import {
@@ -15,13 +13,13 @@ import {
   GetApp,
   Description,
   Image as ImageIcon,
-  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { loadResumeById, loadUserResume } from "../api/resumeService";
 
 import { TEMPLATE_IDS, TEMPLATE_REGISTRY } from "../utils/templateRegistry";
+import TemplatePicker from "../components/ResumeBuilder/TemplatePicker";
 import MinimalistTemplate from "../components/templates/MinimalistTemplate";
 import AcademicTemplate from "../components/templates/AcademicTemplate";
 import GithubTemplate from "../components/templates/GithubTemplate";
@@ -62,7 +60,6 @@ export default function ResumePreview() {
   const [exportingMD, setExportingMD] = useState(false);
   const [exportingDOCX, setExportingDOCX] = useState(false);
   const [exportingIMG, setExportingIMG] = useState(null); // "png" | "jpg" | null
-  const [templateMenuAnchor, setTemplateMenuAnchor] = useState(null);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -387,33 +384,10 @@ export default function ResumePreview() {
           </Button>
         </Stack>
 
-        <Button
-          variant="outlined"
-          size="small"
-          endIcon={<ExpandMoreIcon />}
-          onClick={(e) => setTemplateMenuAnchor(e.currentTarget)}
-          sx={{ minWidth: 180, textTransform: "none" }}
-        >
-          {TEMPLATE_REGISTRY[selectedTemplate]?.label || "Шаблон"}
-        </Button>
-        <Menu
-          anchorEl={templateMenuAnchor}
-          open={Boolean(templateMenuAnchor)}
-          onClose={() => setTemplateMenuAnchor(null)}
-        >
-          {Object.values(TEMPLATE_REGISTRY).map((tpl) => (
-            <MenuItem
-              key={tpl.id}
-              selected={tpl.id === selectedTemplate}
-              onClick={() => {
-                handleTemplateChange(null, tpl.id);
-                setTemplateMenuAnchor(null);
-              }}
-            >
-              {tpl.label}
-            </MenuItem>
-          ))}
-        </Menu>
+        <TemplatePicker
+          value={selectedTemplate}
+          onChange={(id) => handleTemplateChange(null, id)}
+        />
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button
