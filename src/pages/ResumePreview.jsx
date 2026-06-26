@@ -16,7 +16,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { loadResumeById, loadUserResume } from "../api/resumeService";
+import { loadResumeById, loadUserResume, saveResumeFullRpc } from "../api/resumeService";
 
 import { TEMPLATE_IDS, TEMPLATE_REGISTRY } from "../utils/templateRegistry";
 import TemplatePicker from "../components/ResumeBuilder/TemplatePicker";
@@ -181,8 +181,6 @@ export default function ResumePreview() {
     if (!value) return;
     setSelectedTemplate(value);
 
-    // Local-only: update preview state for export/render.
-    // Persistence happens only via ResumeEditor save queue.
     setResume((prev) => {
       if (!prev) return prev;
       return {
@@ -191,6 +189,22 @@ export default function ResumePreview() {
         data: { ...(prev.data || {}), template: value },
       };
     });
+
+    // Persist template selection to database
+    if (resume && user) {
+      try {
+        const updatedData = { ...(resume.data || {}), template: value };
+        await saveResumeFullRpc({
+          resumeId: resume.id,
+          title: resume.title || "Моё IT-резюме",
+          template: value,
+          data: updatedData,
+          expectedRevision: resume.revision,
+        });
+      } catch (err) {
+        console.warn("Template save failed:", err);
+      }
+    }
   };
 
   const handleExportPDF = async () => {
