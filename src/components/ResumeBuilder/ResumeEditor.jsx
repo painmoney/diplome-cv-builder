@@ -13,6 +13,7 @@ import {
   Stack,
   useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import WorkIcon from "@mui/icons-material/Work";
 
@@ -189,17 +190,21 @@ export default function ResumeEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- data fetch on user or route change
   }, [user, routeResumeId]);
 
-  // sticky toolbar: detect when sentinel scrolls above the sticky top
+  // sticky toolbar: detect when header reaches sticky position
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsStuck(!entry.isIntersecting),
-      { threshold: 0, rootMargin: `-${65}px 0px 0px 0px` }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    const check = () => {
+      const sentinel = sentinelRef.current;
+      if (!sentinel) return;
+      const rect = sentinel.getBoundingClientRect();
+      const stuck = rect.top <= 65;
+      setIsStuck((prev) => {
+        if (prev !== stuck) return stuck;
+        return prev;
+      });
+    };
+    window.addEventListener("scroll", check, { passive: true });
+    check();
+    return () => window.removeEventListener("scroll", check);
   }, []);
 
   const updateSection = (section, newData) => {
@@ -454,31 +459,37 @@ export default function ResumeEditor() {
       {/* Sentinel for IntersectionObserver */}
       <div ref={sentinelRef} style={{ height: 0, margin: 0, padding: 0 }} />
 
-      <Box sx={{
-        position: "sticky",
-        top: 64,
-        zIndex: theme.zIndex.appBar - 2,
-        py: isStuck ? 0.75 : 1.5,
-        px: isStuck ? 1.5 : 0,
-        mx: isStuck ? { xs: -1, sm: -2 } : 0,
-        mb: 2,
-        borderRadius: isStuck ? "12px" : 0,
-        border: isStuck ? "1px solid" : "1px solid transparent",
-        borderColor: isStuck ? "divider" : "transparent",
-        boxShadow: isStuck
-          ? "0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)"
-          : "none",
-        bgcolor: isStuck ? "background.paper" : "transparent",
-        backdropFilter: isStuck ? "blur(12px)" : "none",
-        WebkitBackdropFilter: isStuck ? "blur(12px)" : "none",
-        transition: "all 200ms ease",
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 1,
-        overflow: "visible",
-      }}>
+      <Box
+        data-stuck={isStuck ? "true" : "false"}
+        sx={{
+          position: "sticky",
+          top: 64,
+          zIndex: theme.zIndex.appBar - 2,
+          py: isStuck ? 0.75 : 1.5,
+          px: isStuck ? 1.5 : 0,
+          mx: isStuck ? { xs: -1, sm: -2 } : 0,
+          mb: 2,
+          borderRadius: isStuck ? "12px" : 0,
+          border: isStuck ? "1px solid" : "1px solid transparent",
+          borderColor: isStuck ? "divider" : "transparent",
+          boxShadow: isStuck
+            ? `0 4px 12px ${alpha(theme.palette.text.primary, 0.08)}, 0 1px 3px ${alpha(theme.palette.text.primary, 0.06)}`
+            : "none",
+          bgcolor: isStuck ? alpha(theme.palette.background.paper, 0.82) : "transparent",
+          backdropFilter: isStuck ? "blur(10px)" : "none",
+          WebkitBackdropFilter: isStuck ? "blur(10px)" : "none",
+          transition: "background-color 200ms ease, backdrop-filter 200ms ease, box-shadow 200ms ease, border-color 200ms ease, padding 200ms ease, border-radius 200ms ease",
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 1,
+          overflow: "visible",
+          "@media (prefers-reduced-motion: reduce)": {
+            transition: "none",
+          },
+        }}
+      >
         <Typography
           variant={isStuck ? "h6" : "h4"}
           noWrap
