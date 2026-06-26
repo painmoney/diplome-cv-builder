@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { Add, Delete, Edit, Save, Close, School } from "@mui/icons-material";
 import EmptyState from "../common/EmptyState";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 const emptyEdu = {
   institution: "",
@@ -23,6 +24,8 @@ const emptyEdu = {
 export default function EducationBlock({ data = [], onChange }) {
   const [newEdu, setNewEdu] = useState(emptyEdu);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [institutionError, setInstitutionError] = useState("");
 
   const resetForm = () => {
     setNewEdu(emptyEdu);
@@ -30,7 +33,11 @@ export default function EducationBlock({ data = [], onChange }) {
   };
 
   const saveEducation = () => {
-    if (!newEdu.institution.trim()) return;
+    if (!newEdu.institution.trim()) {
+      setInstitutionError("Укажите название учебного заведения");
+      return;
+    }
+    setInstitutionError("");
 
     if (editingIndex !== null) {
       const updated = data.map((item, index) =>
@@ -68,12 +75,12 @@ export default function EducationBlock({ data = [], onChange }) {
     setEditingIndex(index);
   };
 
-  const removeEducation = (index) => {
-    onChange(data.filter((_, itemIndex) => itemIndex !== index));
-
-    if (editingIndex === index) {
-      resetForm();
-    }
+  const confirmDelete = () => {
+    if (deleteIndex === null) return;
+    const idx = deleteIndex;
+    setDeleteIndex(null);
+    onChange(data.filter((_, itemIndex) => itemIndex !== idx));
+    if (editingIndex === idx) resetForm();
   };
 
   return (
@@ -92,11 +99,14 @@ export default function EducationBlock({ data = [], onChange }) {
           id="education-institution"
           label="ВУЗ"
           value={newEdu.institution}
-          onChange={(e) =>
-            setNewEdu({ ...newEdu, institution: e.target.value })
-          }
+          onChange={(e) => {
+            setNewEdu({ ...newEdu, institution: e.target.value });
+            if (institutionError) setInstitutionError("");
+          }}
           size="small"
           sx={{ flex: 1, minWidth: 220 }}
+          error={Boolean(institutionError)}
+          helperText={institutionError || " "}
         />
 
         <TextField
@@ -236,7 +246,7 @@ export default function EducationBlock({ data = [], onChange }) {
                   </IconButton>
 
                   <IconButton
-                    onClick={() => removeEducation(index)}
+                    onClick={() => setDeleteIndex(index)}
                     size="small"
                     aria-label="Удалить образование"
                   >
@@ -248,6 +258,16 @@ export default function EducationBlock({ data = [], onChange }) {
           </Card>
         ))
       )}
+
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        title="Удалить образование?"
+        description="Запись будет удалена из вашего резюме."
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteIndex(null)}
+      />
     </Box>
   );
 }

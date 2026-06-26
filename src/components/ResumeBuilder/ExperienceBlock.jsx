@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { Add, Delete, Edit, Save, Close, Work, AutoFixHigh } from "@mui/icons-material";
 import EmptyState from "../common/EmptyState";
+import ConfirmDialog from "../common/ConfirmDialog";
 import { isAIAvailable, improveExperienceDescription } from "../../utils/aiService";
 
 const emptyExp = {
@@ -34,6 +35,8 @@ export default function ExperienceBlock({ data = [], onChange }) {
   const [aiPreviewOpen, setAiPreviewOpen] = useState(false);
   const [aiPreviewText, setAiPreviewText] = useState("");
   const [aiAvailable, setAiAvailable] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [companyError, setCompanyError] = useState("");
 
   useEffect(() => {
     if (isAIAvailable()) {
@@ -60,7 +63,11 @@ export default function ExperienceBlock({ data = [], onChange }) {
   };
 
   const saveExperience = () => {
-    if (!newExp.company.trim()) return;
+    if (!newExp.company.trim()) {
+      setCompanyError("Укажите название компании");
+      return;
+    }
+    setCompanyError("");
 
     if (editingIndex !== null) {
       const updated = data.map((item, index) =>
@@ -96,12 +103,12 @@ export default function ExperienceBlock({ data = [], onChange }) {
     setEditingIndex(index);
   };
 
-  const removeExperience = (index) => {
-    onChange(data.filter((_, itemIndex) => itemIndex !== index));
-
-    if (editingIndex === index) {
-      resetForm();
-    }
+  const confirmDelete = () => {
+    if (deleteIndex === null) return;
+    const idx = deleteIndex;
+    setDeleteIndex(null);
+    onChange(data.filter((_, itemIndex) => itemIndex !== idx));
+    if (editingIndex === idx) resetForm();
   };
 
   const handleImproveDescription = async () => {
@@ -145,11 +152,14 @@ export default function ExperienceBlock({ data = [], onChange }) {
             id="experience-company"
             label="Компания"
             value={newExp.company}
-            onChange={(e) =>
-              setNewExp({ ...newExp, company: e.target.value })
-            }
+            onChange={(e) => {
+              setNewExp({ ...newExp, company: e.target.value });
+              if (companyError) setCompanyError("");
+            }}
             size="small"
             sx={{ flex: 1, minWidth: 220 }}
+            error={Boolean(companyError)}
+            helperText={companyError || " "}
           />
 
           <TextField
@@ -288,7 +298,7 @@ export default function ExperienceBlock({ data = [], onChange }) {
                   </IconButton>
 
                   <IconButton
-                    onClick={() => removeExperience(index)}
+                    onClick={() => setDeleteIndex(index)}
                     size="small"
                     aria-label="Удалить опыт"
                   >
@@ -300,6 +310,16 @@ export default function ExperienceBlock({ data = [], onChange }) {
           </Card>
         ))
       )}
+
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        title="Удалить место работы?"
+        description="Запись будет удалена из вашего резюме."
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteIndex(null)}
+      />
 
       <Dialog
         open={aiPreviewOpen}

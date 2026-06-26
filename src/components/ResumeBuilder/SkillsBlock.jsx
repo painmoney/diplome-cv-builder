@@ -12,14 +12,18 @@ export function clampSkillLevel(value) {
 export default function SkillsBlock({ data = [], onChange }) {
   const [newSkill, setNewSkill] = useState("");
   const [level, setLevel] = useState(3);
+  const [skillError, setSkillError] = useState("");
 
   const addSkill = () => {
-    if (newSkill.trim()) {
-      const skill = { name: newSkill, level: clampSkillLevel(level), id: Date.now() };
-      onChange([...data, skill]);
-      setNewSkill("");
-      setLevel(3);
+    if (!newSkill.trim()) {
+      setSkillError("Введите название навыка");
+      return;
     }
+    setSkillError("");
+    const skill = { name: newSkill, level: clampSkillLevel(level), id: Date.now() };
+    onChange([...data, skill]);
+    setNewSkill("");
+    setLevel(3);
   };
 
   const removeSkill = (id) => {
@@ -42,10 +46,15 @@ export default function SkillsBlock({ data = [], onChange }) {
           id="skills-skill"
           label="Навык"
           value={newSkill}
-          onChange={(e) => setNewSkill(e.target.value)}
+          onChange={(e) => {
+            setNewSkill(e.target.value);
+            if (skillError) setSkillError("");
+          }}
           placeholder="Например: React, PostgreSQL, Docker"
           size="small"
           sx={{ flex: 1, minWidth: 220 }}
+          error={Boolean(skillError)}
+          helperText={skillError || " "}
         />
         <TextField
           id="skills-level"
