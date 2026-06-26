@@ -46,3 +46,14 @@ These rules are mandatory for all agent sessions (MiMo, Claude, Copilot, or any 
 - Test framework: Vitest
 - Linting: ESLint
 - Build: Vite
+
+## Vite Environment Separation
+
+- Never manually rewrite `.env` for staging smoke tests
+- Development always runs via `npm run dev` (reads `.env.development.local`)
+- Staging always runs via `npm run dev:staging` (reads `.env.staging.local`)
+- After smoke tests, no `.env` restore is needed because files are separated
+- Never mix URL of one project with key of another
+- Never print full anon/publishable keys
+- Never kill all Node processes (`Stop-Process -Name node -Force` is prohibited)
+- `.env.development.local` and `.env.staging.local` are gitignored — never commit them
