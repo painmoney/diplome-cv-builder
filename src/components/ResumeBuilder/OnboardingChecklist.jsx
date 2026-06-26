@@ -230,6 +230,9 @@ export default function OnboardingChecklist({
         mb: 3,
         border: "1px solid",
         borderColor: "divider",
+        overflow: "visible",
+        position: "relative",
+        zIndex: 0,
       }}
     >
       <CardContent sx={{ py: 2, px: 2.5, "&:last-child": { pb: 2 } }}>

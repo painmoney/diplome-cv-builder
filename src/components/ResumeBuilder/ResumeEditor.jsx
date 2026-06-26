@@ -457,7 +457,7 @@ export default function ResumeEditor() {
       <Box sx={{
         position: "sticky",
         top: 64,
-        zIndex: theme.zIndex.appBar - 1,
+        zIndex: theme.zIndex.appBar - 2,
         py: isStuck ? 0.75 : 1.5,
         px: isStuck ? 1.5 : 0,
         mx: isStuck ? { xs: -1, sm: -2 } : 0,
@@ -473,9 +473,11 @@ export default function ResumeEditor() {
         WebkitBackdropFilter: isStuck ? "blur(12px)" : "none",
         transition: "all 200ms ease",
         display: "flex",
+        flexWrap: "wrap",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: 2,
+        gap: 1,
+        overflow: "visible",
       }}>
         <Typography
           variant={isStuck ? "h6" : "h4"}
@@ -483,13 +485,13 @@ export default function ResumeEditor() {
           sx={{
             fontWeight: 800,
             minWidth: 0,
-            flex: 1,
+            flex: "1 1 auto",
             transition: "font-size 200ms ease",
           }}
         >
           Редактор IT-резюме
         </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0, flexWrap: "wrap" }}>
           {renderSaveChip()}
           <Button
             variant="outlined"
