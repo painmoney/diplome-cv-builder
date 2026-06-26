@@ -13,7 +13,6 @@ import {
 import {
   Edit,
   GetApp,
-  ArrowBack,
   Description,
   Image as ImageIcon,
   ExpandMore as ExpandMoreIcon,
@@ -381,17 +380,10 @@ export default function ResumePreview() {
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button
             variant="outlined"
-            startIcon={<ArrowBack />}
-            onClick={() => navigate("/dashboard")}
-          >
-            Назад
-          </Button>
-          <Button
-            variant="outlined"
             startIcon={<Edit />}
             onClick={() => navigate(editorPath)}
           >
-            Редактировать
+            Вернуться к редактированию
           </Button>
         </Stack>
 

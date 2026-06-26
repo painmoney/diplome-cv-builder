@@ -100,7 +100,7 @@ describe("ResumePreview", () => {
     loadResumeById.mockResolvedValue(MOCK_A);
     renderPreview(`/resume-preview/${UUID_A}`);
     await waitFor(() => {
-      expect(screen.getAllByText("Редактировать").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Вернуться к редактированию").length).toBeGreaterThan(0);
     });
   });
 

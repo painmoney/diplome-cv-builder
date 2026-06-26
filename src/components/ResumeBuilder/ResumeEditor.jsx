@@ -489,7 +489,18 @@ export default function ResumeEditor() {
         >
           Редактор IT-резюме
         </Typography>
-        {renderSaveChip()}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+          {renderSaveChip()}
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigate(currentPreviewPath)}
+            disabled={loading || isSaving}
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            Предпросмотр
+          </Button>
+        </Box>
       </Box>
 
       <TextField
@@ -602,7 +613,7 @@ export default function ResumeEditor() {
           variant="outlined"
           size="large"
           onClick={() => navigate(currentPreviewPath)}
-          disabled={loading}
+          disabled={loading || isSaving}
         >
           Просмотр
         </Button>
