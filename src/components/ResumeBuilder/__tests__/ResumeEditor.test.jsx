@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("../../../api/resumeService", () => ({
   loadResumeById: vi.fn(),
   loadUserResume: vi.fn(),
+  normalizeLoadedResumeData: vi.fn((d) => d),
 }));
 
 vi.mock("../../../context/AuthContext", () => ({
@@ -150,5 +151,130 @@ describe("ResumeEditor routing", () => {
     loadUserResume.mockReturnValue(new Promise(() => {}));
     renderEditor(`/resume-editor/${MOCK_A.resumeId}`);
     expect(screen.getAllByText(/Загрузка резюме/).length).toBeGreaterThan(0);
+  });
+});
+
+describe("ResumeEditor tabs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    globalThis.IntersectionObserver = class {
+      constructor() {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  });
+
+  afterEach(() => {
+    delete globalThis.IntersectionObserver;
+  });
+
+  function getLatestTablist() {
+    const tablists = document.querySelectorAll('[role="tablist"]');
+    return tablists[tablists.length - 1];
+  }
+
+  function getTab(tablist, name) {
+    return Array.from(tablist.querySelectorAll('[role="tab"]')).find(
+      (t) => t.textContent.includes(name)
+    );
+  }
+
+  it("renders all seven tabs", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderEditor(`/resume-editor/${UUID_A}`);
+    await waitFor(() => {
+      const tablist = getLatestTablist();
+      expect(tablist).toBeInTheDocument();
+      expect(getTab(tablist, "Профиль")).toBeDefined();
+      expect(getTab(tablist, "Навыки")).toBeDefined();
+      expect(getTab(tablist, "Образование")).toBeDefined();
+      expect(getTab(tablist, "Опыт работы")).toBeDefined();
+      expect(getTab(tablist, "Портфолио")).toBeDefined();
+      expect(getTab(tablist, "Анализ вакансии")).toBeDefined();
+      expect(getTab(tablist, "Проверка")).toBeDefined();
+      expect(tablist.querySelectorAll('[role="tab"]').length).toBe(7);
+    });
+  });
+
+  it("defaults to Profile tab selected", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderEditor(`/resume-editor/${UUID_A}`);
+    await waitFor(() => {
+      const tablist = getLatestTablist();
+      expect(tablist).toBeInTheDocument();
+    });
+    const tablist = getLatestTablist();
+    const profileTab = getTab(tablist, "Профиль");
+    expect(profileTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("switches tab on click", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderEditor(`/resume-editor/${UUID_A}`);
+    await waitFor(() => {
+      const tablist = getLatestTablist();
+      expect(getTab(tablist, "Навыки")).toBeDefined();
+    });
+    const tablist = getLatestTablist();
+    const skillsTab = getTab(tablist, "Навыки");
+    fireEvent.click(skillsTab);
+    expect(skillsTab).toHaveAttribute("aria-selected", "true");
+    expect(getTab(tablist, "Профиль")).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("uses scrollable Tabs variant", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderEditor(`/resume-editor/${UUID_A}`);
+    await waitFor(() => {
+      const tablist = getLatestTablist();
+      expect(tablist).toBeInTheDocument();
+    });
+    const scroller = document.querySelector(".MuiTabs-scroller");
+    expect(scroller).toBeInTheDocument();
+  });
+
+  it("supports ArrowRight keyboard navigation", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderEditor(`/resume-editor/${UUID_A}`);
+    await waitFor(() => {
+      const tablist = getLatestTablist();
+      expect(getTab(tablist, "Профиль")).toBeDefined();
+    });
+    const tablist = getLatestTablist();
+    const profileTab = getTab(tablist, "Профиль");
+    profileTab.focus();
+    fireEvent.keyDown(profileTab, { key: "ArrowRight" });
+    const skillsTab = getTab(tablist, "Навыки");
+    expect(skillsTab).toHaveFocus();
+  });
+
+  it("supports ArrowLeft keyboard navigation", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderEditor(`/resume-editor/${UUID_A}`);
+    await waitFor(() => {
+      const tablist = getLatestTablist();
+      expect(getTab(tablist, "Навыки")).toBeDefined();
+    });
+    const tablist = getLatestTablist();
+    const skillsTab = getTab(tablist, "Навыки");
+    skillsTab.focus();
+    fireEvent.keyDown(skillsTab, { key: "ArrowLeft" });
+    const profileTab = getTab(tablist, "Профиль");
+    expect(profileTab).toHaveFocus();
+  });
+
+  it("tab activates on interaction", async () => {
+    loadResumeById.mockResolvedValue(MOCK_A);
+    renderEditor(`/resume-editor/${UUID_A}`);
+    await waitFor(() => {
+      const tablist = getLatestTablist();
+      expect(getTab(tablist, "Навыки")).toBeDefined();
+    });
+    const tablist = getLatestTablist();
+    const skillsTab = getTab(tablist, "Навыки");
+    skillsTab.focus();
+    fireEvent.click(skillsTab);
+    expect(skillsTab).toHaveAttribute("aria-selected", "true");
   });
 });

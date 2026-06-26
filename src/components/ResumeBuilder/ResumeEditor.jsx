@@ -551,7 +551,14 @@ export default function ResumeEditor() {
         onNavigateToTab={handleNavigateToTarget}
       />
 
-      <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 3 }}>
+      <Tabs
+        value={activeTab}
+        onChange={(_, v) => setActiveTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ mb: 3 }}
+      >
         <Tab label="Профиль" />
         <Tab label="Навыки" />
         <Tab label="Образование" />
