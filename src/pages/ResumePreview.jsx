@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Box,
   Button,
@@ -7,6 +7,7 @@ import {
   Snackbar,
   Alert,
   Stack,
+  Chip,
 } from "@mui/material";
 import {
   Edit,
@@ -16,7 +17,8 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { loadResumeById, loadUserResume, saveResumeFullRpc } from "../api/resumeService";
+import { loadResumeById, loadUserResume, saveResumeFullRpc, saveProfile, normalizeLoadedResumeData } from "../api/resumeService";
+import { useResumeSaveQueue } from "../hooks/useResumeSaveQueue";
 
 import { TEMPLATE_IDS, TEMPLATE_REGISTRY } from "../utils/templateRegistry";
 import TemplatePicker from "../components/ResumeBuilder/TemplatePicker";
@@ -69,6 +71,16 @@ export default function ResumePreview() {
 
   const captureRef = useRef(null);
   const appliedOverrideRef = useRef("");
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const [saveError, setSaveError] = useState("");
+
+  const {
+    enqueue,
+    queue,
+  } = useResumeSaveQueue({ userRef, setSaveStatus, setSaveError, setMessage: () => {} });
 
   const loadResume = async (resumeIdParam) => {
     const generation = ++loadGenerationRef.current;
@@ -126,6 +138,7 @@ export default function ResumePreview() {
 
       if (data) {
         setResume(data);
+        queue.initFromLoad(data);
         const current =
           String(data.template || data.data?.template || "minimalist").toLowerCase();
         setSelectedTemplate(
@@ -190,20 +203,16 @@ export default function ResumePreview() {
       };
     });
 
-    // Persist template selection to database
+    // Persist via save queue — handles coalescing, revision tracking, P1005
     if (resume && user) {
-      try {
-        const updatedData = { ...(resume.data || {}), template: value };
-        await saveResumeFullRpc({
-          resumeId: resume.id,
-          title: resume.title || "Моё IT-резюме",
-          template: value,
-          data: updatedData,
-          expectedRevision: resume.revision,
-        });
-      } catch (err) {
-        console.warn("Template save failed:", err);
-      }
+      queue.enqueue({
+        resumeId: resume.id,
+        title: resume.title || "Моё IT-резюме",
+        template: value,
+        data: { ...(resume.data || {}), template: value },
+        profile: resume.data?.profile || {},
+        reason: "template-change",
+      });
     }
   };
 
@@ -398,10 +407,16 @@ export default function ResumePreview() {
           </Button>
         </Stack>
 
-        <TemplatePicker
-          value={selectedTemplate}
-          onChange={(id) => handleTemplateChange(null, id)}
-        />
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          <TemplatePicker
+            value={selectedTemplate}
+            onChange={(id) => handleTemplateChange(null, id)}
+          />
+          {saveStatus === "saving" && <Chip size="small" label="Сохранение..." />}
+          {saveStatus === "saved" && <Chip size="small" color="success" label="Сохранено" />}
+          {saveStatus === "conflict" && <Chip size="small" color="warning" label={saveError || "Конфликт"} />}
+          {saveStatus === "error" && <Chip size="small" color="error" label={saveError || "Ошибка"} />}
+        </Stack>
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Button

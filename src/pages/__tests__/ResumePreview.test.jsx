@@ -6,6 +6,18 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 vi.mock("../../api/resumeService", () => ({
   loadResumeById: vi.fn(),
   loadUserResume: vi.fn(),
+  saveResumeFullRpc: vi.fn().mockResolvedValue({}),
+  saveProfile: vi.fn().mockResolvedValue({}),
+  normalizeLoadedResumeData: vi.fn((d) => d),
+}));
+
+vi.mock("../../hooks/useResumeSaveQueue", () => ({
+  useResumeSaveQueue: () => ({
+    enqueue: vi.fn(),
+    resetGeneration: vi.fn(),
+    initFromLoad: vi.fn(),
+    queue: { resumeId: null, revision: null, initFromLoad: vi.fn() },
+  }),
 }));
 
 vi.mock("../../context/AuthContext", () => ({
