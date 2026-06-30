@@ -2,7 +2,7 @@
 
 # CV Builder
 
-### Modern resume builder with AI-powered insights
+### Современный конструктор резюме с AI-рекомендациями
 
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)](https://vitejs.dev/)
@@ -14,96 +14,96 @@
 
 ---
 
-## Features
+## Возможности
 
-**Resume Builder**
-- Intuitive tab-based editor with real-time preview
-- 5 built-in templates: Academic, Classic, GitHub, Minimalist, Modern
-- Autosave with fingerprint-based change detection
-- Onboarding checklist for quick start
+**Редактор резюме**
+- Удобный редактор с табами и предпросмотром в реальном времени
+- 5 встроенных шаблонов: Academic, Classic, GitHub, Minimalist, Modern
+- Автосохранение с отслеживанием изменений через fingerprint
+- Чеклист онбординга для быстрого старта
 
-**Smart Insights**
-- Resume Health Check — completeness score across all sections
-- AI-powered recommendations for improving your resume
-- Job Match analysis — paste a job description and see how well your resume fits
-- Cover letter generation with safety checks
+**Умные рекомендации**
+- Health Check — оценка полноты резюме по всем разделам
+- AI-рекомендации по улучшению резюме
+- Job Match — анализ соответствия резюме описанию вакансии
+- Генерация сопроводительного письма с проверками
 
-**GitHub Integration**
-- Import repositories directly from your GitHub profile
-- Auto-fetch descriptions, languages, and topics
-- Showcase up to 5 featured projects
+**Интеграция с GitHub**
+- Импорт репозиториев напрямую из вашего GitHub-профиля
+- Автоподтягивание описаний, языков и тем
+- Отображение до 5 избранных проектов
 
-**Export**
-- PDF with pixel-perfect rendering
-- DOCX for ATS-friendly submissions
-- Markdown for quick sharing
+**Экспорт**
+- PDF с точной визуализацией
+- DOCX для ATS-совместимых систем
+- Markdown для быстрого шаринга
 
-**Auth & Dashboard**
-- Email/password authentication via Supabase
-- Multi-resume management from a single dashboard
-- Password recovery and update flows
+**Авторизация и дашборд**
+- Email/пароль аутентификация через Supabase
+- Управление несколькими резюме из одного дашборда
+- Восстановление и смена пароля
 
-**Theme**
-- Light and dark mode support
+**Тема**
+- Светлая и тёмная темы
 
 ---
 
-## Tech Stack
+## Стек технологий
 
-| Layer | Technology |
-|-------|-----------|
+| Слой | Технологии |
+|------|-----------|
 | Frontend | React 18, Vite 5, React Router 6 |
 | UI | Material UI 5, Framer Motion |
 | Backend | Supabase (Auth, Postgres, Storage, Edge Functions) |
 | PDF | @react-pdf/renderer |
 | DOCX | docx.js |
-| Testing | Vitest, Testing Library |
-| Linting | ESLint |
+| Тестирование | Vitest, Testing Library |
+| Линтинг | ESLint |
 
 ---
 
-## Getting Started
+## Быстрый старт
 
-### Prerequisites
+### Требования
 
 - Node.js >= 18
-- A [Supabase](https://supabase.com/) project
+- Проект [Supabase](https://supabase.com/)
 
-### Installation
+### Установка
 
 ```bash
-# Clone the repository
+# Клонируем репозиторий
 git clone https://github.com/painmoney/diplome-cv-builder.git
 cd diplome-cv-builder
 
-# Install dependencies
+# Устанавливаем зависимости
 npm install
 ```
 
-### Environment Setup
+### Настройка окружения
 
-Create `.env.development.local` with your Supabase credentials:
+Создайте `.env.development.local` с вашими Supabase-данными:
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### Development
+### Разработка
 
 ```bash
-npm run dev        # Start dev server (primary)
-npm run dev:staging  # Start with staging config
+npm run dev          # Запуск dev-сервера (primary)
+npm run dev:staging  # Запуск с staging-конфигурацией
 ```
 
-### Build
+### Сборка
 
 ```bash
 npm run build
 npm run preview
 ```
 
-### Testing
+### Тестирование
 
 ```bash
 npm run test
@@ -112,44 +112,36 @@ npm run lint
 
 ---
 
-## Project Structure
+## Структура проекта
 
 ```
 src/
-├── api/              # Supabase client, GitHub API, resume service
+├── api/              # Supabase клиент, GitHub API, сервис резюме
 ├── components/
-│   ├── ResumeBuilder/ # Editor, blocks, health check, job match
-│   ├── export/        # PDF, DOCX, Markdown exporters
-│   ├── templates/     # Visual template components
-│   ├── profile/       # Profile form
-│   └── layout/        # Header, footer, layout wrapper
-├── context/          # Auth and theme contexts
-├── hooks/            # Custom React hooks
-├── pages/            # Route pages (Home, Dashboard, Login, etc.)
-├── templates/        # Template config JSONs
-├── utils/            # Helpers, validators, job match, recommendations
-└── styles.css        # Global styles
+│   ├── ResumeBuilder/ # Редактор, блоки, health check, job match
+│   ├── export/        # Экспорт в PDF, DOCX, Markdown
+│   ├── templates/     # Визуальные компоненты шаблонов
+│   ├── profile/       # Форма профиля
+│   └── layout/        # Хедер, футер, обёртка лейаута
+├── context/          # Контексты авторизации и темы
+├── hooks/            # Пользовательские React хуки
+├── pages/            # Страницы маршрутов (Home, Dashboard, Login и др.)
+├── templates/        # JSON-конфиги шаблонов
+├── utils/            # Утилиты, валидаторы, job match, рекомендации
+└── styles.css        # Глобальные стили
 ```
 
 ---
 
-## Scripts
+## Скрипты
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Dev server (primary) |
-| `npm run dev:staging` | Dev server (staging) |
-| `npm run build` | Production build |
-| `npm run test` | Run tests |
-| `npm run lint` | ESLint check |
-| `npm run env:check` | Verify env for primary |
-| `npm run safety:scan` | Scan for dangerous Supabase commands |
-| `npm run backup:trigger-and-sync` | Trigger and sync DB backup |
-
----
-
-<div align="center">
-
-Built as a diploma project
-
-</div>
+| Команда | Описание |
+|---------|----------|
+| `npm run dev` | Dev-сервер (primary) |
+| `npm run dev:staging` | Dev-сервер (staging) |
+| `npm run build` | Продакшн-сборка |
+| `npm run test` | Запуск тестов |
+| `npm run lint` | Проверка ESLint |
+| `npm run env:check` | Проверка окружения для primary |
+| `npm run safety:scan` | Сканирование опасных Supabase-команд |
+| `npm run backup:trigger-and-sync` | Триггер и синхронизация бэкапа БД |
