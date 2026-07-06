@@ -3,7 +3,6 @@ import {
   createResumeFullRpc,
   saveResumeFullRpc,
   normalizeLoadedResumeData,
-  loadUserResume,
   listUserResumes,
   loadResumeById,
   createNewResume,
@@ -202,67 +201,6 @@ describe("normalizeLoadedResumeData", () => {
     });
     expect(result.profile.about).toBe("Hello");
     expect(result.profile.summary).toBe("Hello");
-  });
-});
-
-// ── loadUserResume (legacy) ─────────────────────────────
-
-describe("loadUserResume (legacy)", () => {
-  it("orders updated_at DESC then id ASC", async () => {
-    const chain = createMockQuery({ data: null, error: null });
-    mockFrom.mockReturnValue(chain);
-
-    await loadUserResume("user-1");
-
-    expect(chain.order).toHaveBeenCalledWith("updated_at", { ascending: false });
-    expect(chain.order).toHaveBeenCalledWith("id", { ascending: true });
-  });
-
-  it("limits query to 1", async () => {
-    const chain = createMockQuery({ data: null, error: null });
-    mockFrom.mockReturnValue(chain);
-
-    await loadUserResume("user-1");
-
-    expect(chain.limit).toHaveBeenCalledWith(1);
-  });
-
-  it("uses maybeSingle", async () => {
-    const chain = createMockQuery({ data: null, error: null });
-    mockFrom.mockReturnValue(chain);
-
-    await loadUserResume("user-1");
-
-    expect(chain.maybeSingle).toHaveBeenCalled();
-  });
-
-  it("returns null for zero rows", async () => {
-    const chain = createMockQuery({ data: null, error: null });
-    mockFrom.mockReturnValue(chain);
-
-    const result = await loadUserResume("user-1");
-    expect(result).toBeNull();
-  });
-
-  it("returns normalized resume for one row", async () => {
-    const row = {
-      id: "r1", user_id: "u1", title: "T", template: "minimalist",
-      revision: 1, created_at: "2026-01-01", updated_at: "2026-01-02",
-      data: { skills: [{ name: "React" }], template: "minimalist" },
-    };
-    const chain = createMockQuery({ data: row, error: null });
-    mockFrom.mockReturnValue(chain);
-
-    const result = await loadUserResume("user-1");
-    expect(result.id).toBe("r1");
-    expect(result.data.skills).toEqual([{ name: "React" }]);
-  });
-
-  it("throws on query error", async () => {
-    const chain = createMockQuery({ data: null, error: { message: "db error" } });
-    mockFrom.mockReturnValue(chain);
-
-    await expect(loadUserResume("user-1")).rejects.toThrow();
   });
 });
 

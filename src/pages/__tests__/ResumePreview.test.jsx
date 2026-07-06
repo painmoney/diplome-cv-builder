@@ -5,7 +5,6 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("../../api/resumeService", () => ({
   loadResumeById: vi.fn(),
-  loadUserResume: vi.fn(),
   saveResumeFullRpc: vi.fn().mockResolvedValue({}),
   saveProfile: vi.fn().mockResolvedValue({}),
   normalizeLoadedResumeData: vi.fn((d) => d),
@@ -31,7 +30,7 @@ vi.mock("../../api/supabaseClient", () => ({
 vi.mock("html2canvas", () => ({ default: vi.fn() }));
 
 import ResumePreview from "../ResumePreview";
-import { loadResumeById, loadUserResume } from "../../api/resumeService";
+import { loadResumeById } from "../../api/resumeService";
 
 const UUID_A = "550e8400-e29b-41d4-a716-446655440001";
 const UUID_B = "550e8400-e29b-41d4-a716-446655440002";
@@ -62,12 +61,6 @@ describe("ResumePreview", () => {
     loadResumeById.mockResolvedValue(MOCK_A);
     renderPreview(`/resume-preview/${UUID_A}`);
     expect(loadResumeById).toHaveBeenCalledWith(UUID_A);
-  });
-
-  it("dynamic: skips loadUserResume", async () => {
-    loadResumeById.mockResolvedValue(MOCK_A);
-    renderPreview(`/resume-preview/${UUID_A}`);
-    expect(loadUserResume).not.toHaveBeenCalled();
   });
 
   it("dynamic: shows profile name", async () => {

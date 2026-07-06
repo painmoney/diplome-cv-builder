@@ -5,7 +5,6 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.mock("../../../api/resumeService", () => ({
   loadResumeById: vi.fn(),
-  loadUserResume: vi.fn(),
   normalizeLoadedResumeData: vi.fn((d) => d),
 }));
 
@@ -57,7 +56,7 @@ vi.mock("../../../components/ResumeBuilder/RecommendationPanel", () => ({ defaul
 vi.mock("../../../components/ResumeBuilder/OnboardingChecklist", () => ({ default: () => <div /> }));
 
 import ResumeEditor from "../ResumeEditor";
-import { loadResumeById, loadUserResume } from "../../../api/resumeService";
+import { loadResumeById } from "../../../api/resumeService";
 
 const UUID_A = "550e8400-e29b-41d4-a716-446655440001";
 const UUID_B = "550e8400-e29b-41d4-a716-446655440002";
@@ -107,13 +106,6 @@ describe("ResumeEditor routing", () => {
     await waitFor(() => expect(loadResumeById).toHaveBeenCalledWith(UUID_A));
   });
 
-  it("dynamic: does not call loadUserResume", async () => {
-    loadResumeById.mockResolvedValue(MOCK_A);
-    renderEditor(`/resume-editor/${UUID_A}`);
-    await waitFor(() => expect(loadResumeById).toHaveBeenCalled());
-    expect(loadUserResume).not.toHaveBeenCalled();
-  });
-
   it("dynamic: shows not-found for null", async () => {
     loadResumeById.mockResolvedValue(null);
     renderEditor(`/resume-editor/${UUID_B}`);
@@ -148,7 +140,7 @@ describe("ResumeEditor routing", () => {
   });
 
   it("dynamic: shows loading indicator", async () => {
-    loadUserResume.mockReturnValue(new Promise(() => {}));
+    loadResumeById.mockReturnValue(new Promise(() => {}));
     renderEditor(`/resume-editor/${MOCK_A.resumeId}`);
     expect(screen.getAllByText(/Загрузка резюме/).length).toBeGreaterThan(0);
   });

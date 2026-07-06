@@ -17,7 +17,7 @@ import {
 } from "@mui/icons-material";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { loadResumeById, loadUserResume, saveResumeFullRpc, saveProfile, normalizeLoadedResumeData } from "../api/resumeService";
+import { loadResumeById, saveResumeFullRpc, saveProfile, normalizeLoadedResumeData } from "../api/resumeService";
 import { useResumeSaveQueue } from "../hooks/useResumeSaveQueue";
 
 import { TEMPLATE_IDS, TEMPLATE_REGISTRY } from "../utils/templateRegistry";
@@ -91,50 +91,24 @@ export default function ResumePreview() {
     try {
       let data;
 
-      if (resumeIdParam) {
-        const loaded = await loadResumeById(resumeIdParam);
-        if (generation !== loadGenerationRef.current) return;
+      const loaded = await loadResumeById(resumeIdParam);
+      if (generation !== loadGenerationRef.current) return;
 
-        if (!loaded) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-        data = {
-          id: loaded.resumeId,
-          user_id: loaded.userId,
-          title: loaded.title,
-          template: loaded.template,
-          revision: loaded.revision,
-          data: loaded.data,
-          created_at: loaded.createdAt,
-          updated_at: loaded.updatedAt,
-        };
-      } else {
-        const loaded = await loadUserResume(user.id);
-        if (generation !== loadGenerationRef.current) return;
-
-        if (!loaded) {
-          setSnackbar({
-            open: true,
-            message: "Резюме не найдено. Создайте его в редакторе.",
-            severity: "info",
-          });
-          setTimeout(() => navigate("/dashboard"), 300);
-          setLoading(false);
-          return;
-        }
-        data = {
-          id: loaded.id,
-          user_id: loaded.user_id,
-          title: loaded.title,
-          template: loaded.template,
-          revision: loaded.revision,
-          data: loaded.data,
-          created_at: loaded.created_at,
-          updated_at: loaded.updated_at,
-        };
+      if (!loaded) {
+        setNotFound(true);
+        setLoading(false);
+        return;
       }
+      data = {
+        id: loaded.resumeId,
+        user_id: loaded.userId,
+        title: loaded.title,
+        template: loaded.template,
+        revision: loaded.revision,
+        data: loaded.data,
+        created_at: loaded.createdAt,
+        updated_at: loaded.updatedAt,
+      };
 
       if (data) {
         setResume(data);

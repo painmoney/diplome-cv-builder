@@ -18,7 +18,6 @@ import { useLocation, useParams, useNavigate } from "react-router-dom";
 import WorkIcon from "@mui/icons-material/Work";
 
 import {
-  loadUserResume,
   loadResumeById,
   normalizeLoadedResumeData,
 } from "../../api/resumeService";
@@ -137,13 +136,7 @@ export default function ResumeEditor() {
     setLoadError("");
 
     try {
-      let resume;
-
-      if (resumeIdParam) {
-        resume = await loadResumeById(resumeIdParam);
-      } else {
-        resume = await loadUserResume(user.id);
-      }
+      const resume = await loadResumeById(resumeIdParam);
 
       if (generation !== loadGenerationRef.current) return;
 
@@ -155,14 +148,7 @@ export default function ResumeEditor() {
         initFromLoad(resume);
         lastHydratedRef.current = autosaveFingerprint(loadedTitle, normalized);
       } else {
-        if (resumeIdParam) {
-          setNotFound(true);
-        } else {
-          setResumeData(DEFAULT_RESUME_DATA);
-          setResumeTitle(DEFAULT_TITLE);
-          initFromLoad(null);
-          lastHydratedRef.current = autosaveFingerprint(DEFAULT_TITLE, DEFAULT_RESUME_DATA);
-        }
+        setNotFound(true);
       }
 
       setSaveStatus("idle");

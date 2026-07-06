@@ -174,35 +174,6 @@ export async function saveProfile(userId, profile = {}) {
   if (error) throw error;
 }
 
-// ── Legacy single-resume loader ──────────────────────────
-
-/**
- * Load existing resume. Returns null if user has no resume.
- *
- * Legacy compatibility only.
- * Remove after Editor/Preview use route resumeId.
- * Deterministic for multi-row: orders by updated_at DESC, id ASC, limits 1.
- */
-export async function loadUserResume(userId) {
-  const { data, error } = await supabase
-    .from("resumes")
-    .select("*")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .order("id", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-
-  if (!data) return null;
-
-  return {
-    ...data,
-    data: normalizeLoadedResumeData(data.data || {}),
-  };
-}
-
 // ── Multi-resume service functions ───────────────────────
 
 /**
