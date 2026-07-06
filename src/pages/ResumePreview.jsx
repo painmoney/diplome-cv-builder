@@ -28,7 +28,6 @@ import GithubTemplate from "../components/templates/GithubTemplate";
 import ClassicTemplate from "../components/templates/ClassicTemplate";
 import ModernTemplate from "../components/templates/ModernTemplate";
 
-import html2canvas from "html2canvas";
 import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
 
 const VALID_TEMPLATES = TEMPLATE_IDS;
@@ -271,6 +270,7 @@ export default function ResumePreview() {
     try {
       await document.fonts?.ready;
 
+      const { default: html2canvas } = await import("html2canvas");
       const canvas = await html2canvas(captureRef.current, {
         scale: Math.max(2, window.devicePixelRatio || 2),
         useCORS: true,

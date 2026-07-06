@@ -22,7 +22,7 @@ export default defineConfig({
             "@emotion/react",
             "@emotion/styled",
           ],
-          "vendor-pdf": ["@react-pdf/renderer", "html2canvas"],
+          "vendor-pdf": ["@react-pdf/renderer"],
           "vendor-motion": ["framer-motion"],
           "vendor-router": ["react-router-dom"],
         },
