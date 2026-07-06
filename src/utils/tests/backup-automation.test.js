@@ -74,28 +74,30 @@ describe("manifest verification logic", () => {
 });
 
 describe("path safety", () => {
+  const sep = process.platform === "win32" ? "\\" : "/";
+
   function assertPathInsideRoot(path, root) {
-    const normPath = resolve(path.replace(/\//g, "\\"));
-    const normRoot = resolve(root.replace(/\//g, "\\"));
-    if (!normPath.startsWith(normRoot + "\\") && normPath !== normRoot) {
+    const normPath = resolve(path);
+    const normRoot = resolve(root);
+    if (!normPath.startsWith(normRoot + sep) && normPath !== normRoot) {
       throw new Error(`Path outside root: ${path}`);
     }
   }
 
   it("allows path inside root", () => {
-    expect(() => assertPathInsideRoot("C:\\cv-builder-backups\\latest", "C:\\cv-builder-backups")).not.toThrow();
+    expect(() => assertPathInsideRoot(join(ROOT, "latest"), ROOT)).not.toThrow();
   });
 
   it("blocks path outside root", () => {
-    expect(() => assertPathInsideRoot("C:\\other\\path", "C:\\cv-builder-backups")).toThrow("Path outside root");
+    expect(() => assertPathInsideRoot(join(ROOT, "..", "other"), ROOT)).toThrow("Path outside root");
   });
 
   it("blocks root deletion", () => {
-    expect(() => assertPathInsideRoot("C:\\cv-builder-backups", "C:\\cv-builder-backups")).not.toThrow();
+    expect(() => assertPathInsideRoot(ROOT, ROOT)).not.toThrow();
   });
 
   it("blocks traversal with ..", () => {
-    expect(() => assertPathInsideRoot("C:\\cv-builder-backups\\..\\other", "C:\\cv-builder-backups")).toThrow("Path outside root");
+    expect(() => assertPathInsideRoot(join(ROOT, "..", "other"), ROOT)).toThrow("Path outside root");
   });
 });
 
