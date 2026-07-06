@@ -8,6 +8,7 @@ import {
   Alert,
   Paper,
   Stack,
+  Divider,
 } from "@mui/material";
 import { supabase } from "../api/supabaseClient";
 import { useNavigate } from "react-router-dom";
@@ -110,6 +111,20 @@ export default function Register() {
     }
   };
 
+  const handleOAuthLogin = async (provider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin + "/dashboard" },
+    });
+    if (error) {
+      setSnackbar({
+        open: true,
+        message: error.message,
+        severity: "error",
+      });
+    }
+  };
+
   return (
     <Paper
       elevation={0}
@@ -160,6 +175,26 @@ export default function Register() {
 
           <Button variant="text" fullWidth onClick={() => navigate("/login")}>
             Уже есть аккаунт? Войти
+          </Button>
+
+          <Divider sx={{ my: 1 }}>или</Divider>
+
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => handleOAuthLogin("google")}
+            sx={{ textTransform: "none" }}
+          >
+            Зарегистрироваться через Google
+          </Button>
+
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => handleOAuthLogin("github")}
+            sx={{ textTransform: "none" }}
+          >
+            Зарегистрироваться через GitHub
           </Button>
         </Stack>
       </Box>

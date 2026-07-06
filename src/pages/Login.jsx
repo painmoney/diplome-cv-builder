@@ -9,6 +9,7 @@ import {
   Alert,
   Paper,
   Stack,
+  Divider,
 } from "@mui/material";
 
 function getAuthErrorMessage(error) {
@@ -70,6 +71,15 @@ export default function Login() {
     }
   };
 
+  const handleOAuthLogin = async (provider) => {
+    setError("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin + "/dashboard" },
+    });
+    if (error) setError(error.message);
+  };
+
   return (
     <Paper
       elevation={0}
@@ -126,6 +136,26 @@ export default function Login() {
 
           <Button variant="text" fullWidth onClick={() => navigate("/register")}>
             Нет аккаунта? Зарегистрироваться
+          </Button>
+
+          <Divider sx={{ my: 1 }}>или</Divider>
+
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => handleOAuthLogin("google")}
+            sx={{ textTransform: "none" }}
+          >
+            Войти через Google
+          </Button>
+
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => handleOAuthLogin("github")}
+            sx={{ textTransform: "none" }}
+          >
+            Войти через GitHub
           </Button>
         </Stack>
       </Box>
