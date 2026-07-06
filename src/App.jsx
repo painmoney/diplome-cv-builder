@@ -1,12 +1,12 @@
 import { BrowserRouter } from "react-router-dom";
+import * as Sentry from "@sentry/react";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeModeProvider } from "./context/ThemeModeContext";
-import ErrorBoundary from "./components/ErrorBoundary";
 import AppRoutes from "./routes.jsx";
 
 export default function App() {
   return (
-    <ErrorBoundary>
+    <Sentry.ErrorBoundary>
       <ThemeModeProvider>
         <AuthProvider>
           <BrowserRouter>
@@ -14,6 +14,6 @@ export default function App() {
           </BrowserRouter>
         </AuthProvider>
       </ThemeModeProvider>
-    </ErrorBoundary>
+    </Sentry.ErrorBoundary>
   );
 }
