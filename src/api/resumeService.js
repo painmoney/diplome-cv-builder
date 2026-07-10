@@ -117,6 +117,31 @@ function createNotFoundError() {
   return err;
 }
 
+function mapAccountProfile(row) {
+  if (!row) return null;
+  return normalizeProfile({
+    name: row.full_name || "",
+    photo: row.avatar_url || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    about: row.about || "",
+    summary: row.about || "",
+  });
+}
+
+async function loadAccountProfile(userId) {
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("full_name, avatar_url, email, phone, about")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) return null;
+  return mapAccountProfile(data);
+}
+
 // ── RPC wrappers ─────────────────────────────────────────
 
 /**
@@ -179,13 +204,21 @@ export async function saveProfile(userId, profile = {}) {
 /**
  * Create a new empty resume with defaults.
  * @param {Object} [options]
+ * @param {string} [options.userId] Used to prefill profile from account-level profile.
  * @param {string} [options.title]
  * @param {string} [options.template]
  * @param {Object} [options.data]
  * @returns {Promise<Object>} Create RPC metadata.
  */
 export async function createNewResume(options = {}) {
-  const defaultData = normalizeLoadedResumeData(options.data || {});
+  const accountProfile = await loadAccountProfile(options.userId);
+  const defaultData = normalizeLoadedResumeData({
+    ...(options.data || {}),
+    profile: {
+      ...(accountProfile || {}),
+      ...(options.data?.profile || {}),
+    },
+  });
   const result = await createResumeFullRpc({
     resumeId: crypto.randomUUID(),
     title: options.title || "Новое резюме",

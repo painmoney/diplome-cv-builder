@@ -346,6 +346,81 @@ describe("createNewResume", () => {
     expect(callArgs.p_data.template).toBe("minimalist");
   });
 
+  it("prefills profile from account profile when userId is provided", async () => {
+    const chain = createMockQuery({
+      data: {
+        full_name: "User Name",
+        avatar_url: "https://cdn.test/avatar.webp",
+        email: "user@test.com",
+        phone: "+79990000000",
+        about: "Account about",
+      },
+      error: null,
+    });
+    mockFrom.mockReturnValue(chain);
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume({ userId: "user-1" });
+
+    expect(mockFrom).toHaveBeenCalledWith("profiles");
+    expect(chain.select).toHaveBeenCalledWith("full_name, avatar_url, email, phone, about");
+    expect(chain.eq).toHaveBeenCalledWith("user_id", "user-1");
+
+    const callArgs = mockRpc.mock.calls[0][1];
+    expect(callArgs.p_data.profile).toEqual(expect.objectContaining({
+      name: "User Name",
+      photo: "https://cdn.test/avatar.webp",
+      email: "user@test.com",
+      phone: "+79990000000",
+      about: "Account about",
+      summary: "Account about",
+    }));
+  });
+
+  it("lets explicit resume profile override account profile", async () => {
+    const chain = createMockQuery({
+      data: {
+        full_name: "Account Name",
+        avatar_url: "https://cdn.test/account.webp",
+        email: "account@test.com",
+        phone: "+79990000000",
+        about: "Account about",
+      },
+      error: null,
+    });
+    mockFrom.mockReturnValue(chain);
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume({
+      userId: "user-1",
+      data: {
+        profile: {
+          name: "Resume Name",
+          photo: "https://cdn.test/resume.webp",
+        },
+      },
+    });
+
+    const callArgs = mockRpc.mock.calls[0][1];
+    expect(callArgs.p_data.profile.name).toBe("Resume Name");
+    expect(callArgs.p_data.profile.photo).toBe("https://cdn.test/resume.webp");
+    expect(callArgs.p_data.profile.email).toBe("account@test.com");
+  });
+
+  it("continues creating resume when account profile cannot be loaded", async () => {
+    const chain = createMockQuery({ data: null, error: { message: "RLS" } });
+    mockFrom.mockReturnValue(chain);
+    mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
+
+    await createNewResume({ userId: "user-1" });
+
+    expect(mockRpc).toHaveBeenCalledWith("create_resume_full", expect.objectContaining({
+      p_data: expect.objectContaining({
+        profile: expect.objectContaining({ photo: "" }),
+      }),
+    }));
+  });
+
   it("supports explicit title and template", async () => {
     mockRpc.mockResolvedValue({ data: [{ out_resume_id: "id", out_revision: 1, out_updated_at: "t" }], error: null });
 

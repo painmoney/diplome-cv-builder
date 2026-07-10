@@ -169,7 +169,7 @@ export default function Dashboard() {
     if (creating) return;
     setCreating(true);
     try {
-      const result = await createNewResume();
+      const result = await createNewResume({ userId: user.id });
       navigate(`/resume-editor/${result.resumeId}`);
     } catch {
       setSnackbar({ open: true, message: "Не удалось создать резюме. Попробуйте ещё раз.", severity: "error" });

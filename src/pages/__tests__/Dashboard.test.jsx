@@ -120,6 +120,7 @@ describe("Dashboard", () => {
 
     await userEvent.click(screen.getAllByText("Создать резюме")[0]);
     await waitFor(() => expect(createNewResume).toHaveBeenCalledTimes(1));
+    expect(createNewResume).toHaveBeenCalledWith({ userId: "user-1" });
   });
 
   it("create button disables during request", async () => {
