@@ -67,8 +67,8 @@ fi
 echo "--- Step 5: Migration count ---"
 MIG_COUNT=$(grep -c "INSERT" database/migration_history_data.sql || true)
 echo "  Migration INSERTs: $MIG_COUNT"
-if [[ "$MIG_COUNT" -ne 13 ]]; then
-  echo "::error::Expected 13 migrations, got $MIG_COUNT"
+if [[ "$MIG_COUNT" -ne 14 ]]; then
+  echo "::error::Expected 14 migrations, got $MIG_COUNT"
   exit 1
 fi
 

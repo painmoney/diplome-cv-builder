@@ -7,7 +7,7 @@ const GIT_REF = process.env.GIT_REF || "unknown";
 const PROJECT_REF = "cxnzlarcmszvnobuoskr";
 
 const EXPECTED_TABLE_COUNT = 7;
-const EXPECTED_MIGRATION_COUNT = 13;
+const EXPECTED_MIGRATION_COUNT = 14;
 const REQUIRED_RECOVERY_VERSION = "20260625000000";
 
 function listFilesRecursive(dir, prefix = "") {

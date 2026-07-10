@@ -28,7 +28,7 @@ function createLatestBackup(dir, runId = "11111111") {
   writeFileSync(join(latestDir, "metadata", "manifest.json"), JSON.stringify({
     projectRef: "cxnzlarcmszvnobuoskr",
     publicTables: { count: 7, names: ["education", "experience", "github_projects", "manual_projects", "profiles", "resumes", "skills"] },
-    migrationVersions: { count: 13, values: ["00000000000000", "20260621000000", "20260621120000", "20260621130000", "20260621140000", "20260623235512", "20260624004059", "20260624070715", "20260624072139", "20260624073936", "20260624074254", "20260624082752", "20260625000000"] },
+    migrationVersions: { count: 14, values: ["00000000000000", "20260621000000", "20260621120000", "20260621130000", "20260621140000", "20260623235512", "20260624004059", "20260624070715", "20260624072139", "20260624073936", "20260624074254", "20260624082752", "20260625000000", "20260710190000"] },
     gitCommitSHA: runId,
     restoreDrillStatus: "NOT_YET_PERFORMED",
   }));
@@ -39,7 +39,7 @@ describe("manifest verification logic", () => {
   function verifyManifest(m) {
     if (m.projectRef !== "cxnzlarcmszvnobuoskr") throw new Error("wrong ref");
     if (m.publicTables.count !== 7) throw new Error("wrong table count");
-    if (m.migrationVersions.count !== 13) throw new Error("wrong migration count");
+    if (m.migrationVersions.count !== 14) throw new Error("wrong migration count");
     if (!m.migrationVersions.values.includes("20260625000000")) throw new Error("missing recovery version");
   }
 
@@ -47,28 +47,28 @@ describe("manifest verification logic", () => {
     const m = {
       projectRef: "cxnzlarcmszvnobuoskr",
       publicTables: { count: 7 },
-      migrationVersions: { count: 13, values: ["20260625000000"] },
+      migrationVersions: { count: 14, values: ["20260625000000", "20260710190000"] },
     };
     expect(() => verifyManifest(m)).not.toThrow();
   });
 
   it("wrong ref fails", () => {
-    const m = { projectRef: "wrong", publicTables: { count: 7 }, migrationVersions: { count: 13, values: ["20260625000000"] } };
+    const m = { projectRef: "wrong", publicTables: { count: 7 }, migrationVersions: { count: 14, values: ["20260625000000", "20260710190000"] } };
     expect(() => verifyManifest(m)).toThrow("wrong ref");
   });
 
   it("wrong table count fails", () => {
-    const m = { projectRef: "cxnzlarcmszvnobuoskr", publicTables: { count: 5 }, migrationVersions: { count: 13, values: ["20260625000000"] } };
+    const m = { projectRef: "cxnzlarcmszvnobuoskr", publicTables: { count: 5 }, migrationVersions: { count: 14, values: ["20260625000000", "20260710190000"] } };
     expect(() => verifyManifest(m)).toThrow("wrong table count");
   });
 
   it("wrong migration count fails", () => {
-    const m = { projectRef: "cxnzlarcmszvnobuoskr", publicTables: { count: 7 }, migrationVersions: { count: 12, values: [] } };
+    const m = { projectRef: "cxnzlarcmszvnobuoskr", publicTables: { count: 7 }, migrationVersions: { count: 13, values: [] } };
     expect(() => verifyManifest(m)).toThrow("wrong migration count");
   });
 
   it("missing recovery version fails", () => {
-    const m = { projectRef: "cxnzlarcmszvnobuoskr", publicTables: { count: 7 }, migrationVersions: { count: 13, values: ["00000000000000"] } };
+    const m = { projectRef: "cxnzlarcmszvnobuoskr", publicTables: { count: 7 }, migrationVersions: { count: 14, values: ["00000000000000"] } };
     expect(() => verifyManifest(m)).toThrow("missing recovery version");
   });
 });

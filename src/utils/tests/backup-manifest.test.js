@@ -27,7 +27,7 @@ const VALID_METADATA = {
     },
   },
   migrationVersions: {
-    count: 13,
+    count: 14,
     values: [
       "00000000000000",
       "20260621000000",
@@ -42,6 +42,7 @@ const VALID_METADATA = {
       "20260624074254",
       "20260624082752",
       "20260625000000",
+      "20260710190000",
     ],
   },
 };
@@ -87,8 +88,8 @@ describe("collect-db-metadata expected format", () => {
   it("valid metadata has correct structure", () => {
     expect(VALID_METADATA.publicTables.count).toBe(7);
     expect(VALID_METADATA.publicTables.names).toHaveLength(7);
-    expect(VALID_METADATA.migrationVersions.count).toBe(13);
-    expect(VALID_METADATA.migrationVersions.values).toHaveLength(13);
+    expect(VALID_METADATA.migrationVersions.count).toBe(14);
+    expect(VALID_METADATA.migrationVersions.values).toHaveLength(14);
     expect(VALID_METADATA.migrationVersions.values).toContain("20260625000000");
   });
 
@@ -186,15 +187,15 @@ describe("create-manifest validation logic", () => {
     expect(bad.publicTables.names).toContain("unknown_table");
   });
 
-  it("fails when migration count is 12", () => {
+  it("fails when migration count is 13", () => {
     const bad = {
       ...VALID_METADATA,
       migrationVersions: {
-        count: 12,
-        values: VALID_METADATA.migrationVersions.values.slice(0, 12),
+        count: 13,
+        values: VALID_METADATA.migrationVersions.values.slice(0, 13),
       },
     };
-    expect(bad.migrationVersions.count).not.toBe(13);
+    expect(bad.migrationVersions.count).not.toBe(14);
   });
 
   it("fails when recovery version is missing", () => {
@@ -221,7 +222,7 @@ describe("create-manifest validation logic", () => {
       )
     );
     expect(meta.publicTables.count).toBe(7);
-    expect(meta.migrationVersions.count).toBe(13);
+    expect(meta.migrationVersions.count).toBe(14);
     expect(meta.migrationVersions.values).toContain("20260625000000");
   });
 
@@ -241,6 +242,6 @@ describe("create-manifest validation logic", () => {
       )
     );
     expect(meta.publicTables.count).toBe(7);
-    expect(meta.migrationVersions.count).toBe(13);
+    expect(meta.migrationVersions.count).toBe(14);
   });
 });

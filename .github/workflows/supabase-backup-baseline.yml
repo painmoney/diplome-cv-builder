@@ -87,8 +87,8 @@ jobs:
           MIGRATION_COUNT=$(psql "$PRIMARY_DB_URL" -c "SELECT count(*) FROM supabase_migrations.schema_migrations;" --no-psqlrc -t -A)
           echo "Migration count: $MIGRATION_COUNT"
 
-          if [[ "$MIGRATION_COUNT" -ne 13 ]]; then
-            echo "::error::Expected 13 migrations, got $MIGRATION_COUNT"
+          if [[ "$MIGRATION_COUNT" -ne 14 ]]; then
+            echo "::error::Expected 14 migrations, got $MIGRATION_COUNT"
             exit 1
           fi
 
@@ -438,7 +438,7 @@ jobs:
             const expected = ['education','experience','github_projects','manual_projects','profiles','resumes','skills'];
             const actual = m.publicTables.names.slice().sort();
             if (JSON.stringify(actual) !== JSON.stringify(expected)) { console.error('FAIL: table names mismatch'); ok=false; }
-            if (m.migrationVersions.count !== 13) { console.error('FAIL: migrationVersions.count=' + m.migrationVersions.count); ok=false; }
+            if (m.migrationVersions.count !== 14) { console.error('FAIL: migrationVersions.count=' + m.migrationVersions.count); ok=false; }
             if (!m.migrationVersions.values.includes('20260625000000')) { console.error('FAIL: recovery version missing'); ok=false; }
             if (m.restoreDrillStatus !== 'NOT_YET_PERFORMED') { console.error('FAIL: restoreDrillStatus=' + m.restoreDrillStatus); ok=false; }
             if (m.projectRef !== 'cxnzlarcmszvnobuoskr') { console.error('FAIL: projectRef=' + m.projectRef); ok=false; }

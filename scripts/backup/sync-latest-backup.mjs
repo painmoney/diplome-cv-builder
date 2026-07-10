@@ -44,8 +44,8 @@ function verifyManifest(manifestPath) {
   if (m.publicTables.count !== 7) {
     throw new Error(`Expected 7 tables, got ${m.publicTables.count}`);
   }
-  if (m.migrationVersions.count !== 13) {
-    throw new Error(`Expected 13 migrations, got ${m.migrationVersions.count}`);
+  if (m.migrationVersions.count !== 14) {
+    throw new Error(`Expected 14 migrations, got ${m.migrationVersions.count}`);
   }
   if (!m.migrationVersions.values.includes("20260625000000")) {
     throw new Error("Recovery version 20260625000000 missing");
