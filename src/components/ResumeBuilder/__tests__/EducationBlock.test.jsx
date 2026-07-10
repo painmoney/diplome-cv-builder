@@ -20,6 +20,17 @@ function getAddBtn() {
   );
 }
 
+function createDataTransfer() {
+  const store = {};
+  return {
+    effectAllowed: "",
+    setData: vi.fn((type, value) => {
+      store[type] = value;
+    }),
+    getData: vi.fn((type) => store[type] || ""),
+  };
+}
+
 describe("EducationBlock delete confirmation", () => {
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
@@ -79,5 +90,21 @@ describe("EducationBlock form validation", () => {
     expect(screen.getByText("Укажите название учебного заведения")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("ВУЗ"), { target: { value: "X" } });
     expect(screen.queryByText("Укажите название учебного заведения")).not.toBeInTheDocument();
+  });
+});
+
+describe("EducationBlock reorder", () => {
+  afterEach(() => { cleanup(); vi.clearAllMocks(); });
+
+  it("moves an education card below another card with drag and drop", () => {
+    renderEdu();
+    const dataTransfer = createDataTransfer();
+    const source = screen.getByLabelText("Перетащить образование «MIT»");
+    const targetCard = screen.getByLabelText("Перетащить образование «Stanford»").closest(".MuiCard-root");
+
+    fireEvent.dragStart(source, { dataTransfer });
+    fireEvent.drop(targetCard, { dataTransfer });
+
+    expect(mockOnChange).toHaveBeenCalledWith([sampleData[1], sampleData[0]]);
   });
 });

@@ -11,9 +11,22 @@ import {
   Chip,
   Stack,
 } from "@mui/material";
-import { Edit, Delete, Save, Close } from "@mui/icons-material";
+import { Edit, Delete, DragIndicator, Save, Close } from "@mui/icons-material";
 
-export default function ManualProjectCard({ project, isNew = false, onSave, onDelete, onCancel }) {
+export default function ManualProjectCard({
+  project,
+  isNew = false,
+  isDragging = false,
+  isDropTarget = false,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onSave,
+  onDelete,
+  onCancel,
+}) {
   const [isEditing, setIsEditing] = useState(isNew);
   const [draft, setDraft] = useState({ ...project });
   const nameRef = useRef(null);
@@ -56,9 +69,38 @@ export default function ManualProjectCard({ project, isNew = false, onSave, onDe
 
   if (!isEditing) {
     return (
-      <Card variant="outlined" sx={{ p: 2 }}>
+      <Card
+        variant="outlined"
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        sx={{
+          p: 2,
+          opacity: isDragging ? 0.55 : 1,
+          borderStyle: isDropTarget ? "dashed" : undefined,
+          borderColor: isDropTarget ? "primary.main" : undefined,
+        }}
+      >
         <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+            <Box
+              draggable
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              aria-label={`Перетащить проект «${projectName}»`}
+              title="Перетащить"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                alignSelf: "stretch",
+                color: "text.secondary",
+                cursor: "grab",
+                "&:active": { cursor: "grabbing" },
+              }}
+            >
+              <DragIndicator fontSize="small" />
+            </Box>
+
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {projectName}

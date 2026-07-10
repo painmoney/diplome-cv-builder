@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, within, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import ProjectsBlock from "../ProjectsBlock";
 
 afterEach(() => {
@@ -26,6 +26,17 @@ const SAMPLE_PROJECTS = [
     period: "2024",
   },
 ];
+
+function createDataTransfer() {
+  const store = {};
+  return {
+    effectAllowed: "",
+    setData: vi.fn((type, value) => {
+      store[type] = value;
+    }),
+    getData: vi.fn((type) => store[type] || ""),
+  };
+}
 
 describe("ProjectsBlock — rendering", () => {
   it("renders all projects in view mode by default", () => {
@@ -195,5 +206,20 @@ describe("ProjectsBlock — identity preservation", () => {
     const result = onChange.mock.calls[0][0];
     expect(result).toHaveLength(3);
     expect(result[2]).toBeDefined();
+  });
+});
+
+describe("ProjectsBlock — reorder", () => {
+  it("moves a project below another project with drag and drop", () => {
+    const onChange = vi.fn();
+    render(<ProjectsBlock data={SAMPLE_PROJECTS} onChange={onChange} />);
+    const dataTransfer = createDataTransfer();
+    const source = screen.getByLabelText("Перетащить проект «CV Builder»");
+    const targetCard = screen.getByLabelText("Перетащить проект «Task Manager»").closest(".MuiCard-root");
+
+    fireEvent.dragStart(source, { dataTransfer });
+    fireEvent.drop(targetCard, { dataTransfer });
+
+    expect(onChange).toHaveBeenCalledWith([SAMPLE_PROJECTS[1], SAMPLE_PROJECTS[0]]);
   });
 });
