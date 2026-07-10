@@ -17,4 +17,5 @@ Thumbs.db
 # Backup artifacts
 /backups/
 /backup-work/
+/safe-packages/
 *.tar.gz.enc

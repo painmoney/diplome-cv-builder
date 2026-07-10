@@ -23,7 +23,8 @@
     "safety:scan": "node scripts/supabase/scan-dangerous-commands.mjs",
     "backup:trigger-and-sync": "node scripts/backup/run-and-sync-backup.mjs",
     "backup:sync-latest": "node scripts/backup/sync-latest-backup.mjs",
-    "backup:list": "gh run list --workflow supabase-backup-baseline.yml --branch production-development --limit 10"
+    "backup:list": "gh run list --workflow supabase-backup-baseline.yml --branch production-development --limit 10",
+    "package:safe": "node scripts/package-safe.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

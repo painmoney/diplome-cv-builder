@@ -8,6 +8,59 @@ import {
 } from "./coverLetterSafetyUtils";
 
 const AI_MODEL_PRIMARY = "openai/gpt-4o-mini";
+const PUTER_SDK_SRC = "https://js.puter.com/v2/";
+
+let puterSdkPromise = null;
+
+function hasPuterAI() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.puter !== "undefined" &&
+    typeof window.puter.ai !== "undefined" &&
+    typeof window.puter.ai.chat === "function"
+  );
+}
+
+function loadPuterSdk() {
+  if (hasPuterAI()) return Promise.resolve();
+  if (typeof document === "undefined") {
+    return Promise.reject(new Error("AI-сервис недоступен"));
+  }
+
+  if (!puterSdkPromise) {
+    puterSdkPromise = new Promise((resolve, reject) => {
+      const existingScript = document.querySelector(`script[src="${PUTER_SDK_SRC}"]`);
+      if (existingScript?.dataset.puterLoaded === "true") {
+        reject(new Error("AI-сервис недоступен"));
+        return;
+      }
+
+      const script = existingScript || document.createElement("script");
+
+      script.addEventListener("load", () => {
+        script.dataset.puterLoaded = "true";
+        if (hasPuterAI()) resolve();
+        else {
+          puterSdkPromise = null;
+          reject(new Error("AI-сервис недоступен"));
+        }
+      }, { once: true });
+
+      script.addEventListener("error", () => {
+        puterSdkPromise = null;
+        reject(new Error("AI-сервис временно недоступен. Попробуйте позже."));
+      }, { once: true });
+
+      if (!existingScript) {
+        script.src = PUTER_SDK_SRC;
+        script.async = true;
+        document.head.appendChild(script);
+      }
+    });
+  }
+
+  return puterSdkPromise;
+}
 
 function isModelError(err) {
   const msg = String(err?.message || err || "").toLowerCase();
@@ -46,11 +99,8 @@ export function normalizePuterAIError(err) {
 }
 
 export async function callPuterAI(prompt, options = {}) {
-  if (!isAIAvailable()) {
-    throw new Error("AI-сервис недоступен");
-  }
-
   try {
+    await loadPuterSdk();
     return await window.puter.ai.chat(prompt, {
       model: AI_MODEL_PRIMARY,
       ...options,
@@ -61,6 +111,7 @@ export async function callPuterAI(prompt, options = {}) {
     }
     if (isModelError(primaryErr)) {
       try {
+        await loadPuterSdk();
         return await window.puter.ai.chat(prompt, options);
       } catch (fallbackErr) {
         throw new Error(normalizePuterAIError(fallbackErr), { cause: fallbackErr });
@@ -71,12 +122,7 @@ export async function callPuterAI(prompt, options = {}) {
 }
 
 export function isAIAvailable() {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.puter !== "undefined" &&
-    typeof window.puter.ai !== "undefined" &&
-    typeof window.puter.ai.chat === "function"
-  );
+  return typeof window !== "undefined" && typeof document !== "undefined";
 }
 
 export function extractAIText(response) {

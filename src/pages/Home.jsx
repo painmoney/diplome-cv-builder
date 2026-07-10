@@ -533,7 +533,7 @@ export default function Home() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.09 } },
           }}
-          initial="hidden"
+          initial={false}
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           sx={{
