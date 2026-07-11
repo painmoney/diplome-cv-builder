@@ -1,0 +1,14 @@
+{
+  "expectedMigrationCount": 14,
+  "expectedTableNames": [
+    "education",
+    "experience",
+    "github_projects",
+    "manual_projects",
+    "profiles",
+    "resumes",
+    "skills"
+  ],
+  "requiredRecoveryVersion": "20260625000000",
+  "projectRef": "cxnzlarcmszvnobuoskr"
+}
