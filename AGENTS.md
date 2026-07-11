@@ -14,6 +14,7 @@ These rules are mandatory for all agent sessions (MiMo, Claude, Copilot, or any 
 - Never push to primary locally — production migrations require an approved CI release workflow
 - Never choose destructive actions independently
 
+
 ### Mandatory procedures
 
 - All remote Supabase commands must go through `node scripts/supabase/safe-remote.mjs`
@@ -57,3 +58,20 @@ These rules are mandatory for all agent sessions (MiMo, Claude, Copilot, or any 
 - Never print full anon/publishable keys
 - Never kill all Node processes (`Stop-Process -Name node -Force` is prohibited)
 - `.env.development.local` and `.env.staging.local` are gitignored — never commit them
+
+# Release safety rules
+
+- Never modify or rewrite Git history.
+- Never force-push.
+- Never delete branches, tags, secrets, databases, tables, buckets, or remote projects.
+- Never run remote database migrations without explicit approval.
+- Never run E2E tests against production.
+- Never deploy to production without explicit approval.
+- Never read, print, copy, commit, or expose secret values.
+- Do not modify .env files containing real credentials.
+- Use staging Supabase for preview and E2E.
+- Implement one plan phase at a time.
+- Before every phase, state affected files and risks.
+- After every phase, run tests, lint, and production build.
+- Stop when tests fail; do not bypass or delete failing tests.
+- Keep potentially breaking changes in separate commits.
