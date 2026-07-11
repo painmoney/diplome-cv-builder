@@ -462,7 +462,7 @@ jobs:
           STAGING_PROJECT_REF: ${{ env.STAGING_PROJECT_REF }}
 
       - name: Upload encrypted artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cv-builder-primary-baseline-${{ env.ARCHIVE_NAME }}
           path: |
@@ -494,7 +494,7 @@ jobs:
 
     steps:
       - name: Rotate backup artifacts
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const PREFIX = 'cv-builder-primary-baseline-';
