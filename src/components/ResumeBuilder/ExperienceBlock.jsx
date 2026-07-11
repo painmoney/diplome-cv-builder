@@ -3,8 +3,6 @@ import {
   Box,
   TextField,
   Button,
-  Card,
-  CardContent,
   IconButton,
   Typography,
   Dialog,
@@ -14,11 +12,12 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { Add, Delete, DragIndicator, Edit, Save, Close, Work, AutoFixHigh } from "@mui/icons-material";
+import { Add, Delete, Edit, Save, Close, Work, AutoFixHigh } from "@mui/icons-material";
+import { Reorder } from "framer-motion";
 import EmptyState from "../common/EmptyState";
 import ConfirmDialog from "../common/ConfirmDialog";
+import ReorderCard from "../common/ReorderCard";
 import { isAIAvailable, improveExperienceDescription } from "../../utils/aiService";
-import { moveItem, remapIndexAfterMove } from "../../utils/reorder";
 
 const emptyExp = {
   company: "",
@@ -38,8 +37,6 @@ export default function ExperienceBlock({ data = [], onChange }) {
   const [aiAvailable, setAiAvailable] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState(null);
   const [companyError, setCompanyError] = useState("");
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dropIndex, setDropIndex] = useState(null);
 
   useEffect(() => {
     if (isAIAvailable()) {
@@ -114,26 +111,13 @@ export default function ExperienceBlock({ data = [], onChange }) {
     if (editingIndex === idx) resetForm();
   };
 
-  const reorderExperience = (fromIndex, toIndex) => {
-    if (fromIndex === toIndex) return;
-    onChange(moveItem(data, fromIndex, toIndex));
-    setEditingIndex((index) => remapIndexAfterMove(index, fromIndex, toIndex));
-  };
-
-  const handleDragStart = (event, index) => {
-    setDraggedIndex(index);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", String(index));
-  };
-
-  const handleDrop = (event, index) => {
-    event.preventDefault();
-    const rawSource = event.dataTransfer.getData("text/plain");
-    const source = rawSource === "" ? NaN : Number(rawSource);
-    const fromIndex = Number.isInteger(source) ? source : draggedIndex;
-    if (Number.isInteger(fromIndex)) reorderExperience(fromIndex, index);
-    setDraggedIndex(null);
-    setDropIndex(null);
+  const handleReorder = (nextData) => {
+    if (editingIndex !== null) {
+      const editingItem = data[editingIndex];
+      const nextIndex = nextData.indexOf(editingItem);
+      setEditingIndex(nextIndex === -1 ? null : nextIndex);
+    }
+    onChange(nextData);
   };
 
   const handleImproveDescription = async () => {
@@ -284,52 +268,19 @@ export default function ExperienceBlock({ data = [], onChange }) {
           compact
         />
       ) : (
-        data.map((exp, index) => (
-          <Card
-            key={exp.id || index}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDropIndex(index);
-            }}
-            onDragLeave={() => setDropIndex(null)}
-            onDrop={(event) => handleDrop(event, index)}
-            sx={{
-              mb: 2,
-              opacity: draggedIndex === index ? 0.55 : 1,
-              border: dropIndex === index ? "1px dashed" : undefined,
-              borderColor: dropIndex === index ? "primary.main" : undefined,
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 2,
-                }}
-              >
-                <Box
-                  draggable
-                  onDragStart={(event) => handleDragStart(event, index)}
-                  onDragEnd={() => {
-                    setDraggedIndex(null);
-                    setDropIndex(null);
-                  }}
-                  aria-label={`Перетащить опыт «${exp.company || "Без названия"}»`}
-                  title="Перетащить"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    alignSelf: "stretch",
-                    color: "text.secondary",
-                    cursor: "grab",
-                    "&:active": { cursor: "grabbing" },
-                  }}
-                >
-                  <DragIndicator fontSize="small" />
-                </Box>
-
+        <Reorder.Group
+          axis="y"
+          values={data}
+          onReorder={handleReorder}
+          as="div"
+          style={{ display: "flex", flexDirection: "column", gap: 16 }}
+        >
+          {data.map((exp, index) => (
+            <ReorderCard
+              key={exp.id || index}
+              value={exp}
+              dragLabel={`Перетащить опыт «${exp.company || "Без названия"}»`}
+            >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="subtitle1">
                     {exp.position || "Должность не указана"} • {exp.company}
@@ -365,10 +316,9 @@ export default function ExperienceBlock({ data = [], onChange }) {
                     <Delete />
                   </IconButton>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        ))
+            </ReorderCard>
+          ))}
+        </Reorder.Group>
       )}
 
       <ConfirmDialog

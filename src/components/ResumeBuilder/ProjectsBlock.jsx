@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { Box, Stack, Button, Typography } from "@mui/material";
 import { Add } from "@mui/icons-material";
+import { Reorder } from "framer-motion";
 import EmptyState from "../common/EmptyState";
 import ManualProjectCard from "./ManualProjectCard";
-import { moveItem } from "../../utils/reorder";
 
 const createProjectId = () =>
   `proj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -21,8 +21,6 @@ const emptyProject = () => ({
 export default function ProjectsBlock({ data = [], onChange }) {
   const projects = Array.isArray(data) ? data : [];
   const [pendingNew, setPendingNew] = useState(null);
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dropIndex, setDropIndex] = useState(null);
   const addBtnRef = useRef(null);
 
   const handleSave = (projectId, draft) => {
@@ -52,27 +50,6 @@ export default function ProjectsBlock({ data = [], onChange }) {
 
   const handleCancelNew = () => {
     setPendingNew(null);
-  };
-
-  const handleReorder = (fromIndex, toIndex) => {
-    if (fromIndex === toIndex) return;
-    onChange(moveItem(projects, fromIndex, toIndex));
-  };
-
-  const handleDragStart = (event, index) => {
-    setDraggedIndex(index);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", String(index));
-  };
-
-  const handleDrop = (event, index) => {
-    event.preventDefault();
-    const rawSource = event.dataTransfer.getData("text/plain");
-    const source = rawSource === "" ? NaN : Number(rawSource);
-    const fromIndex = Number.isInteger(source) ? source : draggedIndex;
-    if (Number.isInteger(fromIndex)) handleReorder(fromIndex, index);
-    setDraggedIndex(null);
-    setDropIndex(null);
   };
 
   return (
@@ -115,27 +92,23 @@ export default function ProjectsBlock({ data = [], onChange }) {
           />
         )}
 
-        {projects.map((project, index) => (
-          <ManualProjectCard
-            key={project.id}
-            project={project}
-            isDragging={draggedIndex === index}
-            isDropTarget={dropIndex === index}
-            onDragStart={(event) => handleDragStart(event, index)}
-            onDragEnd={() => {
-              setDraggedIndex(null);
-              setDropIndex(null);
-            }}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDropIndex(index);
-            }}
-            onDragLeave={() => setDropIndex(null)}
-            onDrop={(event) => handleDrop(event, index)}
-            onSave={handleSave}
-            onDelete={handleDelete}
-          />
-        ))}
+        <Reorder.Group
+          axis="y"
+          values={projects}
+          onReorder={onChange}
+          as="div"
+          style={{ display: "flex", flexDirection: "column", gap: 16 }}
+        >
+          {projects.map((project) => (
+            <ManualProjectCard
+              key={project.id}
+              project={project}
+              reorderValue={project}
+              onSave={handleSave}
+              onDelete={handleDelete}
+            />
+          ))}
+        </Reorder.Group>
       </Stack>
 
       {projects.length > 0 && (

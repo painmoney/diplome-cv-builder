@@ -3,15 +3,14 @@ import {
   Box,
   TextField,
   Button,
-  Card,
-  CardContent,
   IconButton,
   Typography,
 } from "@mui/material";
-import { Add, Delete, DragIndicator, Edit, Save, Close, School } from "@mui/icons-material";
+import { Add, Delete, Edit, Save, Close, School } from "@mui/icons-material";
+import { Reorder } from "framer-motion";
 import EmptyState from "../common/EmptyState";
 import ConfirmDialog from "../common/ConfirmDialog";
-import { moveItem, remapIndexAfterMove } from "../../utils/reorder";
+import ReorderCard from "../common/ReorderCard";
 
 const emptyEdu = {
   institution: "",
@@ -27,8 +26,6 @@ export default function EducationBlock({ data = [], onChange }) {
   const [editingIndex, setEditingIndex] = useState(null);
   const [deleteIndex, setDeleteIndex] = useState(null);
   const [institutionError, setInstitutionError] = useState("");
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dropIndex, setDropIndex] = useState(null);
 
   const resetForm = () => {
     setNewEdu(emptyEdu);
@@ -86,26 +83,13 @@ export default function EducationBlock({ data = [], onChange }) {
     if (editingIndex === idx) resetForm();
   };
 
-  const reorderEducation = (fromIndex, toIndex) => {
-    if (fromIndex === toIndex) return;
-    onChange(moveItem(data, fromIndex, toIndex));
-    setEditingIndex((index) => remapIndexAfterMove(index, fromIndex, toIndex));
-  };
-
-  const handleDragStart = (event, index) => {
-    setDraggedIndex(index);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", String(index));
-  };
-
-  const handleDrop = (event, index) => {
-    event.preventDefault();
-    const rawSource = event.dataTransfer.getData("text/plain");
-    const source = rawSource === "" ? NaN : Number(rawSource);
-    const fromIndex = Number.isInteger(source) ? source : draggedIndex;
-    if (Number.isInteger(fromIndex)) reorderEducation(fromIndex, index);
-    setDraggedIndex(null);
-    setDropIndex(null);
+  const handleReorder = (nextData) => {
+    if (editingIndex !== null) {
+      const editingItem = data[editingIndex];
+      const nextIndex = nextData.indexOf(editingItem);
+      setEditingIndex(nextIndex === -1 ? null : nextIndex);
+    }
+    onChange(nextData);
   };
 
   return (
@@ -221,52 +205,19 @@ export default function EducationBlock({ data = [], onChange }) {
           compact
         />
       ) : (
-        data.map((edu, index) => (
-          <Card
-            key={edu.id || index}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDropIndex(index);
-            }}
-            onDragLeave={() => setDropIndex(null)}
-            onDrop={(event) => handleDrop(event, index)}
-            sx={{
-              mb: 2,
-              opacity: draggedIndex === index ? 0.55 : 1,
-              border: dropIndex === index ? "1px dashed" : undefined,
-              borderColor: dropIndex === index ? "primary.main" : undefined,
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 2,
-                }}
-              >
-                <Box
-                  draggable
-                  onDragStart={(event) => handleDragStart(event, index)}
-                  onDragEnd={() => {
-                    setDraggedIndex(null);
-                    setDropIndex(null);
-                  }}
-                  aria-label={`Перетащить образование «${edu.institution || "Без названия"}»`}
-                  title="Перетащить"
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    alignSelf: "stretch",
-                    color: "text.secondary",
-                    cursor: "grab",
-                    "&:active": { cursor: "grabbing" },
-                  }}
-                >
-                  <DragIndicator fontSize="small" />
-                </Box>
-
+        <Reorder.Group
+          axis="y"
+          values={data}
+          onReorder={handleReorder}
+          as="div"
+          style={{ display: "flex", flexDirection: "column", gap: 16 }}
+        >
+          {data.map((edu, index) => (
+            <ReorderCard
+              key={edu.id || index}
+              value={edu}
+              dragLabel={`Перетащить образование «${edu.institution || "Без названия"}»`}
+            >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="subtitle1">
                     {edu.institution}
@@ -313,10 +264,9 @@ export default function EducationBlock({ data = [], onChange }) {
                     <Delete />
                   </IconButton>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        ))
+            </ReorderCard>
+          ))}
+        </Reorder.Group>
       )}
 
       <ConfirmDialog

@@ -11,18 +11,13 @@ import {
   Chip,
   Stack,
 } from "@mui/material";
-import { Edit, Delete, DragIndicator, Save, Close } from "@mui/icons-material";
+import { Edit, Delete, Save, Close } from "@mui/icons-material";
+import ReorderCard from "../common/ReorderCard";
 
 export default function ManualProjectCard({
   project,
   isNew = false,
-  isDragging = false,
-  isDropTarget = false,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDragLeave,
-  onDrop,
+  reorderValue = null,
   onSave,
   onDelete,
   onCancel,
@@ -68,40 +63,9 @@ export default function ManualProjectCard({
     : [];
 
   if (!isEditing) {
-    return (
-      <Card
-        variant="outlined"
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-        sx={{
-          p: 2,
-          opacity: isDragging ? 0.55 : 1,
-          borderStyle: isDropTarget ? "dashed" : undefined,
-          borderColor: isDropTarget ? "primary.main" : undefined,
-        }}
-      >
-        <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
-            <Box
-              draggable
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-              aria-label={`Перетащить проект «${projectName}»`}
-              title="Перетащить"
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                alignSelf: "stretch",
-                color: "text.secondary",
-                cursor: "grab",
-                "&:active": { cursor: "grabbing" },
-              }}
-            >
-              <DragIndicator fontSize="small" />
-            </Box>
-
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+    const content = (
+      <>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 {projectName}
               </Typography>
@@ -157,6 +121,29 @@ export default function ManualProjectCard({
                 <Delete fontSize="small" />
               </IconButton>
             </Box>
+      </>
+    );
+
+    if (reorderValue) {
+      return (
+        <ReorderCard
+          value={reorderValue}
+          dragLabel={`Перетащить проект «${projectName}»`}
+          variant="outlined"
+          cardSx={{ p: 2 }}
+          contentSx={{ p: 0, "&:last-child": { pb: 0 } }}
+          containerSx={{ gap: 1 }}
+        >
+          {content}
+        </ReorderCard>
+      );
+    }
+
+    return (
+      <Card variant="outlined" sx={{ p: 2 }}>
+        <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+            {content}
           </Box>
         </CardContent>
       </Card>
