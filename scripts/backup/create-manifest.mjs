@@ -1,38 +1,14 @@
 import { writeFileSync, readdirSync, statSync, readFileSync } from "fs";
 import { join } from "path";
+import { loadBackupManifest } from "./load-backup-manifest.mjs";
 
 const BACKUP_DIR = process.env.BACKUP_DIR || "backup-work";
 const GIT_SHA = process.env.GIT_SHA || "unknown";
 const GIT_REF = process.env.GIT_REF || "unknown";
 
-const backupManifest = JSON.parse(readFileSync(join(process.cwd(), ".github", "backup-manifest.json"), "utf8"));
-
-const REQUIRED_MANIFEST_FIELDS = [
-  "expectedMigrationCount",
-  "expectedTableNames",
-  "requiredRecoveryVersion",
-  "projectRef",
-];
-
-for (const field of REQUIRED_MANIFEST_FIELDS) {
-  if (backupManifest[field] === undefined) {
-    console.error(`FATAL: Missing required backup manifest field: ${field}`);
-    process.exit(1);
-  }
-}
-
-if (!Number.isInteger(backupManifest.expectedMigrationCount)) {
-  console.error("FATAL: expectedMigrationCount must be an integer");
-  process.exit(1);
-}
-
-if (!Array.isArray(backupManifest.expectedTableNames) || backupManifest.expectedTableNames.length === 0) {
-  console.error("FATAL: expectedTableNames must be a non-empty array");
-  process.exit(1);
-}
-
+const backupManifest = loadBackupManifest();
 const PROJECT_REF = backupManifest.projectRef;
-const EXPECTED_TABLE_COUNT = backupManifest.expectedTableNames.length;
+const EXPECTED_TABLE_COUNT = backupManifest.expectedTableCount;
 const EXPECTED_MIGRATION_COUNT = backupManifest.expectedMigrationCount;
 const REQUIRED_RECOVERY_VERSION = backupManifest.requiredRecoveryVersion;
 

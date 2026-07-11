@@ -1,6 +1,7 @@
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
+import { loadBackupManifest } from "./load-backup-manifest.mjs";
 
 const DB_URL = process.env.PRIMARY_DB_URL;
 const BACKUP_DIR = process.env.BACKUP_DIR || "backup-work";
@@ -10,18 +11,11 @@ if (!DB_URL) {
   process.exit(1);
 }
 
-const EXPECTED_TABLES = [
-  "education",
-  "experience",
-  "github_projects",
-  "manual_projects",
-  "profiles",
-  "resumes",
-  "skills",
-];
-
-const EXPECTED_MIGRATION_COUNT = 13;
-const REQUIRED_RECOVERY_VERSION = "20260625000000";
+const backupManifest = loadBackupManifest();
+const EXPECTED_TABLES = backupManifest.expectedTableNames;
+const EXPECTED_TABLE_COUNT = backupManifest.expectedTableCount;
+const EXPECTED_MIGRATION_COUNT = backupManifest.expectedMigrationCount;
+const REQUIRED_RECOVERY_VERSION = backupManifest.requiredRecoveryVersion;
 
 function psql(query) {
   const result = execSync(
@@ -55,8 +49,8 @@ function main() {
     console.error(`Unexpected extra tables: ${extra.join(", ")}`);
     process.exit(1);
   }
-  if (tablesRaw.length !== 7) {
-    console.error(`Expected exactly 7 tables, got ${tablesRaw.length}`);
+  if (tablesRaw.length !== EXPECTED_TABLE_COUNT) {
+    console.error(`Expected exactly ${EXPECTED_TABLE_COUNT} tables, got ${tablesRaw.length}`);
     process.exit(1);
   }
   console.log(`✅ Tables verified: ${tablesRaw.join(", ")}`);
