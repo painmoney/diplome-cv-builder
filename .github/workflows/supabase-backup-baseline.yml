@@ -438,8 +438,9 @@ jobs:
           echo "--- Manifest metadata verification ---"
           node -e "
             const fs = require('fs');
-            const manifest = JSON.parse(fs.readFileSync('.github/backup-manifest.json','utf8'));
-            const m = JSON.parse(fs.readFileSync('${VERIFY_DIR}/bundle/metadata/manifest.json','utf8'));
+            const path = require('path');
+            const manifest = JSON.parse(fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, '.github', 'backup-manifest.json'), 'utf8'));
+            const m = JSON.parse(fs.readFileSync('${VERIFY_DIR}/bundle/metadata/manifest.json', 'utf8'));
             let ok = true;
             if (m.publicTables.count !== manifest.expectedTableNames.length) { console.error('FAIL: publicTables.count=' + m.publicTables.count + ' expected ' + manifest.expectedTableNames.length); ok=false; }
             const actual = m.publicTables.names.slice().sort();
@@ -449,7 +450,7 @@ jobs:
             if (!m.migrationVersions.values.includes(manifest.requiredRecoveryVersion)) { console.error('FAIL: recovery version missing'); ok=false; }
             if (m.restoreDrillStatus !== 'NOT_YET_PERFORMED') { console.error('FAIL: restoreDrillStatus=' + m.restoreDrillStatus); ok=false; }
             if (m.projectRef !== manifest.projectRef) { console.error('FAIL: projectRef=' + m.projectRef); ok=false; }
-            if (JSON.stringify(m).includes('jerwfvhpoanoukxiyvwq')) { console.error('FAIL: staging ref in manifest'); ok=false; }
+            if (JSON.stringify(m).includes(process.env.STAGING_PROJECT_REF)) { console.error('FAIL: staging ref in manifest'); ok=false; }
             if (ok) console.log('✅ Manifest metadata verified');
             else process.exit(1);
           "
@@ -458,6 +459,7 @@ jobs:
           echo "✅ Self-verification complete — all checks passed"
         env:
           BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+          STAGING_PROJECT_REF: ${{ env.STAGING_PROJECT_REF }}
 
       - name: Upload encrypted artifact
         uses: actions/upload-artifact@v4
