@@ -12,8 +12,8 @@ const EFFECTIVE_DATE = "12 июля 2026 года";
 const LAST_UPDATED_DATE = "12 июля 2026 года";
 
 // Заполните только эти два значения своими реальными данными перед production-сборкой.
-const SERVICE_OWNER = "TODO_PLACEHOLDER: укажите ФИО или наименование владельца";
-const CONTACT_EMAIL = "TODO_PLACEHOLDER: укажите email для обращений по приватности";
+const SERVICE_OWNER = "Prokofiev Matvey Michkailovich";
+const CONTACT_EMAIL = "cvprivacy@yandex.ru";
 
 const TODO_HIGHLIGHT = {
   display: "inline",

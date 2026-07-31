@@ -13,7 +13,8 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { BorderBeam } from "border-beam";
 
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BoltIcon from "@mui/icons-material/Bolt";
@@ -27,6 +28,7 @@ import SecurityIcon from "@mui/icons-material/Security";
 
 import { useAuth } from "../context/AuthContext";
 import { TEMPLATE_REGISTRY } from "../utils/templateRegistry";
+import TiltCard from "../components/common/TiltCard";
 import TypewriterText from "../components/common/TypewriterText";
 
 const fadeUp = {
@@ -38,6 +40,7 @@ export default function Home() {
   const theme = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
 
   const isDark = theme.palette.mode === "dark";
 
@@ -224,23 +227,38 @@ export default function Home() {
           </Grid>
 
           <Grid item xs={12} md={5}>
-            <Card
-              component={motion.div}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.65, delay: 0.1 },
-              }}
-              elevation={0}
-              sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                overflow: "hidden",
-              }}
+            <TiltCard
+              tiltLimit={5}
+              scale={1.012}
+              perspective={1400}
+              spotlight
             >
-              <CardContent sx={{ p: 2.5 }}>
+              <BorderBeam
+                size="line"
+                colorVariant="ocean"
+                theme={isDark ? "dark" : "light"}
+                strength={0.4}
+                active={!shouldReduceMotion}
+                borderRadius={theme.shape.borderRadius}
+                style={{ width: "100%" }}
+              >
+                <Card
+                  component={motion.div}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    transition: { duration: 0.65, delay: 0.1 },
+                  }}
+                  elevation={0}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
+                    overflow: "hidden",
+                  }}
+                >
+                  <CardContent sx={{ p: 2.5 }}>
                 <Stack
                   direction="row"
                   spacing={1}
@@ -313,8 +331,10 @@ export default function Home() {
                   <Chip size="small" label="Markdown" />
                   <Chip size="small" label="PNG / JPG" />
                 </Stack>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </BorderBeam>
+            </TiltCard>
           </Grid>
         </Grid>
       </Box>
