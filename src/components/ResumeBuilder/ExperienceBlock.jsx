@@ -16,8 +16,10 @@ import { Add, Delete, Edit, Save, Close, Work, AutoFixHigh } from "@mui/icons-ma
 import { Reorder } from "framer-motion";
 import EmptyState from "../common/EmptyState";
 import ConfirmDialog from "../common/ConfirmDialog";
+import AiConsentDialog from "../common/AiConsentDialog";
 import ReorderCard from "../common/ReorderCard";
 import { isAIAvailable, improveExperienceDescription } from "../../utils/aiService";
+import { useAiConsent } from "../../hooks/useAiConsent";
 
 const emptyExp = {
   company: "",
@@ -37,6 +39,7 @@ export default function ExperienceBlock({ data = [], onChange }) {
   const [aiAvailable, setAiAvailable] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState(null);
   const [companyError, setCompanyError] = useState("");
+  const { open: aiConsentOpen, requestAiAction, handleConfirm: aiConsentConfirm, handleDismiss: aiConsentDismiss, revokeConsent } = useAiConsent();
 
   useEffect(() => {
     if (isAIAvailable()) {
@@ -214,7 +217,7 @@ export default function ExperienceBlock({ data = [], onChange }) {
               size="small"
               variant="outlined"
               color="secondary"
-              onClick={handleImproveDescription}
+              onClick={() => requestAiAction(handleImproveDescription)}
               disabled={aiLoading || !newExp.description?.trim()}
               startIcon={aiLoading ? <CircularProgress size={16} /> : <AutoFixHigh />}
             >
@@ -231,7 +234,10 @@ export default function ExperienceBlock({ data = [], onChange }) {
 
         {aiAvailable && newExp.description?.trim() && !aiLoading && (
           <Typography variant="caption" color="text.secondary">
-            AI обработает текст через внешний сервис. Не отправляйте конфиденциальные данные. Использует лимиты Puter-аккаунта.
+            AI обработает текст через внешний сервис. Не отправляйте конфиденциальные данные. Использует лимиты Puter-аккаунта.{" "}
+            <Box component="span" sx={{ textDecoration: "underline", cursor: "pointer" }} onClick={revokeConsent}>
+              Отозвать согласие
+            </Box>
           </Typography>
         )}
 
@@ -330,6 +336,8 @@ export default function ExperienceBlock({ data = [], onChange }) {
         onConfirm={confirmDelete}
         onCancel={() => setDeleteIndex(null)}
       />
+
+      <AiConsentDialog open={aiConsentOpen} onConfirm={aiConsentConfirm} onDismiss={aiConsentDismiss} />
 
       <Dialog
         open={aiPreviewOpen}

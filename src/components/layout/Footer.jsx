@@ -1,4 +1,5 @@
-import { Box, Typography, Stack } from "@mui/material";
+import { Box, Typography, Stack, Link as MuiLink } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import { useThemeMode } from "../../context/ThemeModeContext";
 import BrandLogo from "./BrandLogo";
 
@@ -162,7 +163,15 @@ export default function Footer() {
         }}
       >
         <Typography variant="caption" color="text.secondary">
-          © 2026 CV Builder
+          © 2026 CV Builder ·{" "}
+          <MuiLink
+            component={RouterLink}
+            to="/privacy"
+            color="text.secondary"
+            underline="hover"
+          >
+            Политика конфиденциальности
+          </MuiLink>
         </Typography>
       </Box>
     </Box>

@@ -9,9 +9,10 @@ import {
   Paper,
   Stack,
   Divider,
+  Link as MuiLink,
 } from "@mui/material";
 import { supabase } from "../api/supabaseClient";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 
 function getRegisterErrorMessage(error) {
   if (!error) return "";
@@ -196,6 +197,13 @@ export default function Register() {
           >
             Зарегистрироваться через GitHub
           </Button>
+
+          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
+            Нажимая «Зарегистрироваться», вы подтверждаете, что ознакомились с{" "}
+            <MuiLink component={RouterLink} to="/privacy" underline="hover">
+              Политикой конфиденциальности
+            </MuiLink>
+          </Typography>
         </Stack>
       </Box>
 

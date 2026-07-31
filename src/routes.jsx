@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ResumePreview = lazy(() => import("./pages/ResumePreview"));
 const ResumeEditor = lazy(() => import("./components/ResumeBuilder/ResumeEditor"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
 export default function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ export default function AppRoutes() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
           {/* Protected */}
           <Route

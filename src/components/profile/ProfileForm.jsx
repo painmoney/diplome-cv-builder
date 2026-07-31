@@ -17,11 +17,14 @@ import AutoFixHigh from "@mui/icons-material/AutoFixHigh";
 import { useAuth } from "../../context/AuthContext";
 import AvatarUpload from "./AvatarUpload";
 import { isAIAvailable, generateAboutMe } from "../../utils/aiService";
+import AiConsentDialog from "../common/AiConsentDialog";
+import { useAiConsent } from "../../hooks/useAiConsent";
 
 export default function ProfileForm({ data = {}, errors = {}, onChange, skills = [], experience = [], github = [], projects = [] }) {
   const { user } = useAuth();
 
   const aboutValue = data.about ?? data.summary ?? "";
+  const { open: aiConsentOpen, requestAiAction, handleConfirm: aiConsentConfirm, handleDismiss: aiConsentDismiss, revokeConsent } = useAiConsent();
 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -231,7 +234,7 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
             size="small"
             variant="outlined"
             color="secondary"
-            onClick={handleGenerateAbout}
+            onClick={() => requestAiAction(handleGenerateAbout)}
             disabled={aiLoading}
             startIcon={aiLoading ? <CircularProgress size={16} /> : <AutoFixHigh />}
           >
@@ -247,7 +250,10 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
       {aiAvailable && !aboutValue.trim() && (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -0.5, mb: 1 }}>
           AI генерирует текст на основе навыков, опыта и проектов из резюме.
-          Проверьте результат перед сохранением. Использует лимиты Puter-аккаунта.
+          Проверьте результат перед сохранением. Использует лимиты Puter-аккаунта.{" "}
+          <Box component="span" sx={{ textDecoration: "underline", cursor: "pointer" }} onClick={revokeConsent}>
+            Отозвать согласие
+          </Box>
         </Typography>
       )}
 
@@ -291,6 +297,8 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AiConsentDialog open={aiConsentOpen} onConfirm={aiConsentConfirm} onDismiss={aiConsentDismiss} />
     </Box>
   );
 }

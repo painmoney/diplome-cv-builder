@@ -28,6 +28,8 @@ import { analyzeJobMatch, getKeywordLabel, getKeywordCategory, CATEGORY_LABELS }
 import { isAIAvailable, generateCoverLetter, generateJobMatchAdvice } from "../../utils/aiService";
 import { getCoverLetterMode, buildSafeNextActions, buildApplicationReadiness, buildDeclaredSkillTip } from "../../utils/coverLetterSafetyUtils";
 import EmptyState from "../common/EmptyState";
+import AiConsentDialog from "../common/AiConsentDialog";
+import { useAiConsent } from "../../hooks/useAiConsent";
 
 const DevScenarioPanel = import.meta.env.DEV
   ? lazy(() => import("../dev/JobMatchScenarioPanel"))
@@ -46,6 +48,7 @@ export default function JobMatchTab({
   onNavigateToTarget,
   onLoadDevScenario,
 }) {
+  const { open: aiConsentOpen, requestAiAction, handleConfirm: aiConsentConfirm, handleDismiss: aiConsentDismiss } = useAiConsent();
   const [clLoading, setClLoading] = useState(false);
   const [clError, setClError] = useState("");
   const [clPreviewOpen, setClPreviewOpen] = useState(false);
@@ -672,7 +675,7 @@ export default function JobMatchTab({
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={handleGenerateCoverLetter}
+                  onClick={() => requestAiAction(handleGenerateCoverLetter)}
                   disabled={clLoading}
                   startIcon={clLoading ? <CircularProgress size={16} /> : <DescriptionIcon />}
                 >
@@ -707,7 +710,7 @@ export default function JobMatchTab({
                 <Button
                   size="small"
                   variant="outlined"
-                  onClick={handleGenerateAdvice}
+                  onClick={() => requestAiAction(handleGenerateAdvice)}
                   disabled={adviceLoading}
                   startIcon={adviceLoading ? <CircularProgress size={16} /> : <WorkIcon />}
                 >
@@ -906,6 +909,8 @@ export default function JobMatchTab({
           );
         })()}
       </Popover>
+
+      <AiConsentDialog open={aiConsentOpen} onConfirm={aiConsentConfirm} onDismiss={aiConsentDismiss} />
     </Box>
   );
 }
