@@ -1,6 +1,7 @@
 
 import { Box, Typography, Chip, Paper } from "@mui/material";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
+import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children }) => (
   <Typography
@@ -42,12 +43,20 @@ export default function ModernTemplate({ data }) {
       {/* Accent header band */}
       <Box
         sx={{
+          position: "relative",
           bgcolor: primary,
-          px: "20mm",
+          pl: "20mm",
+          pr: profile?.photo ? "50mm" : "20mm",
           pt: "15mm",
           pb: "12mm",
         }}
       >
+        <ResumeAvatar
+          profile={profile}
+          size="22mm"
+          borderColor="rgba(255, 255, 255, 0.72)"
+          sx={{ top: "12mm", right: "20mm" }}
+        />
         <Typography
           variant="h3"
           sx={{

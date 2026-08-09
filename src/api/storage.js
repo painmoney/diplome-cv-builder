@@ -6,13 +6,14 @@ import { supabase } from "./supabaseClient";
 
 // Загрузка аватара пользователя
 export async function uploadAvatar(userId, file) {
-  const filePath = `${userId}/avatar.webp`;
+  const filePath = `${userId}/avatar-${Date.now()}.webp`;
 
   const { data, error } = await supabase.storage
     .from("avatars")
     .upload(filePath, file, {
-      upsert: true,
+      upsert: false,
       contentType: file.type || "image/webp",
+      cacheControl: "31536000",
     });
 
   if (error) throw error;
@@ -20,10 +21,10 @@ export async function uploadAvatar(userId, file) {
 }
 
 // Получение публичной ссылки на аватар
-export function getAvatarUrl(userId) {
+export function getAvatarUrl(userId, fileName = "avatar.webp") {
   const { data } = supabase.storage
     .from("avatars")
-    .getPublicUrl(`${userId}/avatar.webp`);
+    .getPublicUrl(`${userId}/${fileName}`);
 
   return data.publicUrl;
 }

@@ -1,6 +1,7 @@
 
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
+import PdfResumeAvatar from './PdfResumeAvatar';
 
 Font.register({
   family: 'NotoSans',
@@ -24,10 +25,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   headerBand: {
+    position: 'relative',
     backgroundColor: '#0ea5e9',
     paddingHorizontal: 40,
     paddingTop: 30,
     paddingBottom: 24,
+  },
+  headerBandWithAvatar: {
+    minHeight: 94,
+    paddingRight: 116,
   },
   name: {
     fontSize: 22,
@@ -160,7 +166,12 @@ export default function ModernPDF({ data }) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Accent header band */}
-        <View style={styles.headerBand}>
+        <View style={[styles.headerBand, profile?.photo && styles.headerBandWithAvatar]}>
+          <PdfResumeAvatar
+            profile={profile}
+            borderColor="#e0f2fe"
+            style={{ top: 30, right: 40 }}
+          />
           <Text style={styles.name}>{profile?.name || 'Имя не указано'}</Text>
           <View style={styles.contactInfo}>
             {(() => {

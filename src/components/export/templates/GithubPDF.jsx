@@ -1,6 +1,7 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from '../../../utils/helpers';
+import PdfResumeAvatar from './PdfResumeAvatar';
 
 Font.register({
   family: 'NotoSans',
@@ -25,10 +26,15 @@ const styles = StyleSheet.create({
     color: '#c9d1d9',
   },
   header: {
+    position: 'relative',
     marginBottom: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#30363d',
+  },
+  headerWithAvatar: {
+    minHeight: 70,
+    paddingRight: 78,
   },
 
   name: {
@@ -158,7 +164,8 @@ export default function GithubPDF({ data }) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, profile?.photo && styles.headerWithAvatar]}>
+          <PdfResumeAvatar profile={profile} borderColor="#30363d" />
           <Text style={styles.name}>{profile?.name || 'username'}</Text>
           {profile?.about && (
             <Text style={styles.about}>$ {profile.about}</Text>

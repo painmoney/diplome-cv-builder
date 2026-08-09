@@ -3,6 +3,7 @@ import { Box, Typography, Chip, Paper } from "@mui/material";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import StarIcon from "@mui/icons-material/Star";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
+import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children }) => (
   <Typography
@@ -41,11 +42,14 @@ export default function GithubTemplate({ data }) {
       {/* Header */}
       <Box
         sx={{
+          position: "relative",
+          pr: profile?.photo ? "30mm" : 0,
           mb: 4,
           pb: 3,
           borderBottom: "1px solid #30363d",
         }}
       >
+        <ResumeAvatar profile={profile} borderColor="#30363d" />
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
           <GitHubIcon sx={{ color: "#58a6ff", fontSize: 34 }} />
           <Typography

@@ -1,6 +1,7 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
+import PdfResumeAvatar from './PdfResumeAvatar';
 
 Font.register({
   family: 'NotoSans',
@@ -24,11 +25,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
+    position: 'relative',
     textAlign: 'center',
     marginBottom: 20,
     borderBottomWidth: 2,
     borderBottomColor: '#2e7d32',
     paddingBottom: 15,
+  },
+  headerWithAvatar: {
+    minHeight: 70,
+    paddingHorizontal: 78,
   },
   name: {
     fontSize: 22,
@@ -119,7 +125,8 @@ export default function AcademicPDF({ data }) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, profile?.photo && styles.headerWithAvatar]}>
+          <PdfResumeAvatar profile={profile} borderColor="#a5d6a7" />
           <Text style={styles.name}>{profile?.name || 'Имя не указано'}</Text>
           {profile?.about && <Text style={styles.about}>{profile.about}</Text>}
           <View style={styles.contactInfo}>

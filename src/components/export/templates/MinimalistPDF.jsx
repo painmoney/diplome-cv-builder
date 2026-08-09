@@ -1,6 +1,7 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
+import PdfResumeAvatar from './PdfResumeAvatar';
 
 // Регистрируем шрифт с поддержкой кириллицы
 Font.register({
@@ -33,11 +34,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
+    position: 'relative',
     marginBottom: 20,
     borderBottomWidth: 2,
     borderBottomColor: '#1976d2',
     borderBottomStyle: 'solid',
     paddingBottom: 10,
+  },
+  headerWithAvatar: {
+    minHeight: 70,
+    paddingRight: 78,
   },
   name: {
     fontSize: 24,
@@ -115,7 +121,8 @@ export default function MinimalistPDF({ data }) {
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, profile?.photo && styles.headerWithAvatar]}>
+          <PdfResumeAvatar profile={profile} borderColor="#bbdefb" />
           <Text style={styles.name}>{profile?.name || 'Имя не указано'}</Text>
           {profile?.about && <Text style={styles.text}>{profile.about}</Text>}
           <View style={styles.contactInfo}>

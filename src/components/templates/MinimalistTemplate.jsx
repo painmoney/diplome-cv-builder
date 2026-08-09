@@ -1,6 +1,7 @@
 
 import { Box, Typography, Chip, Paper, Divider } from "@mui/material";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
+import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children, color = "#1976d2" }) => (
   <Box sx={{ mb: 2 }}>
@@ -55,11 +56,14 @@ export default function MinimalistTemplate({ data }) {
       {/* Header */}
       <Box
         sx={{
+          position: "relative",
+          pr: profile?.photo ? "30mm" : 0,
           mb: 4,
           pb: 2,
           borderBottom: `3px solid ${primary}`,
         }}
       >
+        <ResumeAvatar profile={profile} borderColor="#bbdefb" />
         <Typography
           variant="h3"
           sx={{

@@ -1,6 +1,7 @@
 
 import { Box, Typography, Paper, Grid, Divider, Chip } from "@mui/material";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
+import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children, color = "#2e7d32" }) => (
   <Box sx={{ mb: 2 }}>
@@ -43,12 +44,15 @@ export default function AcademicTemplate({ data }) {
       {/* Header */}
       <Box
         sx={{
+          position: "relative",
+          px: profile?.photo ? "30mm" : 0,
           textAlign: "center",
           mb: 4,
           pb: 2.5,
           borderBottom: `3px solid ${primary}`,
         }}
       >
+        <ResumeAvatar profile={profile} borderColor="#a5d6a7" />
         <Typography
           variant="h3"
           sx={{

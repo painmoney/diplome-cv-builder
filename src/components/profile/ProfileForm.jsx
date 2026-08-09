@@ -99,9 +99,11 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
       <AvatarUpload
         userId={user?.id}
         avatarUrl={data.photo || ""}
+        avatarShape={data.avatarShape || "round"}
         displayName={data.name || ""}
         disabled={!user?.id}
         onAvatarChange={(url) => handleChange("photo", url)}
+        onAvatarShapeChange={(shape) => handleChange("avatarShape", shape)}
       />
 
       <TextField

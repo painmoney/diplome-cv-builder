@@ -1,6 +1,7 @@
 
 import { Box, Typography } from "@mui/material";
 import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
+import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children }) => (
   <Typography
@@ -41,7 +42,16 @@ export default function ClassicTemplate({ data }) {
       }}
     >
       {/* Header */}
-      <Box sx={{ mb: 2, pb: 1.5, borderBottom: "2px solid #000" }}>
+      <Box
+        sx={{
+          position: "relative",
+          pr: profile?.photo ? "30mm" : 0,
+          mb: 2,
+          pb: 1.5,
+          borderBottom: "2px solid #000",
+        }}
+      >
+        <ResumeAvatar profile={profile} borderColor="#bdbdbd" />
         <Typography
           variant="h4"
           sx={{
