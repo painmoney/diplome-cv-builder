@@ -15,6 +15,7 @@ vi.mock("../../api/supabaseClient", () => ({
 
 vi.mock("../../api/resumeService", () => ({
   listUserResumes: vi.fn(),
+  loadAccountProfile: vi.fn(),
   createNewResume: vi.fn(),
   renameResumeById: vi.fn(),
   duplicateResumeById: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock("../../api/storage", () => ({
 import Dashboard from "../Dashboard";
 import {
   listUserResumes,
+  loadAccountProfile,
   createNewResume,
   renameResumeById,
   duplicateResumeById,
@@ -54,9 +56,23 @@ function renderDashboard() {
 beforeEach(() => {
   vi.clearAllMocks();
   mockFromFn.mockReset();
+  loadAccountProfile.mockResolvedValue(null);
 });
 
 describe("Dashboard", () => {
+  it("uses the versioned avatar URL saved in the account profile", async () => {
+    listUserResumes.mockResolvedValue([]);
+    loadAccountProfile.mockResolvedValue({
+      photo: "https://cdn.test/user-1/avatar-123.webp",
+    });
+
+    renderDashboard();
+
+    expect(
+      await screen.findByRole("img", { name: "Аватар пользователя" })
+    ).toHaveAttribute("src", "https://cdn.test/user-1/avatar-123.webp");
+  });
+
   it("shows loading while fetching", () => {
     listUserResumes.mockReturnValue(new Promise(() => {}));
     renderDashboard();

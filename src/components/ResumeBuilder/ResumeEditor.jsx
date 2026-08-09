@@ -42,7 +42,7 @@ import { validateProfile, formatValidationToast } from "../../utils/validators";
 import { autosaveFingerprint } from "../../utils/autosaveFingerprint";
 
 const DEFAULT_RESUME_DATA = {
-  profile: { name: "", photo: "", about: "", summary: "", email: "", phone: "" },
+  profile: { name: "", photo: "", avatarShape: "round", about: "", summary: "", email: "", phone: "" },
   education: [],
   skills: [],
   experience: [],

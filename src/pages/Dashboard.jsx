@@ -35,6 +35,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   listUserResumes,
+  loadAccountProfile,
   createNewResume,
   renameResumeById,
   duplicateResumeById,
@@ -121,10 +122,12 @@ function ResumeCard({ resume, onRename, onDuplicate, onDelete }) {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const userId = user?.id;
   const navigate = useNavigate();
   const loadGenerationRef = useRef(0);
 
   const [resumes, setResumes] = useState([]);
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -142,24 +145,28 @@ export default function Dashboard() {
 
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  const avatarUrl = user?.id ? getAvatarUrl(user.id) : "";
-
   const loadResumes = useCallback(async () => {
-    if (!user?.id) return;
+    if (!userId) return;
     const gen = ++loadGenerationRef.current;
     setLoading(true);
     setError("");
     try {
-      const list = await listUserResumes(user.id);
+      const [list, accountProfile] = await Promise.all([
+        listUserResumes(userId),
+        loadAccountProfile(userId),
+      ]);
       if (gen !== loadGenerationRef.current) return;
       setResumes(list);
+      setAvatarUrl(
+        accountProfile?.photo || `${getAvatarUrl(userId)}?v=${Date.now()}`
+      );
     } catch {
       if (gen !== loadGenerationRef.current) return;
       setError("Не удалось загрузить резюме. Попробуйте обновить страницу.");
     } finally {
       if (gen === loadGenerationRef.current) setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     loadResumes(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetch on mount
@@ -266,7 +273,13 @@ export default function Dashboard() {
   return (
     <Container sx={{ mt: 4, maxWidth: 900 }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}>
-        <Avatar src={avatarUrl} sx={{ width: 64, height: 64 }}>{userInitial}</Avatar>
+        <Avatar
+          src={avatarUrl}
+          imgProps={{ alt: "Аватар пользователя" }}
+          sx={{ width: 64, height: 64 }}
+        >
+          {userInitial}
+        </Avatar>
         <Box sx={{ flex: 1 }}>
           <Typography variant="h4" component="h1">
             Мои резюме

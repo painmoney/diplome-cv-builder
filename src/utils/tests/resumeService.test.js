@@ -184,6 +184,7 @@ describe("normalizeLoadedResumeData", () => {
     expect(result.projects).toEqual([]);
     expect(result.template).toBe("minimalist");
     expect(result.profile).toBeDefined();
+    expect(result.profile.avatarShape).toBe("round");
   });
 
   it("preserves existing data", () => {
@@ -201,6 +202,11 @@ describe("normalizeLoadedResumeData", () => {
     });
     expect(result.profile.about).toBe("Hello");
     expect(result.profile.summary).toBe("Hello");
+  });
+
+  it("preserves only supported avatar shapes", () => {
+    expect(normalizeLoadedResumeData({ profile: { avatarShape: "square" } }).profile.avatarShape).toBe("square");
+    expect(normalizeLoadedResumeData({ profile: { avatarShape: "triangle" } }).profile.avatarShape).toBe("round");
   });
 });
 
@@ -351,6 +357,7 @@ describe("createNewResume", () => {
       data: {
         full_name: "User Name",
         avatar_url: "https://cdn.test/avatar.webp",
+        avatar_shape: "square",
         email: "user@test.com",
         phone: "+79990000000",
         about: "Account about",
@@ -363,13 +370,14 @@ describe("createNewResume", () => {
     await createNewResume({ userId: "user-1" });
 
     expect(mockFrom).toHaveBeenCalledWith("profiles");
-    expect(chain.select).toHaveBeenCalledWith("full_name, avatar_url, email, phone, about");
+    expect(chain.select).toHaveBeenCalledWith("full_name, avatar_url, avatar_shape, email, phone, about");
     expect(chain.eq).toHaveBeenCalledWith("user_id", "user-1");
 
     const callArgs = mockRpc.mock.calls[0][1];
     expect(callArgs.p_data.profile).toEqual(expect.objectContaining({
       name: "User Name",
       photo: "https://cdn.test/avatar.webp",
+      avatarShape: "square",
       email: "user@test.com",
       phone: "+79990000000",
       about: "Account about",

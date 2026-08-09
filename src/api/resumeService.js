@@ -2,7 +2,7 @@ import { supabase } from "./supabaseClient";
 
 const DEFAULT_RESUME_DATA = {
   profile: {
-    name: "", photo: "", about: "", summary: "", email: "", phone: "",
+    name: "", photo: "", avatarShape: "round", about: "", summary: "", email: "", phone: "",
     location: "", githubUrl: "", website: "", telegram: "", linkedin: "", habrCareer: "",
   },
   education: [],
@@ -24,6 +24,7 @@ const normalizeProfile = (profile = {}) => {
     phone: profile.phone ?? "",
     name: profile.name ?? "",
     photo: profile.photo ?? "",
+    avatarShape: profile.avatarShape === "square" ? "square" : "round",
     location: profile.location ?? "",
     githubUrl: profile.githubUrl ?? "",
     website: profile.website ?? "",
@@ -122,6 +123,7 @@ function mapAccountProfile(row) {
   return normalizeProfile({
     name: row.full_name || "",
     photo: row.avatar_url || "",
+    avatarShape: row.avatar_shape === "square" ? "square" : "round",
     email: row.email || "",
     phone: row.phone || "",
     about: row.about || "",
@@ -129,12 +131,12 @@ function mapAccountProfile(row) {
   });
 }
 
-async function loadAccountProfile(userId) {
+export async function loadAccountProfile(userId) {
   if (!userId) return null;
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url, email, phone, about")
+    .select("full_name, avatar_url, avatar_shape, email, phone, about")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -186,6 +188,7 @@ export async function saveProfile(userId, profile = {}) {
     user_id: userId,
     full_name: cleanText(profile.name),
     avatar_url: cleanText(profile.photo),
+    avatar_shape: profile.avatarShape === "square" ? "square" : "round",
     email: cleanText(profile.email),
     phone: cleanText(profile.phone),
     about: cleanText(profile.about ?? profile.summary),

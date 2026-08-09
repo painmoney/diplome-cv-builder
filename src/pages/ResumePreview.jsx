@@ -29,6 +29,7 @@ import ClassicTemplate from "../components/templates/ClassicTemplate";
 import ModernTemplate from "../components/templates/ModernTemplate";
 
 import ExportProgressBackdrop from "../components/export/ExportProgressBackdrop";
+import { waitForImages } from "../utils/waitForImages";
 
 const VALID_TEMPLATES = TEMPLATE_IDS;
 
@@ -269,6 +270,7 @@ export default function ResumePreview() {
     setExportingIMG(fmt);
     try {
       await document.fonts?.ready;
+      await waitForImages(captureRef.current);
 
       const { default: html2canvas } = await import("html2canvas");
       const canvas = await html2canvas(captureRef.current, {
