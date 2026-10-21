@@ -1,6 +1,6 @@
 
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
 import PdfResumeAvatar from './PdfResumeAvatar';
 
 Font.register({
@@ -98,6 +98,7 @@ const styles = StyleSheet.create({
 
 export default function ClassicPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -126,7 +127,7 @@ export default function ClassicPDF({ data }) {
             <Text style={styles.skills}>
               {skills.map((skill) => {
                 const name = getSkillName(skill);
-                const level = getSkillLevel(skill);
+                const level = getVisibleSkillLevel(skill, showSkillLevels);
                 return `${name}${level ? ` (${level}/5)` : ""}`;
               }).join(' • ')}
             </Text>

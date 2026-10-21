@@ -130,17 +130,46 @@ export default function ProfileForm({ data = {}, errors = {}, onChange, skills =
         helperText={errors.email || " "}
       />
 
-      <TextField
-        id="profile-phone"
-        label="Телефон"
-        value={data.phone || ""}
-        onChange={(e) => handleChange("phone", e.target.value)}
-        fullWidth
-        margin="normal"
-        placeholder="+7 (900) 123-45-67"
-        error={Boolean(errors.phone)}
-        helperText={errors.phone || " "}
-      />
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "minmax(0, 2fr) minmax(140px, 1fr)",
+          },
+          gap: 2,
+        }}
+      >
+        <TextField
+          id="profile-phone"
+          label="Телефон"
+          value={data.phone || ""}
+          onChange={(e) => handleChange("phone", e.target.value)}
+          fullWidth
+          margin="normal"
+          placeholder="+7 (900) 123-45-67"
+          error={Boolean(errors.phone)}
+          helperText={errors.phone || " "}
+        />
+
+        <TextField
+          id="profile-age"
+          label="Возраст"
+          type="number"
+          value={data.age ?? ""}
+          onChange={(e) =>
+            handleChange(
+              "age",
+              e.target.value === "" ? "" : Number(e.target.value)
+            )
+          }
+          fullWidth
+          margin="normal"
+          inputProps={{ min: 14, max: 100, step: 1, inputMode: "numeric" }}
+          error={Boolean(errors.age)}
+          helperText={errors.age || "Необязательно, от 14 до 100 лет"}
+        />
+      </Box>
 
       <TextField
         id="profile-location"

@@ -2,7 +2,7 @@
 import { Box, Typography, Chip, Paper } from "@mui/material";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import StarIcon from "@mui/icons-material/Star";
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from "../../utils/helpers";
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, formatAge } from "../../utils/helpers";
 import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children }) => (
@@ -22,6 +22,7 @@ const SectionTitle = ({ children }) => (
 
 export default function GithubTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -83,6 +84,8 @@ export default function GithubTemplate({ data }) {
             if (profile?.email) links.push(`@ ${profile.email}`);
             if (profile?.phone) links.push(`# ${profile.phone}`);
             if (profile?.location) links.push(`loc: ${profile.location}`);
+            const age = formatAge(profile?.age);
+            if (age) links.push(`age: ${age}`);
             if (profile?.telegram) {
               const v = String(profile.telegram).trim();
               const m = v.match(/^@?([a-zA-Z0-9_]+)$/);
@@ -113,7 +116,7 @@ export default function GithubTemplate({ data }) {
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
             {skills.map((skill, idx) => {
               const name = getSkillName(skill);
-              const level = getSkillLevel(skill);
+              const level = getVisibleSkillLevel(skill, showSkillLevels);
 
               return (
                 <Chip

@@ -1,6 +1,6 @@
 
 import { Box, Typography, Chip, Paper, Divider } from "@mui/material";
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
 import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children, color = "#1976d2" }) => (
@@ -35,6 +35,7 @@ const LightChip = ({ label }) => (
 
 export default function MinimalistTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
   const primary = "#1976d2";
@@ -125,7 +126,7 @@ export default function MinimalistTemplate({ data }) {
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
             {skills.map((skill, idx) => {
               const name = getSkillName(skill);
-              const level = getSkillLevel(skill);
+              const level = getVisibleSkillLevel(skill, showSkillLevels);
 
               return (
                 <Chip

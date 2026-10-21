@@ -1,7 +1,17 @@
 import { useState } from "react";
-import { Box, TextField, Button, Chip, Typography } from "@mui/material";
+import {
+  Box,
+  TextField,
+  Button,
+  IconButton,
+  Typography,
+  Checkbox,
+  FormControlLabel,
+} from "@mui/material";
 import { Add, Delete, Code } from "@mui/icons-material";
+import { Reorder } from "framer-motion";
 import EmptyState from "../common/EmptyState";
+import ReorderCard from "../common/ReorderCard";
 
 export function clampSkillLevel(value) {
   const n = Number(value);
@@ -9,7 +19,12 @@ export function clampSkillLevel(value) {
   return Math.min(5, Math.max(1, Math.round(n)));
 }
 
-export default function SkillsBlock({ data = [], onChange }) {
+export default function SkillsBlock({
+  data = [],
+  showSkillLevels = true,
+  onChange,
+  onShowSkillLevelsChange,
+}) {
   const [newSkill, setNewSkill] = useState("");
   const [level, setLevel] = useState(3);
   const [skillError, setSkillError] = useState("");
@@ -40,6 +55,31 @@ export default function SkillsBlock({ data = [], onChange }) {
         Добавьте 5–10 ключевых технологий, которые хотите показать работодателю.
         Не обязательно указывать всё подряд — лучше выбрать стек, подтверждённый опытом или проектами.
       </Typography>
+
+      <Box sx={{ mb: 1.5 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={!showSkillLevels}
+              onChange={(event) =>
+                onShowSkillLevelsChange?.(!event.target.checked)
+              }
+              inputProps={{ "aria-label": "Не показывать уровень навыков" }}
+            />
+          }
+          label="Не показывать уровень навыков"
+          sx={{ m: 0 }}
+        />
+        {!showSkillLevels && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", ml: 4, mt: -0.5 }}
+          >
+            Уровни сохраняются, но не отображаются в резюме.
+          </Typography>
+        )}
+      </Box>
 
       <Box sx={{ display: "flex", gap: 2, mb: 1, flexWrap: "wrap" }}>
         <TextField
@@ -86,17 +126,56 @@ export default function SkillsBlock({ data = [], onChange }) {
           compact
         />
       ) : (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-          {data.map((skill) => (
-            <Chip
-              key={skill.id}
-              label={`${skill.name} (${skill.level}/5)`}
-              color="primary"
-              onDelete={() => removeSkill(skill.id)}
-              deleteIcon={<Delete fontSize="small" />}
-            />
+        <Reorder.Group
+          axis="y"
+          values={data}
+          onReorder={onChange}
+          as="div"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            width: "100%",
+            maxWidth: 520,
+            margin: 0,
+            padding: 0,
+          }}
+        >
+          {data.map((skill, index) => (
+            <ReorderCard
+              key={skill.id ?? `${skill.name}-${index}`}
+              value={skill}
+              dragLabel={`Перетащить навык «${skill.name || "Без названия"}»`}
+              variant="outlined"
+              cardSx={{
+                bgcolor: "background.paper",
+                "&:hover": {
+                  borderColor: "primary.main",
+                },
+              }}
+              contentSx={{
+                py: 0.75,
+                px: 1,
+                "&:last-child": { pb: 0.75 },
+              }}
+              containerSx={{ alignItems: "center", gap: 1 }}
+            >
+              <Typography
+                variant="body2"
+                sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+              >
+                {skill.name} ({skill.level}/5)
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => removeSkill(skill.id)}
+                aria-label={`Удалить навык «${skill.name || "Без названия"}»`}
+              >
+                <Delete fontSize="small" />
+              </IconButton>
+            </ReorderCard>
           ))}
-        </Box>
+        </Reorder.Group>
       )}
     </Box>
   );

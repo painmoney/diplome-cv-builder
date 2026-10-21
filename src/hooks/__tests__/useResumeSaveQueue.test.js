@@ -103,6 +103,40 @@ describe("SaveQueue: revision propagation", () => {
   });
 });
 
+describe("SaveQueue: resume presentation fields", () => {
+  it("passes age and showSkillLevels through the existing resume snapshot", async () => {
+    const { queue } = createQueue();
+    const skills = [
+      { name: "React", level: 4 },
+      { name: "PostgreSQL", level: 3 },
+    ];
+
+    queue.enqueue({
+      resumeId: "id-1",
+      title: "A",
+      data: {
+        profile: { age: 22 },
+        skills,
+        showSkillLevels: false,
+      },
+      profile: { age: 22 },
+      reason: "autosave",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(createResumeFullRpc).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          profile: expect.objectContaining({ age: 22 }),
+          showSkillLevels: false,
+          skills,
+        }),
+      })
+    );
+    expect(skills.map((skill) => skill.level)).toEqual([4, 3]);
+  });
+});
+
 describe("SaveQueue: saved only after full drain", () => {
   it("saved appears exactly once after all pending items complete", async () => {
     const { queue, setSaveStatus } = createQueue();

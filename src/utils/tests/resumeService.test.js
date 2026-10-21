@@ -185,6 +185,8 @@ describe("normalizeLoadedResumeData", () => {
     expect(result.template).toBe("minimalist");
     expect(result.profile).toBeDefined();
     expect(result.profile.avatarShape).toBe("round");
+    expect(result.profile.age).toBe("");
+    expect(result.showSkillLevels).toBe(true);
   });
 
   it("preserves existing data", () => {
@@ -207,6 +209,20 @@ describe("normalizeLoadedResumeData", () => {
   it("preserves only supported avatar shapes", () => {
     expect(normalizeLoadedResumeData({ profile: { avatarShape: "square" } }).profile.avatarShape).toBe("square");
     expect(normalizeLoadedResumeData({ profile: { avatarShape: "triangle" } }).profile.avatarShape).toBe("round");
+  });
+
+  it("normalizes optional age and preserves explicit hidden skill levels", () => {
+    const result = normalizeLoadedResumeData({
+      profile: { age: "22" },
+      showSkillLevels: false,
+    });
+
+    expect(result.profile.age).toBe(22);
+    expect(result.showSkillLevels).toBe(false);
+  });
+
+  it.each([-1, 22.5, 101])("drops invalid loaded age %s", (age) => {
+    expect(normalizeLoadedResumeData({ profile: { age } }).profile.age).toBe("");
   });
 });
 

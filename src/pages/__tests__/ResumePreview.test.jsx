@@ -71,6 +71,25 @@ describe("ResumePreview", () => {
     });
   });
 
+  it("respects hidden skill levels and renders optional age", async () => {
+    loadResumeById.mockResolvedValue({
+      ...MOCK_A,
+      data: {
+        profile: { name: "User A", age: 22 },
+        skills: [{ id: 1, name: "React", level: 4 }],
+        showSkillLevels: false,
+        template: "minimalist",
+      },
+    });
+    renderPreview(`/resume-preview/${UUID_A}`);
+
+    await waitFor(() => {
+      expect(screen.getByText("React")).toBeInTheDocument();
+      expect(screen.getByText("22 года")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/React.*4\/5/)).not.toBeInTheDocument();
+  });
+
   it("dynamic: not-found for null", async () => {
     loadResumeById.mockResolvedValue(null);
     renderPreview(`/resume-preview/${UUID_B}`);

@@ -257,77 +257,94 @@ function countProfileHits(text, keywords) {
   return keywords.reduce((acc, kw) => acc + (hasExactTerm(lower, kw) ? 1 : 0), 0);
 }
 
-function detectProfileType(experienceText, githubText, skills) {
+function detectProfileType(experienceText, githubText, skills, projectsText = "") {
+  const projectEvidenceText = [githubText, projectsText].filter(Boolean).join(" ");
+  const hasCommercialExperience = normalizeAboutText(experienceText).length > 0;
+  const hasProjectEvidence = normalizeAboutText(projectEvidenceText).length > 0;
+  const evidenceScope = hasCommercialExperience
+    ? "commercial"
+    : hasProjectEvidence
+      ? "project"
+      : "skills_only";
   const confirmedScores = {};
+  const commercialScores = {};
+  const projectScores = {};
   const skillScores = {};
-  // All profile categories for iteration (backend counts as one)
   const profileKeys = ["frontend", "backend", "qa", "devops", "data", "mobile", "design"];
+
   for (const profile of profileKeys) {
     confirmedScores[profile] = 0;
+    commercialScores[profile] = 0;
+    projectScores[profile] = 0;
     skillScores[profile] = 0;
   }
 
-  // Frontend confirmed
-  confirmedScores.frontend += countProfileHits(experienceText, PROFILE_KEYWORDS.frontend) * 3;
-  confirmedScores.frontend += countProfileHits(githubText, PROFILE_KEYWORDS.frontend) * 2;
+  commercialScores.frontend = countProfileHits(experienceText, PROFILE_KEYWORDS.frontend) * 3;
+  projectScores.frontend = countProfileHits(projectEvidenceText, PROFILE_KEYWORDS.frontend) * 2;
 
-  // Backend: hard keywords are required to establish backend confirmedScore
+  // Weak database/API terms support backend only after a hard backend signal.
   const beHardExp = countProfileHits(experienceText, PROFILE_KEYWORDS.backendHard);
-  const beHardGh = countProfileHits(githubText, PROFILE_KEYWORDS.backendHard);
-  const backendHardConfirmed = (beHardExp + beHardGh) > 0;
+  const beHardProject = countProfileHits(projectEvidenceText, PROFILE_KEYWORDS.backendHard);
+  const backendHardConfirmed = (beHardExp + beHardProject) > 0;
 
-  confirmedScores.backend += beHardExp * 3;
-  confirmedScores.backend += beHardGh * 2;
+  commercialScores.backend = beHardExp * 3;
+  projectScores.backend = beHardProject * 2;
 
-  // Weak backend keywords only add score if hard backend is already confirmed
   if (backendHardConfirmed) {
-    confirmedScores.backend += countProfileHits(experienceText, PROFILE_KEYWORDS.backendWeak) * 3;
-    confirmedScores.backend += countProfileHits(githubText, PROFILE_KEYWORDS.backendWeak) * 2;
+    commercialScores.backend += countProfileHits(experienceText, PROFILE_KEYWORDS.backendWeak) * 3;
+    projectScores.backend += countProfileHits(projectEvidenceText, PROFILE_KEYWORDS.backendWeak) * 2;
   }
 
-  // Other profiles confirmed
   for (const profile of ["qa", "devops", "data", "mobile", "design"]) {
-    confirmedScores[profile] += countProfileHits(experienceText, PROFILE_KEYWORDS[profile]) * 3;
-    confirmedScores[profile] += countProfileHits(githubText, PROFILE_KEYWORDS[profile]) * 2;
+    commercialScores[profile] = countProfileHits(experienceText, PROFILE_KEYWORDS[profile]) * 3;
+    projectScores[profile] = countProfileHits(projectEvidenceText, PROFILE_KEYWORDS[profile]) * 2;
   }
 
-  // Skills = informational only, never drives primary
+  for (const profile of profileKeys) {
+    confirmedScores[profile] = commercialScores[profile] + projectScores[profile];
+  }
+
+  // Skills remain informational and never establish the primary profile.
   const skillsText = (skills || []).map(getAboutSkillName).join(" ");
-  skillScores.frontend = countProfileHits(skillsText, PROFILE_KEYWORDS.frontend) * 1;
-  skillScores.backend = countProfileHits(skillsText, [...PROFILE_KEYWORDS.backendHard, ...PROFILE_KEYWORDS.backendWeak]) * 1;
+  skillScores.frontend = countProfileHits(skillsText, PROFILE_KEYWORDS.frontend);
+  skillScores.backend = countProfileHits(skillsText, [...PROFILE_KEYWORDS.backendHard, ...PROFILE_KEYWORDS.backendWeak]);
   for (const profile of ["qa", "devops", "data", "mobile", "design"]) {
-    skillScores[profile] = countProfileHits(skillsText, PROFILE_KEYWORDS[profile]) * 1;
+    skillScores[profile] = countProfileHits(skillsText, PROFILE_KEYWORDS[profile]);
   }
 
-  // Primary is determined ONLY by confirmedScores
+  const commonResult = {
+    confirmedScores,
+    commercialScores,
+    projectScores,
+    skillScores,
+    backendHardConfirmed,
+    evidenceScope,
+    hasCommercialExperience,
+    hasProjectEvidence,
+  };
   const sortedConfirmed = Object.entries(confirmedScores).sort((a, b) => b[1] - a[1]);
   const [topProfile, topScore] = sortedConfirmed[0];
 
   if (topScore === 0) {
-    return { primary: "unknown", secondary: [], confirmedScores, skillScores, backendHardConfirmed };
+    return { primary: "unknown", secondary: [], ...commonResult };
   }
 
-  // Fullstack: frontend confirmed AND backend hard keywords confirmed
   const feConfirmed = confirmedScores.frontend || 0;
   if (feConfirmed > 0 && backendHardConfirmed) {
     return {
       primary: "fullstack",
       secondary: ["frontend", "backend"],
-      confirmedScores,
-      skillScores,
-      backendHardConfirmed,
+      ...commonResult,
     };
   }
 
-  // Secondary: profiles with confirmedScore >= 40% of primary and >= 3
   const threshold = Math.max(3, Math.floor(topScore * 0.4));
   const secondary = sortedConfirmed
     .filter(([p, s]) => p !== topProfile && s >= threshold)
     .map(([p]) => p);
 
-  return { primary: topProfile, secondary, confirmedScores, skillScores, backendHardConfirmed };
+  return { primary: topProfile, secondary, ...commonResult };
 }
-
 /* ── Skill filtering ──────────────────────────────────────────────── */
 
 function isConfirmedInContext(skillName, experienceText, githubText, projectsText = "") {
@@ -351,9 +368,9 @@ function splitSkillConfirmation(skills, experienceText, githubText, projectsText
   for (const skill of skills || []) {
     const name = getAboutSkillName(skill);
     if (!name) continue;
-    if (isConfirmedInContext(name, experienceText, githubText, "")) {
+    if (isConfirmedInContext(name, experienceText, "", "")) {
       experienceConfirmed.push(name);
-    } else if (isConfirmedInContext(name, "", "", projectsText)) {
+    } else if (isConfirmedInContext(name, "", githubText, projectsText)) {
       projectConfirmed.push(name);
     } else {
       unconfirmed.push(name);
@@ -362,12 +379,6 @@ function splitSkillConfirmation(skills, experienceText, githubText, projectsText
   return { experienceConfirmed, projectConfirmed, unconfirmed };
 }
 
-// Skills that appear in experience/github/projects → confirmed
-function buildConfirmedTechnologies(skills, experienceText, githubText, projectsText = "") {
-  return (skills || [])
-    .map(getAboutSkillName)
-    .filter((name) => name && isConfirmedInContext(name, experienceText, githubText, projectsText));
-}
 
 // Skills that do NOT appear in experience/github/projects → unconfirmed
 function buildUnconfirmedSkills(skills, experienceText, githubText, projectsText = "") {
@@ -377,7 +388,7 @@ function buildUnconfirmedSkills(skills, experienceText, githubText, projectsText
 }
 
 // Skills not confirmed AND not belonging to active profile → excluded from summary
-function buildExcludedForSummarySkills(skills, experienceText, githubText, profileType) {
+function buildExcludedForSummarySkills(skills, experienceText, githubText, projectsText, profileType) {
   const activeProfiles = new Set([profileType.primary, ...profileType.secondary]);
   const allBackendKw = [...PROFILE_KEYWORDS.backendHard, ...PROFILE_KEYWORDS.backendWeak];
 
@@ -385,7 +396,7 @@ function buildExcludedForSummarySkills(skills, experienceText, githubText, profi
     .map(getAboutSkillName)
     .filter((name) => {
       if (!name) return false;
-      if (isConfirmedInContext(name, experienceText, githubText)) return false;
+      if (isConfirmedInContext(name, experienceText, githubText, projectsText)) return false;
 
       const canonical = normalizeSkillCanonical(name);
 
@@ -516,9 +527,14 @@ function isProfileAllowed(profileType, profileName) {
 const UNKNOWN_PROFILE_BLOCKED = [
   "разработчик", "backend-разработчик", "frontend-разработчик",
   "fullstack-разработчик", "опыт работы", "создаю", "разрабатываю",
-  "разрабатывал", "создавал",
-  "ищу", "готов", "готова", "изучать", "интересуюсь", "проекты",
+  "разрабатывал", "создавал", "проектный опыт", "в проектах",
+  "ищу", "готов", "готова", "изучать", "интересуюсь",
   "открыт", "открыта", "возможност", "сфера разработки", "сфере разработки",
+];
+
+const COMMERCIAL_EXPERIENCE_PATTERNS = [
+  "опыт работы", "коммерческий опыт", "работал с", "работала с",
+  "профессиональный опыт",
 ];
 
 function validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, unconfirmedSkills, projectConfirmedSkills = []) {
@@ -594,11 +610,20 @@ function validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, u
     }
   }
 
-  // Unknown profile: block role claims and action verbs
-  if (profileType.primary === "unknown") {
+  // Skills-only data cannot support role, work, or project claims.
+  if (profileType.primary === "unknown" && profileType.evidenceScope === "skills_only") {
     for (const term of UNKNOWN_PROFILE_BLOCKED) {
       if (hasExactTerm(text, term)) {
-        violations.push(`unknown profile: "${term}" нельзя использовать без опыта`);
+        violations.push(`skills-only profile: "${term}" нельзя использовать без опыта`);
+      }
+    }
+  }
+
+  // Project evidence confirms technologies, but never commercial employment.
+  if (!profileType.hasCommercialExperience) {
+    for (const term of COMMERCIAL_EXPERIENCE_PATTERNS) {
+      if (hasExactTerm(text, term)) {
+        violations.push(`commercial-overclaim: "${term}" нельзя использовать без опыта работы`);
       }
     }
   }
@@ -656,7 +681,8 @@ function validateGeneratedAboutMe(text, profileType, excludedForSummarySkills, u
 /* ── Retry / Fallback ─────────────────────────────────────────────── */
 
 function buildRetryPrompt(originalText, violations, excludedForSummarySkills, profileType) {
-  const isUnknown = profileType.primary === "unknown";
+  const isSkillsOnly = profileType.evidenceScope === "skills_only";
+  const isProjectOnly = profileType.evidenceScope === "project";
   return `Исправь текст "О себе". Есть нарушения:
 
 Текст:
@@ -665,27 +691,106 @@ ${originalText}
 Нарушения:
 ${violations.map((v) => `- ${v}`).join("\n")}
 
-Технологии, которые НЕ нужно упоминать (не подтверждены опытом):
+Технологии, которые НЕ нужно упоминать (не подтверждены ни опытом работы, ни проектами):
 ${excludedForSummarySkills.length > 0 ? excludedForSummarySkills.join(", ") : "Нет"}
 
 Требования:
 - Строго 2–3 предложения, 300–500 символов.
 - Убери запрещённые фразы и неподтверждённые технологии.
 - Не называй профиль по skills-only данным.
-${isUnknown ? "- Experience пустой. НЕ используй: 'разработчик', 'опыт', 'создаю', 'разрабатываю'. Пиши только: 'имею навыки работы с X', 'знаком с X'." : ""}
+${isSkillsOnly ? "- Нет ни опыта работы, ни проектов. Пиши только: 'имею навыки работы с X', 'знаком с X'." : ""}
+${isProjectOnly ? "- Есть только проектный опыт. Разрешено: 'есть проектный опыт с X', 'в проектах использовал X'. Запрещено: 'работал с X', 'опыт работы с X', 'коммерческий опыт'." : ""}
 - Skills-only технологии описывай только как навыки, не как опыт.
 - Не используй слова: обладаю, продвинутый, уверенно, эффективно, полноценный, масштабируемый, надежный, эстетически, позволяет, помогает.
-- Не используй мотивационные и self-development формулировки: продолжаю развиваться, стремлюсь, изучаю, углубляю знания, нацелен на, открыт к возможностям. Summary должен описывать уже имеющийся подтверждённый опыт и навыки.
-- НЕ указывай количество лет опыта или стажа. Не пиши "N лет опыта", "N лет в разработке". Это галлюцинация — в приложении нет такого поля.
+- Не используй мотивационные и self-development формулировки: продолжаю развиваться, стремлюсь, изучаю, углубляю знания, нацелен на, открыт к возможностям.
+- НЕ указывай количество лет опыта или стажа.
 - Пиши технологии конкретно: "интерфейсы на React", не "высокоэффективные интерфейсы".
 - Ответь ТОЛЬКО исправленным текстом, без объяснений.`;
 }
+const FALLBACK_TECHNOLOGIES = [
+  ["react", "React"],
+  ["typescript", "TypeScript"],
+  ["javascript", "JavaScript"],
+  ["astro", "Astro"],
+  ["vue", "Vue"],
+  ["angular", "Angular"],
+  ["html", "HTML"],
+  ["css", "CSS"],
+  ["material ui", "Material UI"],
+  ["node.js", "Node.js"],
+  ["nodejs", "Node.js"],
+  ["java", "Java"],
+  ["spring boot", "Spring Boot"],
+  ["python", "Python"],
+  ["postgresql", "PostgreSQL"],
+  ["supabase", "Supabase"],
+  ["mongodb", "MongoDB"],
+  ["mysql", "MySQL"],
+  ["docker", "Docker"],
+];
 
-function buildFallbackText(experienceText, profileType, skills) {
+const PROJECT_PROFILE_LABELS = {
+  frontend: "frontend-разработки",
+  backend: "backend-разработки",
+  fullstack: "fullstack-разработки",
+  qa: "тестирования",
+  devops: "DevOps",
+  data: "работы с данными",
+  mobile: "mobile-разработки",
+  design: "UI/UX-проектирования",
+};
+
+function collectFallbackTechnologies(evidenceText) {
+  const found = [];
+  for (const [term, label] of FALLBACK_TECHNOLOGIES) {
+    if (hasExactTerm(evidenceText, term) && !found.includes(label)) found.push(label);
+  }
+  return found.slice(0, 7);
+}
+
+function formatRussianList(items) {
+  if (items.length < 2) return items[0] || "";
+  return `${items.slice(0, -1).join(", ")} и ${items.at(-1)}`;
+}
+
+function buildProjectFallback(projectEvidenceText, profileType) {
+  const technologies = collectFallbackTechnologies(projectEvidenceText);
+  const profileLabel = PROJECT_PROFILE_LABELS[profileType.primary];
+  const profilePart = profileLabel ? ` ${profileLabel}` : "";
+  const technologyPart = technologies.length > 0
+    ? ` с ${formatRussianList(technologies)}`
+    : "";
+  const firstSentence = `Есть проектный опыт${profilePart}${technologyPart}.`;
+  const projectAreas = [];
+
+  if (["postgresql", "supabase", "mongodb", "mysql"].some((term) => hasExactTerm(projectEvidenceText, term))) {
+    projectAreas.push("базами данных");
+  }
+  if (hasExactTerm(projectEvidenceText, "api") || hasExactTerm(projectEvidenceText, "rest")) {
+    projectAreas.push("API");
+  }
+  if (["тестирование", "jest", "playwright", "cypress"].some((term) => hasExactTerm(projectEvidenceText, term))) {
+    projectAreas.push("тестированием");
+  }
+  if (["ci", "ci/cd", "github actions", "gitlab ci"].some((term) => hasExactTerm(projectEvidenceText, term))) {
+    projectAreas.push("CI");
+  }
+
+  const secondSentence = projectAreas.length > 0
+    ? `Проекты включают работу с ${formatRussianList(projectAreas)}.`
+    : "";
+  return [firstSentence, secondSentence].filter(Boolean).join(" ");
+}
+
+function buildFallbackText(experienceText, profileType, skills, projectEvidenceText = "") {
+  if (profileType.evidenceScope === "project") {
+    return buildProjectFallback(projectEvidenceText, profileType);
+  }
+
   const lower = normalizeAboutText(experienceText);
   const primary = profileType.primary;
 
-  // Collect confirmed tech from experience
+  // Collect confirmed tech from commercial experience only.
   const fe = [];
   const be = [];
   const tools = [];
@@ -732,28 +837,17 @@ function buildFallbackText(experienceText, profileType, skills) {
     return [line1, line2].filter(Boolean).join(" ");
   }
 
-  if (primary === "qa") {
-    return "QA-специалист с опытом тестирования веб-приложений и написания автотестов.";
-  }
+  if (primary === "qa") return "QA-специалист с опытом тестирования веб-приложений и написания автотестов.";
 
   if (primary === "devops") {
     const tech = tools.length ? ` (${tools.join(", ")})` : "";
     return `DevOps-инженер с опытом настройки CI/CD и инфраструктуры${tech}.`;
   }
 
-  if (primary === "data") {
-    return "Специалист по данным с опытом анализа и обработки информации.";
-  }
+  if (primary === "data") return "Специалист по данным с опытом анализа и обработки информации.";
+  if (primary === "mobile") return "Mobile-разработчик с опытом создания мобильных приложений.";
+  if (primary === "design") return "UI/UX-дизайнер с опытом проектирования интерфейсов.";
 
-  if (primary === "mobile") {
-    return "Mobile-разработчик с опытом создания мобильных приложений.";
-  }
-
-  if (primary === "design") {
-    return "UI/UX-дизайнер с опытом проектирования интерфейсов.";
-  }
-
-  // unknown: cautious, skills-only wording
   const skillNames = (skills || [])
     .map(getAboutSkillName)
     .filter(Boolean)
@@ -761,6 +855,12 @@ function buildFallbackText(experienceText, profileType, skills) {
   const skillList = skillNames.length > 0 ? skillNames.join(", ") : "указанными в резюме";
   return `IT-специалист с набором заявленных навыков в области веб-разработки. Имею навыки работы с ${skillList}.`;
 }
+export const __aboutMeTesting = {
+  detectProfileType,
+  splitSkillConfirmation,
+  validateGeneratedAboutMe,
+  buildFallbackText,
+};
 
 /* ── Main function ────────────────────────────────────────────────── */
 
@@ -778,10 +878,11 @@ export async function generateAboutMe({ name, about, skills, experience, github,
     .map((p) => [p.name, p.role, p.description, p.techStack, p.period].filter(Boolean).join(" "))
     .join(" ");
 
-  const profileType = detectProfileType(experienceText, githubText, skills);
+  const projectEvidenceText = [githubText, projectsText].filter(Boolean).join(" ");
+  const profileType = detectProfileType(experienceText, githubText, skills, projectsText);
 
   const excludedForSummarySkills = buildExcludedForSummarySkills(
-    skills, experienceText, githubText, profileType
+    skills, experienceText, githubText, projectsText, profileType
   );
   const excludedSet = new Set(excludedForSummarySkills.map(normalizeAboutText));
 
@@ -789,9 +890,11 @@ export async function generateAboutMe({ name, about, skills, experience, github,
     skills, experienceText, githubText, excludedSet
   );
 
-  const confirmedTech = buildConfirmedTechnologies(skills, experienceText, githubText, projectsText);
   const unconfirmedSkills = buildUnconfirmedSkills(skills, experienceText, githubText, projectsText);
-  const { projectConfirmed: projectConfirmedSkills } = splitSkillConfirmation(skills, experienceText, githubText, projectsText);
+  const {
+    experienceConfirmed: experienceConfirmedSkills,
+    projectConfirmed: projectConfirmedSkills,
+  } = splitSkillConfirmation(skills, experienceText, githubText, projectsText);
 
   const expList = (experience || [])
     .map((e) => `${e.position || ""} в ${e.company || ""}: ${e.description || ""}`)
@@ -805,7 +908,8 @@ export async function generateAboutMe({ name, about, skills, experience, github,
 
   const hasAbout = about && about.trim().length > 0;
   const profileLabel = getProfileLabel(profileType);
-  const isUnknown = profileType.primary === "unknown";
+  const isSkillsOnly = profileType.evidenceScope === "skills_only";
+  const isProjectOnly = profileType.evidenceScope === "project";
 
   const prompt = `Ты — карьерный консультант. Напиши краткий раздел "О себе" для IT-специалиста.
 
@@ -813,11 +917,15 @@ ${hasAbout ? `ТЕКУЩИЙ ТЕКСТ "О СЕБЕ" (улучши, сохра�
 
 ИНФОРМАЦИЯ О КАНДИДАТЕ:
 Имя: ${name || "Не указано"}
-Профиль определён по подтверждённому опыту: ${profileLabel} (primary: ${profileType.primary}${profileType.secondary.length ? `, secondary: ${profileType.secondary.join(", ")}` : ""})
-Confirmed scores (experience+github): ${Object.entries(profileType.confirmedScores).map(([k, v]) => `${k}=${v}`).join(", ")}
+Технический профиль определён по опыту работы и проектам: ${profileLabel} (primary: ${profileType.primary}${profileType.secondary.length ? `, secondary: ${profileType.secondary.join(", ")}` : ""})
+Источник опыта: ${profileType.evidenceScope}
+Confirmed scores (commercial+projects): ${Object.entries(profileType.confirmedScores).map(([k, v]) => `${k}=${v}`).join(", ")}
 
-Технологии, подтверждённые опытом (можно писать "работал с X", "опыт с X):
-${confirmedTech.length > 0 ? confirmedTech.join(", ") : "Нет"}
+Технологии, подтверждённые опытом работы (можно писать "работал с X", "опыт работы с X"):
+${experienceConfirmedSkills.length > 0 ? experienceConfirmedSkills.join(", ") : "Нет"}
+
+Технологии, подтверждённые только проектами/GitHub (только проектные формулировки):
+${projectConfirmedSkills.length > 0 ? projectConfirmedSkills.join(", ") : "Нет"}
 
 Технологии ТОЛЬКО из skills (НЕ считаются опытом, писать только как "имею навыки работы с X" или "знаком с X"):
 ${unconfirmedSkills.length > 0 ? unconfirmedSkills.join(", ") : "Нет"}
@@ -837,13 +945,14 @@ ${manualProjects.filter((p) => p.description || p.techStack).map((p) => `- ${p.n
 Технологии, которые НЕ нужно упоминать в summary (не подтверждены опытом и не соответствуют профилю):
 ${excludedForSummarySkills.length > 0 ? excludedForSummarySkills.join(", ") : "Нет"}
 
-${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТОЧЕН. Нельзя писать 'опыт с X', 'разработчик X-профиля', 'создаю приложения', 'разрабатываю'. Можно писать только 'имею навыки работы с X' или 'знаком с X'." : ""}
+${isSkillsOnly ? "НЕТ НИ ОПЫТА РАБОТЫ, НИ ПРОЕКТНОГО ОПЫТА. Можно писать только 'имею навыки работы с X' или 'знаком с X'." : ""}
+${isProjectOnly ? "ЕСТЬ ПРОЕКТНЫЙ ОПЫТ, НО НЕТ ОПЫТА РАБОТЫ. Разрешены только проектные формулировки: 'есть проектный опыт с X', 'в проектах использовал X', 'реализовывал в проектах X'." : ""}
 
 ЖЁСТКИЕ ПРАВИЛА:
-1. Профиль определён по подтверждённому опыту (experience/github), а не по skills. Skills — это только заявленные навыки.
-2. Если experience пустой — НЕ пиши "разработчик", "опыт", "создаю", "разрабатываю". Пиши "имею навыки работы с X".
-3. Включай максимум 5–7 ключевых технологий. Приоритет: технологии из experience.description → затем databases/tools если связаны с опытом. НЕ перечислять весь skills list.
-4. Технологии ТОЛЬКО из skills (не в experience.description) — НЕ пиши "опыт с X", не делай их центральными.
+1. Технический профиль определяется по experience и projects/GitHub, но project evidence не считается коммерческим опытом. Skills — только заявленные навыки.
+2. Если есть только projects/GitHub, используй "проектный опыт", "в проектах использовал", "реализовывал в проектах". Не используй "опыт работы", "работал с", "коммерческий опыт".
+3. Включай максимум 5–7 ключевых технологий. Приоритет: experience.description → projects/GitHub → связанные databases/tools. НЕ перечисляй весь skills list.
+4. Технологии ТОЛЬКО из skills — НЕ пиши "опыт с X", не делай их центральными.
 5. НЕ пиши "практический опыт с X", если X есть только в навыках.
 6. Используй ТОЛЬКО факты из резюме. НЕ выдумывай опыт, метрики, должности, seniority.
 7. Формат: 2–3 предложения, сплошной текст (без списков, без markdown).
@@ -877,8 +986,8 @@ ${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТО
     console.warn("[AboutMe] First attempt violations:", validation.violations);
   }
 
-  // Retry once if violations found (skip retry for unknown profile — go straight to fallback)
-  if (!validation.ok && profileType.primary !== "unknown") {
+  // Retry for work and project evidence; skills-only stays on the cautious fallback.
+  if (!validation.ok && profileType.evidenceScope !== "skills_only") {
     const retryPrompt = buildRetryPrompt(text, validation.violations, excludedForSummarySkills, profileType);
     const retryResponse = await callPuterAI(retryPrompt);
     const retryText = extractAIText(retryResponse).trim();
@@ -892,10 +1001,10 @@ ${isUnknown ? "ОПЫТ РАБОТЫ НЕ УКАЗАН ИЛИ НЕДОСТАТО
     if (retryValidation.ok && retryText.length > 20) {
       text = retryText;
     } else {
-      text = buildFallbackText(experienceText, profileType, skills);
+      text = buildFallbackText(experienceText, profileType, skills, projectEvidenceText);
     }
   } else if (!validation.ok) {
-    text = buildFallbackText(experienceText, profileType, skills);
+    text = buildFallbackText(experienceText, profileType, skills, projectEvidenceText);
   }
 
   // Final length cap: keep first 2–3 sentences

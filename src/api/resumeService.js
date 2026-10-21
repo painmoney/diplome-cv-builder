@@ -1,8 +1,9 @@
 import { supabase } from "./supabaseClient";
+import { normalizeAge } from "../utils/helpers";
 
 const DEFAULT_RESUME_DATA = {
   profile: {
-    name: "", photo: "", avatarShape: "round", about: "", summary: "", email: "", phone: "",
+    name: "", photo: "", avatarShape: "round", about: "", summary: "", email: "", phone: "", age: "",
     location: "", githubUrl: "", website: "", telegram: "", linkedin: "", habrCareer: "",
   },
   education: [],
@@ -11,6 +12,7 @@ const DEFAULT_RESUME_DATA = {
   github: [],
   projects: [],
   template: "minimalist",
+  showSkillLevels: true,
 };
 
 const normalizeProfile = (profile = {}) => {
@@ -22,6 +24,7 @@ const normalizeProfile = (profile = {}) => {
     summary: profile.summary ?? about,
     email: profile.email ?? "",
     phone: profile.phone ?? "",
+    age: normalizeAge(profile.age),
     name: profile.name ?? "",
     photo: profile.photo ?? "",
     avatarShape: profile.avatarShape === "square" ? "square" : "round",
@@ -45,6 +48,7 @@ export const normalizeLoadedResumeData = (data = {}) => {
     github: Array.isArray(data.github) ? data.github : [],
     projects: Array.isArray(data.projects) ? data.projects : [],
     template: data.template || "minimalist",
+    showSkillLevels: data.showSkillLevels !== false,
   };
 
   return merged;

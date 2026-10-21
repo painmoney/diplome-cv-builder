@@ -1,6 +1,6 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
 import PdfResumeAvatar from './PdfResumeAvatar';
 
 Font.register({
@@ -118,6 +118,7 @@ const styles = StyleSheet.create({
 
 export default function AcademicPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -208,7 +209,7 @@ export default function AcademicPDF({ data }) {
                 <Text style={styles.sectionTitle}>Навыки</Text>
                 {skills.map((skill, idx) => {
                   const name = getSkillName(skill);
-                  const level = getSkillLevel(skill);
+                  const level = getVisibleSkillLevel(skill, showSkillLevels);
 
                   return (
                     <View key={idx} style={styles.skillBox}>

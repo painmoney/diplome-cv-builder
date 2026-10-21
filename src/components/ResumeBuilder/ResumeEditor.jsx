@@ -42,13 +42,14 @@ import { validateProfile, formatValidationToast } from "../../utils/validators";
 import { autosaveFingerprint } from "../../utils/autosaveFingerprint";
 
 const DEFAULT_RESUME_DATA = {
-  profile: { name: "", photo: "", avatarShape: "round", about: "", summary: "", email: "", phone: "" },
+  profile: { name: "", photo: "", avatarShape: "round", about: "", summary: "", email: "", phone: "", age: "" },
   education: [],
   skills: [],
   experience: [],
   github: [],
   projects: [],
   template: "minimalist",
+  showSkillLevels: true,
 };
 
 const DEFAULT_TITLE = "Моё IT-резюме";
@@ -319,7 +320,7 @@ export default function ResumeEditor() {
 
   const failValidation = ({ silent }) => {
     setSaveStatus("error");
-    setSaveError("Проверьте контакты в профиле");
+    setSaveError("Проверьте данные профиля");
 
     if (silent) {
       return;
@@ -328,7 +329,14 @@ export default function ResumeEditor() {
     const msg = formatValidationToast(profileErrors);
 
     setActiveTab(0);
-    pendingFocusRef.current = { tab: 0, target: "profile-email" };
+    const target = profileErrors.email
+      ? "profile-email"
+      : profileErrors.phone
+        ? "profile-phone"
+        : profileErrors.age
+          ? "profile-age"
+          : "profile-name";
+    pendingFocusRef.current = { tab: 0, target };
 
     if (msg) setToast({ open: true, message: msg, severity: "error" });
   };
@@ -387,7 +395,7 @@ export default function ResumeEditor() {
   }, [resumeData]);
 
   const renderSaveChip = () => {
-    if (!isValidForSave) return <Chip size="small" color="warning" label="Проверьте email/телефон" />;
+    if (!isValidForSave) return <Chip size="small" color="warning" label="Проверьте поля профиля" />;
     if (saveStatus === "saving") return <Chip size="small" label="Сохранение..." />;
     if (saveStatus === "saved") return <Chip size="small" color="success" label="Сохранено" />;
     if (saveStatus === "conflict") return <Chip size="small" color="warning" label="Конфликт версий" />;
@@ -567,7 +575,14 @@ export default function ResumeEditor() {
           />
         )}
         {activeTab === 1 && (
-          <SkillsBlock data={resumeData.skills} onChange={(d) => updateSection("skills", d)} />
+          <SkillsBlock
+            data={resumeData.skills}
+            showSkillLevels={resumeData.showSkillLevels !== false}
+            onChange={(d) => updateSection("skills", d)}
+            onShowSkillLevelsChange={(value) =>
+              updateSection("showSkillLevels", value)
+            }
+          />
         )}
         {activeTab === 2 && (
           <EducationBlock data={resumeData.education} onChange={(d) => updateSection("education", d)} />

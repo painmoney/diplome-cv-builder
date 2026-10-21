@@ -2,7 +2,7 @@ import { saveAs } from "file-saver";
 import {
   normalizeResumeData,
   getSkillName,
-  getSkillLevel,
+  getVisibleSkillLevel,
   getEducationYears,
   getWorkPeriod,
   formatMarkdownLink,
@@ -23,7 +23,7 @@ const bulletsFromText = (text) => {
 
 export const buildMarkdown = (resumeData) => {
   const data = normalizeResumeData(resumeData);
-  const { profile, skills, education, experience, github } = data;
+  const { profile, skills, education, experience, github, showSkillLevels } = data;
   const projects = Array.isArray(data.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -60,7 +60,7 @@ export const buildMarkdown = (resumeData) => {
     // показываем уровень, если есть
     const skillLines = skills.map((s) => {
       const name = getSkillName(s);
-      const lvl = getSkillLevel(s);
+      const lvl = getVisibleSkillLevel(s, showSkillLevels);
       return lvl ? `- ${name} — ${lvl}/5` : `- ${name}`;
     });
     lines.push(...skillLines);

@@ -63,6 +63,32 @@ export const getSkillLevel = (skill) => {
   return null;
 };
 
+export const getVisibleSkillLevel = (skill, showSkillLevels = true) =>
+  showSkillLevels ? getSkillLevel(skill) : null;
+
+export const normalizeAge = (value) => {
+  if (value == null || String(value).trim() === "") return "";
+  const age = Number(value);
+  return Number.isInteger(age) && age >= 14 && age <= 100 ? age : "";
+};
+
+export const formatAge = (value) => {
+  if (value == null || String(value).trim() === "") return "";
+  const age = Number(value);
+  if (!Number.isInteger(age) || age < 0) return "";
+
+  const lastTwoDigits = age % 100;
+  const lastDigit = age % 10;
+  let unit = "лет";
+
+  if (lastTwoDigits < 11 || lastTwoDigits > 14) {
+    if (lastDigit === 1) unit = "год";
+    else if (lastDigit >= 2 && lastDigit <= 4) unit = "года";
+  }
+
+  return `${age} ${unit}`;
+};
+
 export const getEducationYears = (edu = {}) => {
   if (edu.years) return safeText(edu.years);
   if (edu.year) return safeText(edu.year);
@@ -98,6 +124,7 @@ export const normalizeResumeData = (data = {}) => {
       name: safeText(profile.name),
       email: safeText(profile.email),
       phone: safeText(profile.phone),
+      age: normalizeAge(profile.age),
       about: getProfileAbout(profile),
       location: safeText(profile.location),
       githubUrl: safeText(profile.githubUrl),
@@ -112,6 +139,7 @@ export const normalizeResumeData = (data = {}) => {
     github,
     projects,
     template: data.template || "minimalist",
+    showSkillLevels: data.showSkillLevels !== false,
   };
 };
 
@@ -218,6 +246,9 @@ export const buildProfileContactLinks = (profile = {}) => {
 
   const location = safeText(profile.location);
   if (location) links.push({ type: "location", label: "Город", value: location });
+
+  const age = formatAge(profile.age);
+  if (age) links.push({ type: "age", label: "Возраст", value: age });
 
   const telegram = normalizeTelegram(profile.telegram);
   if (telegram.display) links.push({ type: "telegram", label: "Telegram", value: telegram.display, href: telegram.url });

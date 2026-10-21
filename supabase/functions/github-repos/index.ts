@@ -1,18 +1,25 @@
-import { createSupabaseContext } from "@supabase/server";
+import {
+  createSupabaseAuthClient,
+  createSupabaseUserAuthenticator,
+  resolveSupabasePublicKey,
+} from "./supabaseAuth.ts";
 import { createGitHubReposHandler } from "./handler.ts";
 
-const authenticateUser = async (req: Request) => {
-  const { data: context, error } = await createSupabaseContext(req, {
-    auth: "user",
-  });
-
-  return !error && context?.authMode === "user" && Boolean(context.userClaims);
-};
+const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const publicKeySelection = resolveSupabasePublicKey((name) =>
+  Deno.env.get(name)
+);
+const authClient =
+  supabaseUrl && publicKeySelection.key
+    ? createSupabaseAuthClient(supabaseUrl, publicKeySelection.key)
+    : null;
 
 Deno.serve(
   createGitHubReposHandler({
-    authenticateUser,
+    authenticateUser: createSupabaseUserAuthenticator(authClient),
     fetchImpl: fetch,
     getGitHubToken: () => Deno.env.get("GITHUB_TOKEN"),
+    getGitHubTokenExpiresAt: () =>
+      Deno.env.get("GITHUB_TOKEN_EXPIRES_AT"),
   })
 );

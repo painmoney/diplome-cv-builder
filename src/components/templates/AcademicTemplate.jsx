@@ -1,6 +1,6 @@
 
 import { Box, Typography, Paper, Grid, Divider, Chip } from "@mui/material";
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
 import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children, color = "#2e7d32" }) => (
@@ -23,6 +23,7 @@ const SectionTitle = ({ children, color = "#2e7d32" }) => (
 
 export default function AcademicTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
   const primary = "#2e7d32";
@@ -249,7 +250,7 @@ export default function AcademicTemplate({ data }) {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {skills.map((skill, idx) => {
                   const name = getSkillName(skill);
-                  const level = getSkillLevel(skill);
+                  const level = getVisibleSkillLevel(skill, showSkillLevels);
 
                   return (
                     <Box

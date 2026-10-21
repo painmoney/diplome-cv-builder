@@ -1,6 +1,6 @@
 
 import { Box, Typography } from "@mui/material";
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from "../../utils/helpers";
 import ResumeAvatar from "./ResumeAvatar";
 
 const SectionTitle = ({ children }) => (
@@ -23,6 +23,7 @@ const SectionTitle = ({ children }) => (
 
 export default function ClassicTemplate({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -90,7 +91,7 @@ export default function ClassicTemplate({ data }) {
           <Typography variant="body2" sx={{ fontSize: "10pt" }}>
             {skills.map((skill) => {
               const name = getSkillName(skill);
-              const level = getSkillLevel(skill);
+              const level = getVisibleSkillLevel(skill, showSkillLevels);
               return `${name}${level ? ` (${level}/5)` : ""}`;
             }).join(" • ")}
           </Typography>

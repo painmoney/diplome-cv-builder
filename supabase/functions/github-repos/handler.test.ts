@@ -20,7 +20,12 @@ function postRequest(token?: string) {
   });
 }
 
-function createHandler({ authenticated = true } = {}) {
+function createHandler({
+  authenticated = true,
+  githubToken = "server-github-token",
+  expiresAt,
+  now = "2026-08-09T12:00:00Z",
+} = {}) {
   const authenticateUser = vi.fn().mockResolvedValue(authenticated);
   const fetchImpl = vi.fn().mockResolvedValue(
     new Response(
@@ -40,7 +45,9 @@ function createHandler({ authenticated = true } = {}) {
   const handler = createGitHubReposHandler({
     authenticateUser,
     fetchImpl,
-    getGitHubToken: () => "server-github-token",
+    getGitHubToken: () => githubToken,
+    getGitHubTokenExpiresAt: () => expiresAt,
+    now: () => new Date(now),
   });
 
   return { authenticateUser, fetchImpl, handler };
@@ -66,6 +73,19 @@ describe("github-repos authentication", () => {
     const { authenticateUser, fetchImpl, handler } = createHandler();
 
     const response = await handler(postRequest());
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
+    expect(authenticateUser).not.toHaveBeenCalled();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed Authorization header", async () => {
+    const { authenticateUser, fetchImpl, handler } = createHandler();
+    const request = postRequest();
+    request.headers.set("Authorization", "Bearer invalid jwt");
+
+    const response = await handler(request);
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
@@ -109,6 +129,38 @@ describe("github-repos authentication", () => {
     });
   });
 
+  it("preserves the GitHub 404 response", async () => {
+    const { fetchImpl, handler } = createHandler();
+    fetchImpl.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "Not Found" }), { status: 404 })
+    );
+
+    const response = await handler(postRequest("valid-user-jwt"));
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      error: "GITHUB_USER_NOT_FOUND",
+      message: "Пользователь GitHub не найден.",
+    });
+  });
+
+  it("preserves GitHub rate-limit handling", async () => {
+    const { fetchImpl, handler } = createHandler();
+    fetchImpl.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "API rate limit exceeded" }), {
+        status: 429,
+      })
+    );
+
+    const response = await handler(postRequest("valid-user-jwt"));
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      error: "GITHUB_RATE_LIMIT",
+      message: "Лимит запросов GitHub временно исчерпан. Попробуйте позже.",
+    });
+  });
+
   it("rejects an auth verification error before calling GitHub", async () => {
     const { authenticateUser, fetchImpl, handler } = createHandler();
     authenticateUser.mockRejectedValueOnce(new Error("expired token"));
@@ -124,8 +176,11 @@ describe("github-repos authentication", () => {
     const entrypoint = readFileSync(resolve(functionDirectory, "index.ts"), "utf8");
     const config = readFileSync(configPath, "utf8");
 
-    expect(entrypoint).toContain("createSupabaseContext");
-    expect(entrypoint).toMatch(/auth:\s*["']user["']/);
+    expect(entrypoint).toContain("createSupabaseUserAuthenticator");
+    expect(entrypoint).toContain("GITHUB_TOKEN_EXPIRES_AT");
+    expect(entrypoint).not.toContain("Supabase project key selection");
+    expect(entrypoint).not.toContain("createSupabaseContext");
+    expect(entrypoint).not.toContain("@supabase/server");
     expect(config).toMatch(
       /\[functions\.github-repos\][\s\S]*?verify_jwt\s*=\s*false/
     );

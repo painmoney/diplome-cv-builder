@@ -1,6 +1,6 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod } from '../../../utils/helpers';
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, formatAge } from '../../../utils/helpers';
 import PdfResumeAvatar from './PdfResumeAvatar';
 
 Font.register({
@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
 
 export default function GithubPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -176,6 +177,8 @@ export default function GithubPDF({ data }) {
               if (profile?.email) lines.push(`@ ${profile.email}`);
               if (profile?.phone) lines.push(`# ${profile.phone}`);
               if (profile?.location) lines.push(`loc: ${profile.location}`);
+              const age = formatAge(profile?.age);
+              if (age) lines.push(`age: ${age}`);
               if (profile?.telegram) {
                 const v = String(profile.telegram).trim();
                 const m = v.match(/^@?([a-zA-Z0-9_]+)$/);
@@ -196,7 +199,7 @@ export default function GithubPDF({ data }) {
             <View style={styles.skillsContainer}>
               {skills.map((skill, idx) => {
                 const name = getSkillName(skill);
-                const level = getSkillLevel(skill);
+                const level = getVisibleSkillLevel(skill, showSkillLevels);
 
                 return (
                   <Text key={idx} style={styles.skill}>

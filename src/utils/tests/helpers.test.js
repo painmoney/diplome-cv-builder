@@ -5,6 +5,8 @@ import {
   normalizeResumeData,
   buildProfileContactLinks,
   getResumeCompleteness,
+  formatAge,
+  getVisibleSkillLevel,
 } from "../helpers";
 
 describe("normalizeTelegram", () => {
@@ -90,6 +92,8 @@ describe("normalizeResumeData - new contact fields", () => {
     expect(result.profile.telegram).toBe("");
     expect(result.profile.linkedin).toBe("");
     expect(result.profile.habrCareer).toBe("");
+    expect(result.profile.age).toBe("");
+    expect(result.showSkillLevels).toBe(true);
   });
 
   it("preserves existing githubUrl and website", () => {
@@ -118,6 +122,49 @@ describe("normalizeResumeData - new contact fields", () => {
     expect(result.profile.telegram).toBe("@myuser");
     expect(result.profile.linkedin).toBe("https://linkedin.com/in/test");
     expect(result.profile.habrCareer).toBe("https://career.habr.com/test");
+  });
+
+  it("preserves valid age and explicit skill-level visibility", () => {
+    const result = normalizeResumeData({
+      profile: { age: 22 },
+      showSkillLevels: false,
+    });
+
+    expect(result.profile.age).toBe(22);
+    expect(result.showSkillLevels).toBe(false);
+  });
+});
+
+describe("skill level visibility", () => {
+  const skill = { name: "React", level: 4 };
+
+  it("shows levels by default and when explicitly enabled", () => {
+    expect(getVisibleSkillLevel(skill)).toBe(4);
+    expect(getVisibleSkillLevel(skill, true)).toBe(4);
+  });
+
+  it("hides only the displayed level without mutating the skill", () => {
+    expect(getVisibleSkillLevel(skill, false)).toBeNull();
+    expect(skill).toEqual({ name: "React", level: 4 });
+  });
+});
+
+describe("formatAge", () => {
+  it.each([
+    [21, "21 год"],
+    [22, "22 года"],
+    [25, "25 лет"],
+    [31, "31 год"],
+    [32, "32 года"],
+    [35, "35 лет"],
+    [111, "111 лет"],
+  ])("formats %i as %s", (age, expected) => {
+    expect(formatAge(age)).toBe(expected);
+  });
+
+  it("returns empty text for a missing age", () => {
+    expect(formatAge("")).toBe("");
+    expect(formatAge(undefined)).toBe("");
   });
 });
 
@@ -160,6 +207,7 @@ describe("buildProfileContactLinks", () => {
       email: "a@b.com",
       phone: "+7900",
       location: "Moscow",
+      age: 22,
       telegram: "@user",
       githubUrl: "https://github.com/u",
       linkedin: "https://linkedin.com/in/u",
@@ -167,10 +215,11 @@ describe("buildProfileContactLinks", () => {
       habrCareer: "https://career.habr.com/u",
     };
     const links = buildProfileContactLinks(profile);
-    expect(links.length).toBe(8);
+    expect(links.length).toBe(9);
     expect(links.map((l) => l.type)).toEqual([
-      "email", "phone", "location", "telegram", "github", "linkedin", "website", "habrCareer",
+      "email", "phone", "location", "age", "telegram", "github", "linkedin", "website", "habrCareer",
     ]);
+    expect(links.find((link) => link.type === "age")?.value).toBe("22 года");
   });
 });
 

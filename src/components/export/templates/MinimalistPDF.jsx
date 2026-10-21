@@ -1,6 +1,6 @@
 
 import { Document, Page, Text, View, Link, StyleSheet, Font } from '@react-pdf/renderer';
-import { getSkillName, getSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
+import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
 import PdfResumeAvatar from './PdfResumeAvatar';
 
 // Регистрируем шрифт с поддержкой кириллицы
@@ -114,6 +114,7 @@ const styles = StyleSheet.create({
 
 export default function MinimalistPDF({ data }) {
   const { profile, skills, education, experience, github } = data || {};
+  const showSkillLevels = data?.showSkillLevels !== false;
   const projects = Array.isArray(data?.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -142,7 +143,7 @@ export default function MinimalistPDF({ data }) {
             <View style={styles.skillsContainer}>
               {skills.map((skill, idx) => {
                 const name = getSkillName(skill);
-                const level = getSkillLevel(skill);
+                const level = getVisibleSkillLevel(skill, showSkillLevels);
 
                 return (
                   <Text key={idx} style={styles.skill}>

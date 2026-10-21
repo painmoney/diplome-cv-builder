@@ -36,6 +36,11 @@ export const isValidTelegram = (value) => {
   return /^(@?[a-zA-Z0-9_]+|https?:\/\/t\.me\/[a-zA-Z0-9_]+|t\.me\/[a-zA-Z0-9_]+)$/.test(v);
 };
 
+export const isValidAge = (value) => {
+  if (value == null || String(value).trim() === "") return true;
+  return normalizeAge(value) !== "";
+};
+
 export const validateProfile = (profile = {}) => {
   const errors = {};
 
@@ -67,6 +72,10 @@ export const validateProfile = (profile = {}) => {
     errors.telegram = "Некорректный Telegram (пример: @username или https://t.me/username)";
   }
 
+  if (!isValidAge(profile.age)) {
+    errors.age = "Укажите целый возраст от 14 до 100 лет";
+  }
+
   return errors;
 };
 
@@ -74,8 +83,10 @@ export const formatValidationToast = (errors = {}) => {
   const fields = [];
   if (errors.email) fields.push("Email");
   if (errors.phone) fields.push("Телефон");
+  if (errors.age) fields.push("Возраст");
 
   if (!fields.length) return null;
 
   return `Проверьте поля: ${fields.join(", ")}. Исправьте ошибки и сохраните снова.`;
 };
+import { normalizeAge } from "./helpers";

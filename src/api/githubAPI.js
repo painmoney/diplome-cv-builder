@@ -24,7 +24,7 @@ async function readErrorBody(error) {
 
     try {
       const json = JSON.parse(text);
-      const msg = json.error || json.message || json.details || "";
+      const msg = json.message || json.error || json.details || "";
       return { status, message: msg };
     } catch {
       return { status, message: "" };
@@ -56,7 +56,7 @@ export async function fetchGitHubRepos(username) {
   }
 
   if (data && typeof data === "object" && data.error) {
-    throw new Error(data.error);
+    throw new Error(data.message || data.error);
   }
 
   if (!Array.isArray(data)) {

@@ -11,7 +11,7 @@ import {
 import {
   normalizeResumeData,
   getSkillName,
-  getSkillLevel,
+  getVisibleSkillLevel,
   getEducationYears,
   getWorkPeriod,
   safeText,
@@ -108,7 +108,7 @@ const compact = (items) => items.filter(Boolean);
 
 export const buildDocxDocument = (resumeData, template = "minimalist") => {
   const data = normalizeResumeData(resumeData);
-  const { profile, skills, education, experience, github } = data;
+  const { profile, skills, education, experience, github, showSkillLevels } = data;
   const projects = Array.isArray(data.projects) ? data.projects : [];
   const meaningfulProjects = projects.filter((p) => p.name || p.description);
 
@@ -159,7 +159,7 @@ export const buildDocxDocument = (resumeData, template = "minimalist") => {
 
     skills.forEach((skill) => {
       const name = getSkillName(skill);
-      const level = getSkillLevel(skill);
+      const level = getVisibleSkillLevel(skill, showSkillLevels);
       const text = level ? `${name} — ${level}/5` : name;
       children.push(makeBullet(text));
     });
