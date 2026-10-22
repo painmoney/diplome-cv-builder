@@ -1,7 +1,7 @@
 
 [functions.github-repos]
 enabled = true
-verify_jwt = false
+verify_jwt = true
 import_map = "./functions/github-repos/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
