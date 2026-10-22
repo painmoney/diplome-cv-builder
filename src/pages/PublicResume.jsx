@@ -32,7 +32,7 @@ export default function PublicResume() {
         </Box>
         <Typography variant="body2" sx={{ mt: 2 }}>Предпочитаемый способ связи: <a href="https://t.me/painhood">Telegram @painhood</a> · <a href="mailto:prokofievm1@yandex.ru">prokofievm1@yandex.ru</a></Typography>
         <Stack component="nav" aria-label="Проекты в портфолио" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 2 }}>
-          {publicResume.projects.map(project => <Button key={project.id} component="a" href={project.link} target="_blank" rel="noopener noreferrer">{project.id === "saucedemo" ? "SauceDemo · Manual QA" : project.id === "cv-builder-qa" ? "CV Builder · QA-кейс" : "CV Builder · дипломный проект"}</Button>)}
+          {publicResume.projects.flatMap(project => (project.links ?? [{ label: "SauceDemo · Manual QA", url: project.link }]).map(link => <Button key={link.url} component="a" href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</Button>))}
         </Stack>
         <Typography variant="caption" component="p" sx={{ mt: 2, color: "#52627a" }}>Подготовлено в CV Builder</Typography>
       </Container>

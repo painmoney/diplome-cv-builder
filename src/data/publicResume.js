@@ -37,14 +37,12 @@ export const publicResume = {
     link: "https://github.com/painmoney/saucedemo-manual-qa",
   }, {
     id: "cv-builder",
-    name: "CV Builder — собственный дипломный веб-проект",
-    techStack: "React, JavaScript/JSX, Supabase, PostgreSQL",
-    description: "Разработал веб-приложение для создания IT-резюме: авторизация, создание и редактирование документов, сохранение данных, пять шаблонов, предпросмотр и экспорт. Защита доступа реализована через Supabase Auth и RLS. В репозитории настроены CI и технические тесты.",
+    name: "CV Builder — дипломный проект и тестирование",
+    description: "Разработка: React, JavaScript, Supabase/PostgreSQL; авторизация, CRUD резюме, пять шаблонов, предпросмотр и экспорт. Защита доступа — Supabase Auth и RLS; в репозитории настроены CI и технические тесты.\nТестирование: тестовая документация, функциональные и API-проверки, SQL и разграничение доступа. В техническом прогоне — 56 проверок: 50 Passed, 1 Failed, 5 Blocked; 13 исходных тест-кейсов. Зарегистрирован дефект мобильного предпросмотра. Результаты, ограничения и доказательства опубликованы в QA-портфолио.",
     link: "https://github.com/painmoney/diplome-cv-builder/tree/chore/qa-staging-setup",
-  }, {
-    id: "cv-builder-qa",
-    name: "CV Builder — QA-кейс собственного дипломного проекта",
-    description: "Для тестирования собственного веб-приложения CV Builder подготовлены тест-план, чек-лист из 56 проверок и 13 тест-кейсов. В рамках технического прогона выполнена 51 проверка (50 Passed, 1 Failed), ещё 5 заблокированы внешними зависимостями. Исследованы пользовательские сценарии, REST API/RPC, SQL/PostgreSQL, экспорт документов и разграничение доступа. Зарегистрирован воспроизводимый дефект мобильного предпросмотра.\nТестовая документация, результаты, ограничения и доказательства опубликованы на GitHub.",
-    link: "https://github.com/painmoney/cv-builder-manual-qa",
+    links: [
+      { label: "Исходный код CV Builder", url: "https://github.com/painmoney/diplome-cv-builder/tree/chore/qa-staging-setup" },
+      { label: "QA-портфолио CV Builder", url: "https://github.com/painmoney/cv-builder-manual-qa" },
+    ],
   }],
 };
