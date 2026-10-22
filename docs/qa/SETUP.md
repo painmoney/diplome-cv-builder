@@ -1,11 +1,11 @@
 # Запуск и развёртывание QA
 
-## Блокирующие факторы
+## Текущее состояние
 
-1. Нет подтверждённого подключения Vercel: опубликованный URL не создан. Нужен доступ к отдельному QA-проекту Vercel или ручной import репозитория.
-2. Нет подтверждённого SQL/Management-доступа к staging и миграционной истории. Публичный ключ и локальный серверный ключ позволили только прочитать API-схему/настройки Storage. Они не заменяют пароль PostgreSQL или авторизацию Supabase CLI.
-3. В живом `profiles` отсутствует `avatar_shape`: frontend уже использует его. До полного CRUD требуется сверить историю и применить существующую миграцию.
-4. Для сквозной проверки нужны два отдельных подтверждённых тестовых пользователя. Аккаунты в рамках подготовки не создавались. Signup с подтверждением и recovery зависят от доставки писем.
+1. Отдельный Vercel-проект создан и репозиторий подключён. https://cv-builder-qa.vercel.app работает; браузерный CRUD, восстановление сессии, logout и запрет чужого документа проверены. Подробности — в DEPLOYMENT.md.
+2. SQL/Management-доступ к staging подтверждён; все 15 миграций применены. Имена последних двух миграций синхронизированы с назначенными сервисом версиями — см. APPLIED-MIGRATIONS.md.
+3. profiles.avatar_shape, RLS, RPC и Storage проверены. Сброс БД не требуется.
+4. Два синтетических аккаунта созданы для технических запросов. Реальная доставка signup/recovery-писем остаётся отдельной проверкой с контролируемой тестовой почтой.
 
 OAuth, GitHub token и Puter — дополнительные зависимости соответствующих функций. Их отсутствие не причина отключать RLS или менять основной CRUD.
 
@@ -56,39 +56,26 @@ npm run dev:staging
 | 20260624074254 | исправление RPC с WITH ORDINALITY |
 | 20260624082752 | **DELETE всех manual_projects и восстановление из resumes.data**; потенциальная потеря расхождений |
 | 20260625000000 | канонические таблицы, ограничения, RLS, RPC, catalog assertions; пересоздаёт именованные policies/grants |
-| 20260710190000 | upsert публичного avatars, MIME/лимит, замена четырёх Storage policies |
-| 20260807000000 | avatar_shape NOT NULL default round и CHECK round/square |
+| 20261022150933 | upsert публичного avatars, MIME/лимит, замена четырёх Storage policies |
+| 20261022150953 | avatar_shape NOT NULL default round и CHECK round/square |
 
 Не применять весь набор повторно через SQL Editor. При существующей БД сначала сопоставить history и объекты. Backfill содержит реальное массовое удаление, в отличие от DELETE внутри определений RPC, которые выполняются только при вызове функции. Storage-миграция меняет публичность/настройки bucket; заранее сверить её с нужным контрактом. NOT NULL/FK/CHECK могут остановиться на несогласованных данных. При дрейфе остановиться и разобрать причину, не использовать reset/repair и не отключать RLS.
 
-Существующий remote wrapper требует чистую синхронизированную `production-development` и интерактивное подтверждение полного staging ref. Чтобы не снимать защиту и не переключать рабочую QA-ветку, для миграций использовать отдельную чистую копию текущей основной ветки:
-
-```powershell
-git clone --branch production-development https://github.com/painmoney/diplome-cv-builder.git cv-builder-staging-db
-cd cv-builder-staging-db
-npm ci
-npx supabase login
-npx supabase link --project-ref jerwfvhpoanoukxiyvwq
-npm run db:staging:status
-npm run db:staging:migrations
-npm run db:staging:dry-run
-```
-
-Пароль БД вводить в защищённом интерактивном prompt, не в командной строке и не в Git. Если dry-run предлагает только ожидаемые недостающие миграции, схема и история понятны, а необходимые синтетические данные сохранены, выполнить `npm run db:staging:push` и ввести staging ref. При неожиданном backfill или большом списке отложить push до проверки. После применения вновь выполнить read-only inspection. Требуется наличие `profiles.avatar_shape`, двух RPC и всех RLS/policies; номер последней миграции сам по себе недостаточен.
+Все миграции в этом staging уже применены. Для него использовать историю и файлы именно QA-ветки, см. APPLIED-MIGRATIONS.md. Не запускать push из production-development: исходные версии двух последних файлов там отличаются от staging. Не применять повторно backfill и не ремонтировать историю. Существующий CLI wrapper требует чистую синхронизированную основную ветку и интерактивное подтверждение; эти защиты не изменялись. Текущие миграции были применены целевым Supabase migration service с явным project_id staging и затем проверены в SQL-каталоге.
 
 ## Auth и дополнительные сервисы
 
-В **staging** Dashboard → Authentication → URL Configuration задать Site URL точного QA-домена. В Redirect URLs добавить точные пути этого домена: `/`, `/dashboard`, `/update-password`, а также локальные `http://127.0.0.1:5199/`, `/dashboard`, `/update-password` и при необходимости аналогичные localhost. Эти адреса берутся из `Register`, `Login`, `ForgotPassword`; произвольный wildcard всех vercel.app не нужен. Для стабильного recovery использовать постоянный QA-домен.
+В **staging** Site URL уже установлен в `https://cv-builder-qa.vercel.app`; origin и пути `/`, `/dashboard`, `/update-password` разрешены, что подтверждено генерацией ссылок без отправки писем. Для локального QA при необходимости дополнительно разрешить `http://127.0.0.1:5199/`, `/dashboard`, `/update-password` и аналогичные localhost. Эти адреса берутся из `Register`, `Login`, `ForgotPassword`; произвольный wildcard всех vercel.app не нужен. Для стабильного recovery использовать постоянный QA-домен.
 
 Email provider включён, подтверждение email требуется. Для signup и recovery нужен доступный тестовый почтовый ящик и работающая доставка/SMTP. Для заранее подготовленных A/B можно создать пользователей через staging Dashboard → Users с подтверждённым email; это не проверяет реальный signup-поток. Не выключать подтверждение глобально ради smoke-проверки. Google/GitHub OAuth можно настроить отдельно, только для staging, с callback `https://jerwfvhpoanoukxiyvwq.supabase.co/auth/v1/callback` в панели провайдера.
 
-`github-repos`: по текущему `config.toml` gateway `verify_jwt=false`, но handler **обязательно** проверяет Bearer token через Supabase Auth `getUser(jwt)`. Это существующая архитектура, а не отсутствие авторизации. Старое описание `verify_jwt=true` устарело. Разворачивать текущую функцию только на staging: `npx supabase functions deploy github-repos --project-ref jerwfvhpoanoukxiyvwq`. GITHUB_TOKEN и необязательный GITHUB_TOKEN_EXPIRES_AT задавать только в staging Edge Function Secrets; не в Vercel `VITE_`. Актуальность token не подтверждена.
+`github-repos`: по текущему QA `config.toml` gateway `verify_jwt=true`, а handler **обязательно** проверяет Bearer token через Supabase Auth `getUser(jwt)`. Это существующая архитектура, а не отсутствие авторизации. На staging verify_jwt=true сохранён и проверен фактическим запросом с ES256; без пользователя доступ закрыт. Разворачивать текущую функцию только на staging: `npx supabase functions deploy github-repos --project-ref jerwfvhpoanoukxiyvwq`. GITHUB_TOKEN и необязательный GITHUB_TOKEN_EXPIRES_AT задавать только в staging Edge Function Secrets; не в Vercel `VITE_`. Актуальность token не подтверждена.
 
 AI использует Puter в браузере и отдельную авторизацию/лимиты. Включать передачу только синтетических данных через существующий диалог согласия. При отсутствии AI проверить обработку ошибки; локальные Health Check/Job Match имеют отдельную реализацию.
 
 ## Vercel
 
-Создать отдельный проект `cv-builder-qa`, импортировать тот же GitHub-репозиторий и выбрать ветку `chore/qa-staging-setup`. Root directory — корень репозитория; Framework Preset — Vite; Node — 22.x; Install Command — `npm ci`; Build Command — **`npm run build:staging`**; Output Directory — `dist`. Существующий `vercel.json` уже содержит SPA rewrite для прямых URL. Не менять настройки существующего production-проекта.
+Отдельный проект `cv-builder-qa` уже создан, импортирован GitHub-репозиторий и установлена Production Branch `chore/qa-staging-setup`. Root directory — корень репозитория; Framework Preset — Vite; Node — 22.x; Install Command — `npm ci`; Build Command — **`npm run build:staging`**; Output Directory — `dist`. Существующий `vercel.json` содержит SPA rewrite для прямых URL. Не менять настройки существующего production-проекта.
 
 В Environment Variables отдельного QA-проекта задать только `VITE_SUPABASE_URL` и `VITE_SUPABASE_ANON_KEY` из staging. Выбрать нужный scope Preview, а при использовании Production scope **отдельного QA-проекта** — эти же staging-значения. Не переносить серверные секреты. После изменения env выполнить Redeploy.
 
