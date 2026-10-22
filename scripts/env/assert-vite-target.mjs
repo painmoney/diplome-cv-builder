@@ -35,24 +35,8 @@ export function assertViteTarget(targetName, envDir = process.cwd()) {
       throw new Error("Browser JWT must be anon and belong to the registered target");
     }
   }
-  if (targetName === "staging") {
-    // Vercel supplies these documented public framework values to Vite builds.
-    // Keep an explicit list: a blanket VITE_VERCEL_* exception could hide secrets.
-    const allowed = new Set([
-      "VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_SENTRY_DSN",
-      "VITE_VERCEL_ENV", "VITE_VERCEL_TARGET_ENV", "VITE_VERCEL_URL",
-      "VITE_VERCEL_BRANCH_URL", "VITE_VERCEL_PROJECT_PRODUCTION_URL",
-      "VITE_VERCEL_HASH_SALT", "VITE_VERCEL_GIT_PROVIDER",
-      "VITE_VERCEL_GIT_REPO_SLUG", "VITE_VERCEL_GIT_REPO_OWNER",
-      "VITE_VERCEL_GIT_REPO_ID", "VITE_VERCEL_GIT_COMMIT_REF",
-      "VITE_VERCEL_GIT_COMMIT_SHA", "VITE_VERCEL_GIT_COMMIT_MESSAGE",
-      "VITE_VERCEL_GIT_COMMIT_AUTHOR_LOGIN", "VITE_VERCEL_GIT_COMMIT_AUTHOR_NAME",
-      "VITE_VERCEL_GIT_PULL_REQUEST_ID",
-    ]);
-    if (Object.keys(raw).some((name) => !allowed.has(name))) {
-      throw new Error("Unexpected VITE_ variable; review public browser configuration");
-    }
-  }
+  // Extra hosting variables are not exposed: vite.config.js disables automatic
+  // env-prefix exposure and defines only the three approved public fields.
   return config;
 }
 
