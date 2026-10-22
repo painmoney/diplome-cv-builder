@@ -1,4 +1,6 @@
 import { Alert, Box, Button, Container, Stack, Typography } from "@mui/material";
+import TelegramIcon from "@mui/icons-material/Telegram";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import ClassicTemplate from "../components/templates/ClassicTemplate";
 import { publicResume, publicResumeApproved } from "../data/publicResume";
 
@@ -30,7 +32,24 @@ export default function PublicResume() {
         }}>
           <ClassicTemplate data={publicResume} />
         </Box>
-        <Typography variant="body2" sx={{ mt: 2 }}>Предпочитаемый способ связи: <a href="https://t.me/painhood">Telegram @painhood</a> · <a href="mailto:prokofievm1@yandex.ru">prokofievm1@yandex.ru</a></Typography>
+        <Stack component="section" aria-labelledby="contact-heading" direction={{ xs: "column", md: "row" }} spacing={2} sx={{
+          mt: 2.5, p: { xs: 2.5, sm: 3 }, bgcolor: "#fff", border: "1px solid #dce3eb", borderRadius: 3,
+          alignItems: { md: "center" }, justifyContent: "space-between",
+        }}>
+          <Box>
+            <Typography id="contact-heading" component="h2" sx={{ fontSize: "1rem", fontWeight: 700 }}>Связаться со мной</Typography>
+            <Typography variant="body2" sx={{ mt: 0.5, color: "#52627a" }}>Предпочтительно в Telegram</Typography>
+          </Box>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+            <Button component="a" href="https://t.me/painhood" target="_blank" rel="noopener noreferrer" variant="contained" disableElevation startIcon={<TelegramIcon />} sx={{
+              bgcolor: "#087eaf", "&:hover": { bgcolor: "#06658c" }, borderRadius: 2, px: 2, py: 1.25, textTransform: "none",
+            }}>Telegram @painhood</Button>
+            <Button component="a" href="mailto:prokofievm1@yandex.ru" variant="outlined" startIcon={<MailOutlineIcon />} sx={{
+              color: "#24364b", borderColor: "#cbd5e1", "&:hover": { borderColor: "#94a3b8", bgcolor: "#f8fafc" },
+              borderRadius: 2, px: 2, py: 1.25, textTransform: "none",
+            }}>prokofievm1@yandex.ru</Button>
+          </Stack>
+        </Stack>
         <Stack component="nav" aria-label="Проекты в портфолио" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 2 }}>
           {publicResume.projects.flatMap(project => (project.links ?? [{ label: "SauceDemo · Manual QA", url: project.link }]).map(link => <Button key={link.url} component="a" href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</Button>))}
         </Stack>
