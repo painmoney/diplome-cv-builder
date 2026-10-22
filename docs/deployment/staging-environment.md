@@ -1,89 +1,14 @@
 # Staging Environment
 
-## Model
+The existing staging project is `jerwfvhpoanoukxiyvwq` (primary is a different project ending in `oskr`). Do not create a parallel staging project or copy the primary CLI link.
 
-Separate Supabase project (`cv-builder-staging`), isolated from CURRENT_PRIMARY_PROJECT.
+Current technical observations, limitations and setup instructions (22 October 2026):
 
-- Region: East US (North Virginia) — same as primary
-- Tier: Free
-- Cost: $0
+- [QA readiness and evidence](../qa/README.md)
+- [Local launch, migration review, Vercel, Auth and Edge Function setup](../qa/SETUP.md)
 
-## Fingerprints
+The staging Auth API and database REST API respond. The seven tables and two resume RPCs are visible in the API schema. The live profiles table is missing `avatar_shape`; reconcile migration history and apply the existing migration before full CRUD validation. The avatars bucket exists and is public with a 5 MiB limit. Live RLS policies, migration history and Auth redirect URLs still need administrative inspection.
 
-- CURRENT_PRIMARY_PROJECT: `****oskr`
-- STAGING_PROJECT: `****yvwq`
+`github-repos` has `verify_jwt=false` at the gateway in the current source. The handler authenticates each caller via Supabase Auth `getUser(jwt)`. Deployment/token state has not been verified. Google/GitHub OAuth providers are currently disabled in staging.
 
-## Public browser config
-
-File: `.env.staging.local` (gitignored)
-
-- `VITE_SUPABASE_URL` — staging project URL
-- `VITE_SUPABASE_ANON_KEY` — staging anon key
-
-## Server/test secrets
-
-File: `.env.integration.staging.local` (gitignored)
-
-- `VITE_SUPABASE_URL` — staging URL
-- `VITE_SUPABASE_ANON_KEY` — staging anon key
-- `SUPABASE_SERVICE_ROLE_KEY` — staging service-role key
-
-## How to run
-
-```bash
-# Verify isolation from primary
-npm run staging:guard
-
-# Validate staging env
-npm run env:check:staging
-
-# Local dev against staging
-npm run dev:staging
-
-# Build against staging
-npm run build:staging
-
-# Integration tests against staging
-# (swap .env to staging, run tests, restore .env)
-```
-
-## Staging migration history
-
-12 migrations applied (base schema + 11 original):
-- Base schema (tables + unique index)
-- Security hardening (RLS, policies, grants)
-- Schema hardening (NOT NULL, indexes, FK constraints)
-- Atomic resume RPC
-- Idempotency fix
-- Multi-resume schema
-- P1003 removal
-- Manual projects table
-- Manual projects RPC sync
-- Grants fix
-- RPC fix (WITH ORDINALITY)
-- Backfill
-
-## Edge Functions
-
-- `github-repos` deployed
-- `verify_jwt = true`
-- GITHUB_TOKEN: NOT CONFIGURED (requires manual setup)
-
-## Auth config
-
-- Site URL: `http://localhost:5199`
-- Redirect allowlist: `http://localhost:5199/**`
-
-## Storage
-
-NOT_CONFIGURED_YET — requires manual bucket creation in Dashboard.
-
-## Not yet configured
-
-- CI/CD (GitHub Actions)
-- Hosted staging frontend
-- Production Auth hardening
-- Custom SMTP
-- Observability
-- Storage buckets
-- GITHUB_TOKEN for Edge Function
+No hosted Vercel staging deployment was created during this preparation. Local frontend uses `npm run dev:staging` on `http://127.0.0.1:5199`; building uses `npm run build:staging`. These observations are technical environment checks, not a completed manual QA run.

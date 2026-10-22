@@ -3,6 +3,16 @@ import react from "@vitejs/plugin-react";
 import { configDefaults } from "vitest/config";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { assertViteTarget } from "./scripts/env/assert-vite-target.mjs";
+
+function stagingTargetGuard() {
+  return {
+    name: "staging-target-guard",
+    configResolved(config) {
+      if (config.mode === "staging") assertViteTarget("staging", config.envDir);
+    },
+  };
+}
 
 function todoGuard() {
   let mode;
@@ -26,7 +36,7 @@ function todoGuard() {
 }
 
 export default defineConfig({
-  plugins: [react(), todoGuard()],
+  plugins: [stagingTargetGuard(), react(), todoGuard()],
   test: {
     environment: "jsdom",
     exclude: [

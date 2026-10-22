@@ -1,0 +1,514 @@
+{
+  "info": {
+    "name": "CV Builder — Manual QA staging",
+    "description": "Manual requests only. No tests/pre-request scripts. Credentials and identifiers belong in local unsynced environments or Vault. Never use service-role or production.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "supabase_url",
+      "value": "https://jerwfvhpoanoukxiyvwq.supabase.co"
+    },
+    {
+      "key": "anon_key",
+      "value": ""
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "resume_id",
+      "value": ""
+    },
+    {
+      "key": "revision",
+      "value": ""
+    },
+    {
+      "key": "qa_origin",
+      "value": "http://127.0.0.1:5199"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth — manual session",
+      "item": [
+        {
+          "name": "Sign up (controlled test mailbox)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/auth/v1/signup?redirect_to={{qa_origin}}/",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Password login — copy tokens and user.id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/auth/v1/token?grant_type=password",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Refresh — copy new tokens",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/auth/v1/token?grant_type=refresh_token",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Current user",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/auth/v1/user",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "Recovery email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/auth/v1/recover?redirect_to={{qa_origin}}/update-password",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/auth/v1/logout",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resumes — own synthetic documents",
+      "item": [
+        {
+          "name": "List own resumes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/resumes?user_id=eq.{{user_id}}&select=id,title,template,revision,created_at,updated_at&order=updated_at.desc,id.asc",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "Create full — set a new UUID first",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/rpc/create_resume_full",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"p_resume_id\": \"{{resume_id}}\",\n  \"p_title\": \"QA-A — Frontend Demo\",\n  \"p_template\": \"minimalist\",\n  \"p_data\": {\n    \"profile\": {\n      \"name\": \"Алексей Тестовый\",\n      \"email\": \"qa-a@example.test\",\n      \"about\": \"Синтетическое резюме для QA\",\n      \"avatarShape\": \"round\"\n    },\n    \"skills\": [\n      {\n        \"name\": \"React\",\n        \"level\": 3\n      }\n    ],\n    \"education\": [\n      {\n        \"institution\": \"Учебный университет\",\n        \"degree\": \"Бакалавр\",\n        \"years\": \"2020–2024\"\n      }\n    ],\n    \"experience\": [\n      {\n        \"company\": \"Example QA Lab\",\n        \"position\": \"Frontend developer\",\n        \"period\": \"2024–2025\",\n        \"description\": \"Демонстрационные интерфейсы\"\n      }\n    ],\n    \"github\": [],\n    \"projects\": [\n      {\n        \"id\": \"qa-project-a\",\n        \"name\": \"Demo task board\",\n        \"role\": \"Developer\",\n        \"techStack\": \"React\",\n        \"link\": \"https://example.test/task-board\",\n        \"period\": \"2025\",\n        \"description\": \"Учебный проект\"\n      }\n    ],\n    \"template\": \"minimalist\",\n    \"showSkillLevels\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Read by UUID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/resumes?id=eq.{{resume_id}}&select=*",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "Save full resume (replace revision manually)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/rpc/save_resume_full",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"p_resume_id\": \"{{resume_id}}\",\n  \"p_title\": \"QA-A — Frontend Demo\",\n  \"p_template\": \"minimalist\",\n  \"p_data\": {\n    \"profile\": {\n      \"name\": \"Алексей Тестовый\",\n      \"email\": \"qa-a@example.test\",\n      \"about\": \"Синтетическое резюме для QA\",\n      \"avatarShape\": \"round\"\n    },\n    \"skills\": [\n      {\n        \"name\": \"React\",\n        \"level\": 3\n      }\n    ],\n    \"education\": [\n      {\n        \"institution\": \"Учебный университет\",\n        \"degree\": \"Бакалавр\",\n        \"years\": \"2020–2024\"\n      }\n    ],\n    \"experience\": [\n      {\n        \"company\": \"Example QA Lab\",\n        \"position\": \"Frontend developer\",\n        \"period\": \"2024–2025\",\n        \"description\": \"Демонстрационные интерфейсы\"\n      }\n    ],\n    \"github\": [],\n    \"projects\": [\n      {\n        \"id\": \"qa-project-a\",\n        \"name\": \"Demo task board\",\n        \"role\": \"Developer\",\n        \"techStack\": \"React\",\n        \"link\": \"https://example.test/task-board\",\n        \"period\": \"2025\",\n        \"description\": \"Учебный проект\"\n      }\n    ],\n    \"template\": \"minimalist\",\n    \"showSkillLevels\": true\n  },\n  \"p_expected_revision\": {{revision}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete disposable own resume",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/resumes?id=eq.{{resume_id}}&select=id",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Read own profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/profiles?user_id=eq.{{user_id}}&select=*",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "Upsert own synthetic profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "resolution=merge-duplicates,return=representation"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/profiles?on_conflict=user_id",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"full_name\": \"Алексей Тестовый\",\n  \"avatar_shape\": \"round\",\n  \"email\": \"qa-a@example.test\",\n  \"about\": \"Синтетические данные\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Child projections — read only",
+      "item": [
+        {
+          "name": "skills",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/skills?resume_id=eq.{{resume_id}}&select=*",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "education",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/education?resume_id=eq.{{resume_id}}&select=*",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "experience",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/experience?resume_id=eq.{{resume_id}}&select=*",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "github_projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/github_projects?resume_id=eq.{{resume_id}}&select=*",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        },
+        {
+          "name": "manual_projects",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{supabase_url}}/rest/v1/manual_projects?resume_id=eq.{{resume_id}}&select=*",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks."
+          }
+        }
+      ]
+    },
+    {
+      "name": "GitHub Edge Function",
+      "item": [
+        {
+          "name": "Import public demo repos (requires server token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{supabase_url}}/functions/v1/github-repos",
+            "description": "Send manually, only against staging. Copy response values to a local environment. No scripts or automatic checks.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"REPLACE_WITH_OWN_DEMO_USERNAME\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
