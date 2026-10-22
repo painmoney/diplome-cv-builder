@@ -31,6 +31,8 @@ Supabase staging: `jerwfvhpoanoukxiyvwq`, ACTIVE_HEALTHY. Схема обнов�
 
 ## Материалы
 
+- [Публичное резюме и отдельный опубликованный QA-кейс](PORTFOLIO.md). Новый QA-прогон зафиксирован в отдельном репозитории и не смешивается с техническими setup-проверками выше.
+
 - [Архитектура, функции, маршруты](PROJECT-MAP.md)
 - [Запуск и настройка](SETUP.md)
 - [Карта API](API-MAP.md), [Postman без скриптов](cv-builder.postman_collection.json)
