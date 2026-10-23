@@ -1,60 +1,25 @@
 # Environment Configuration Contract
 
-## Environment Model
-
-| Environment | Frontend hosting | Supabase project | Integration tests |
-| --- | --- | --- | --- |
-| local | Vite dev server | linked (same project) | service-role from .env |
-| staging | TBD | separate project | separate service-role |
-| production | TBD | current linked project | separate service-role |
-
-## Public Browser Variables
-
-Only these variables are included in the browser bundle:
-
-| Variable | Required | Public/Secret | Validation |
-| --- | --- | --- | --- |
-| `VITE_SUPABASE_URL` | yes | public | valid URL, https for remote, http allowed for localhost |
-| `VITE_SUPABASE_ANON_KEY` | yes | public | non-empty string, not service-role |
-
-These values are visible to end users. Security depends on Supabase RLS policies, not key secrecy.
-
-## Server/Deployment Secrets
-
-Never included in the browser bundle:
-
-| Variable | Used by | Storage |
+| Environment | Frontend | Backend |
 | --- | --- | --- |
-| `SUPABASE_SERVICE_ROLE_KEY` | integration tests, Supabase CLI | .env (gitignored), GitHub Actions secrets |
-| `GITHUB_TOKEN` | Edge Function (github-repos) | Supabase Function secrets |
+| QA local | Vite staging mode, fixed loopback port 5199 | registered staging project |
+| QA hosted | https://cv-builder-qa.vercel.app; separate Vercel project | same registered staging project |
+| primary | existing configuration; outside QA scope | registered primary project |
 
-## Storage Locations
+Registry: `config/supabase-targets.json`. QA instructions: [SETUP](../qa/SETUP.md).
 
-| Context | File/Location | Tracked? |
-| --- | --- | --- |
-| Local dev | `.env` | NO (gitignored) |
-| Integration tests | `SUPABASE_SERVICE_ROLE_KEY` env var or `.env` | NO |
-| Edge Functions | Supabase Dashboard → Edge Functions → Secrets | NO |
-| Staging frontend | hosting environment variables | NO |
-| Production frontend | hosting environment variables | NO |
-| GitHub Actions | repository/environment secrets | NO |
+## Public browser settings
 
-## Rules
+- `VITE_SUPABASE_URL`: exact registered project HTTPS URL.
+- `VITE_SUPABASE_ANON_KEY`: publishable key or legacy anon JWT for that project.
+- `VITE_SENTRY_DSN`: optional public DSN; leave unset if telemetry is not required.
 
-1. Real secrets are never committed to Git.
-2. Staging and production use separate credentials.
-3. Integration tests do not run against production data.
-4. Service-role key never reaches the browser bundle.
-5. `.env.example` contains only safe placeholders.
-6. Logs and reports never contain secret values.
-7. Rotation is performed separately when exposure is suspected.
+Copy `.env.staging.example` to gitignored `.env.staging.local` for local QA. Hosting uses environment variables. Vite precedence applies, including process overrides and `.env.local`; staging guards inspect effective configuration. Automatic prefix exposure is disabled with `envPrefix: []`; only the three approved fields above are explicitly defined in the browser bundle. Additional hosting variables are not exposed. Primary credentials and primary env files are not required for staging. A publishable key's association with the project must also be confirmed by a live request; its ref is not encoded like a legacy JWT.
 
-## Future Staging Checklist
+Treat `VITE_` values as public configuration despite the explicit exposure restriction. Service-role/secret keys, database passwords, access tokens, SMTP credentials and GitHub tokens must never be stored there or committed. `GITHUB_TOKEN` belongs only in staging Edge Function Secrets. `SUPABASE_ACCESS_TOKEN`/database credentials belong only in the administrator's CLI/session. Server credentials are not needed for ordinary manual API work: use a public key plus the test user's JWT.
 
-- [ ] Create separate Supabase staging project
-- [ ] Apply migrations to staging
-- [ ] Set staging frontend environment variables
-- [ ] Configure staging Auth URLs and redirect allowlist
-- [ ] Set Edge Function secrets for staging
-- [ ] Run integration tests against staging
-- [ ] Verify no production data leakage
+## Deployment
+
+Use `npm ci`, `npm run build:staging`, output `dist`, existing SPA rewrite in `vercel.json`. An optional CLI configuration is provided as `vercel.staging.json`; Git imports require the build override in the separate QA project's Dashboard. Configure staging Auth Site URL and redirect allowlist for the exact QA/local origins. See SETUP for migration review, known schema drift and remaining access requirements.
+
+Existing automated tests remain in the repository; no automation is part of the Manual QA preparation or portfolio plan. Never point tests or manual data operations at primary.

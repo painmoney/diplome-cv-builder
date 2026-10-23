@@ -18,4 +18,5 @@ Thumbs.db
 /backups/
 /backup-work/
 /safe-packages/
+.vercel/
 *.tar.gz.enc

@@ -2,6 +2,8 @@
 
 # CV Builder
 
+Подготовка ручного QA: [руководство окружения и карта проекта](docs/qa/README.md).
+
 ### Современный конструктор резюме с AI-рекомендациями
 
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
