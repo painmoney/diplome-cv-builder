@@ -44,7 +44,7 @@ export const publicResume = {
   }, {
     id: "cv-builder",
     name: "CV Builder — дипломный проект и тестирование",
-    description: "Разработка: React, JavaScript, Supabase/PostgreSQL; авторизация, CRUD резюме, пять шаблонов, предпросмотр и экспорт. Защита доступа — Supabase Auth и RLS; в репозитории настроены CI и технические тесты.\nТестирование: тестовая документация, функциональные и API-проверки, SQL и разграничение доступа. В техническом прогоне — 56 проверок: 50 Passed, 1 Failed, 5 Blocked; 13 исходных тест-кейсов. Зарегистрирован дефект мобильного предпросмотра. Результаты, ограничения и доказательства опубликованы в QA-портфолио.",
+    description: "Разработка: React, JavaScript, Supabase/PostgreSQL; авторизация, CRUD резюме, пять шаблонов, предпросмотр и экспорт. Защита доступа — Supabase Auth и RLS; в репозитории настроены CI и технические тесты.\nПодготовлены чек-лист из 55 проверок и 17 тест-кейсов. Проведены проверки интерфейса и REST API, подготовлена коллекция Postman, выполнены SQL-запросы. Обнаружен и зарегистрирован дефект мобильного предпросмотра. Результаты и доказательства представлены в QA-портфолио.",
     link: "https://github.com/painmoney/diplome-cv-builder/tree/chore/qa-staging-setup",
     links: [
       { label: "Исходный код CV Builder", url: "https://github.com/painmoney/diplome-cv-builder/tree/chore/qa-staging-setup" },

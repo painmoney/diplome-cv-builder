@@ -29,6 +29,8 @@ export default function PublicResume() {
           bgcolor: "#fff", border: "1px solid #dce3eb", borderRadius: 2,
           "& > *": { width: "100% !important", minHeight: "auto !important", p: { xs: "24px !important", sm: "48px !important" }, borderRadius: 2 },
           "& p, & h4": { overflowWrap: "anywhere" },
+          "& p": { fontSize: "14px !important", lineHeight: "1.55 !important" },
+          "& a": { fontSize: "13px !important", lineHeight: "1.5 !important" },
           "& > div > div:first-of-type": { pr: "0 !important", display: "flow-root" },
           "& > div > div:first-of-type > img": {
             position: "static", float: "right", width: { xs: 88, sm: 112 }, height: { xs: 88, sm: 112 },
@@ -48,7 +50,7 @@ export default function PublicResume() {
           </Box>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} useFlexGap sx={{ flexWrap: "wrap" }}>
             <Button component="a" href="https://togliatti.hh.ru/resume/6f0e9286ff114083af0039ed1f4d70414b494a" target="_blank" rel="noopener noreferrer" variant="outlined" sx={{
-              color: "#c62828", borderColor: "#efb3b3", "&:hover": { bgcolor: "#fff5f5", borderColor: "#c62828" },
+              color: "#24364b", borderColor: "#cbd5e1", "&:hover": { bgcolor: "#f8fafc", borderColor: "#94a3b8" },
               borderRadius: 2, px: 2, py: 1.25, textTransform: "none", fontWeight: 700,
             }}>Резюме на hh.ru ↗</Button>
             <Button component="a" href="https://t.me/painhood" target="_blank" rel="noopener noreferrer" variant="contained" disableElevation startIcon={<TelegramIcon />} sx={{
@@ -59,9 +61,6 @@ export default function PublicResume() {
               borderRadius: 2, px: 2, py: 1.25, textTransform: "none",
             }}>prokofievm1@yandex.ru</Button>
           </Stack>
-        </Stack>
-        <Stack component="nav" aria-label="Проекты в портфолио" direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 2 }}>
-          {publicResume.projects.flatMap(project => (project.links ?? [{ label: "SauceDemo · Manual QA", url: project.link }]).map(link => <Button key={link.url} component="a" href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</Button>))}
         </Stack>
         <Typography variant="caption" component="p" sx={{ mt: 2, color: "#52627a" }}>Подготовлено в CV Builder</Typography>
       </Container>
