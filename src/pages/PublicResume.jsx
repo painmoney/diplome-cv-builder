@@ -29,18 +29,28 @@ export default function PublicResume() {
           bgcolor: "#fff", border: "1px solid #dce3eb", borderRadius: 2,
           "& > *": { width: "100% !important", minHeight: "auto !important", p: { xs: "24px !important", sm: "48px !important" }, borderRadius: 2 },
           "& p, & h4": { overflowWrap: "anywhere" },
+          "& > div > div:first-of-type": { pr: "0 !important", display: "flow-root" },
+          "& > div > div:first-of-type > img": {
+            position: "static", float: "right", width: { xs: 88, sm: 112 }, height: { xs: 88, sm: 112 },
+            ml: 2, mb: 1.5, borderRadius: 0, objectPosition: "center 25%",
+          },
+          "& > div > div:first-of-type > p:last-of-type": { clear: "both", pt: 1 },
         }}>
           <ClassicTemplate data={publicResume} />
         </Box>
         <Stack component="section" aria-labelledby="contact-heading" direction={{ xs: "column", md: "row" }} spacing={2} sx={{
           mt: 2.5, p: { xs: 2.5, sm: 3 }, bgcolor: "#fff", border: "1px solid #dce3eb", borderRadius: 3,
-          alignItems: { md: "center" }, justifyContent: "space-between",
+          alignItems: { md: "center" }, justifyContent: "space-between", flexWrap: "wrap", gap: 2,
         }}>
           <Box>
             <Typography id="contact-heading" component="h2" sx={{ fontSize: "1rem", fontWeight: 700 }}>Связаться со мной</Typography>
             <Typography variant="body2" sx={{ mt: 0.5, color: "#52627a" }}>Предпочтительно в Telegram</Typography>
           </Box>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} useFlexGap sx={{ flexWrap: "wrap" }}>
+            <Button component="a" href="https://togliatti.hh.ru/resume/6f0e9286ff114083af0039ed1f4d70414b494a" target="_blank" rel="noopener noreferrer" variant="outlined" sx={{
+              color: "#c62828", borderColor: "#efb3b3", "&:hover": { bgcolor: "#fff5f5", borderColor: "#c62828" },
+              borderRadius: 2, px: 2, py: 1.25, textTransform: "none", fontWeight: 700,
+            }}>Резюме на hh.ru ↗</Button>
             <Button component="a" href="https://t.me/painhood" target="_blank" rel="noopener noreferrer" variant="contained" disableElevation startIcon={<TelegramIcon />} sx={{
               bgcolor: "#087eaf", "&:hover": { bgcolor: "#06658c" }, borderRadius: 2, px: 2, py: 1.25, textTransform: "none",
             }}>Telegram @painhood</Button>

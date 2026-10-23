@@ -7,6 +7,8 @@ export const publicResume = {
   showSkillLevels: false,
   profile: {
     name: "Прокофьев Матвей Михайлович",
+    photo: "/cv/matvey-prokofyev.jpg",
+    avatarShape: "square",
     about: "Junior QA Engineer / Инженер по тестированию. Начинающий специалист с высшим профильным IT-образованием и самостоятельной практикой тестирования веб-приложений. Проверяю пользовательские сценарии, готовлю тестовую документацию, изучаю HTTP, REST API и SQL. Разработал дипломный CV Builder на React и Supabase/PostgreSQL. Ищу первую работу в QA с дальнейшим развитием в автоматизацию.",
     email: "prokofievm1@yandex.ru",
     phone: "",
@@ -35,6 +37,10 @@ export const publicResume = {
     name: "SauceDemo — самостоятельная практика Manual QA",
     description: "Тестирование авторизации, каталога, корзины и оформления заказа. 57 пунктов чек-листа, 7 подробных тест-кейсов, 2 отчёта об аномалиях, результаты выполнения и матрица трассировки. Сохранены оригинальные PDF-доказательства. Неоднозначные ожидания отделены от подтверждённых дефектов.",
     link: "https://github.com/painmoney/saucedemo-manual-qa",
+    links: [
+      { label: "QA-портфолио SauceDemo", url: "https://github.com/painmoney/saucedemo-manual-qa" },
+      { label: "Тестируемый сайт SauceDemo", url: "https://www.saucedemo.com/" },
+    ],
   }, {
     id: "cv-builder",
     name: "CV Builder — дипломный проект и тестирование",
