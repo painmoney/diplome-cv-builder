@@ -14,6 +14,7 @@ const ResumePreview = lazy(() => import("./pages/ResumePreview"));
 const ResumeEditor = lazy(() => import("./components/ResumeBuilder/ResumeEditor"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const PublicResume = lazy(() => import("./pages/PublicResume"));
 
 export default function AppRoutes() {
   return (
@@ -27,6 +28,7 @@ export default function AppRoutes() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/cv" element={<PublicResume />} />
 
           {/* Protected */}
           <Route

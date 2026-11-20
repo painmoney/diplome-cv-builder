@@ -159,7 +159,11 @@ export default function ClassicTemplate({ data }) {
                   {proj.description}
                 </Typography>
               )}
-              {proj.link && (
+              {Array.isArray(proj.links) ? proj.links.map(link => (
+                <Typography key={link.url} component="a" href={link.url} target="_blank" rel="noopener noreferrer" variant="body2" sx={{ display: "block", fontSize: "9pt", color: "#555" }}>
+                  {link.label}: {link.url}
+                </Typography>
+              )) : proj.link && (
                 <Typography variant="body2" sx={{ fontSize: "9pt", color: "#555" }}>
                   {proj.link}
                 </Typography>

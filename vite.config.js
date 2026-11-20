@@ -1,8 +1,18 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { configDefaults } from "vitest/config";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { assertViteTarget } from "./scripts/env/assert-vite-target.mjs";
+
+function stagingTargetGuard() {
+  return {
+    name: "staging-target-guard",
+    configResolved(config) {
+      if (config.mode === "staging") assertViteTarget("staging", config.envDir);
+    },
+  };
+}
 
 function todoGuard() {
   let mode;
@@ -25,31 +35,40 @@ function todoGuard() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), todoGuard()],
-  test: {
-    environment: "jsdom",
-    exclude: [
-      ...configDefaults.exclude,
-      "tests/**",
-      ".mimocode/**",
-    ],
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          "vendor-mui": [
-            "@mui/material",
-            "@mui/icons-material",
-            "@emotion/react",
-            "@emotion/styled",
-          ],
-          "vendor-pdf": ["@react-pdf/renderer"],
-          "vendor-motion": ["framer-motion"],
-          "vendor-router": ["react-router-dom"],
+export default defineConfig(({ mode }) => {
+  const publicEnv = loadEnv(mode, process.cwd(), "VITE_");
+  const publicNames = ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_SENTRY_DSN"];
+  return {
+    // No automatic VITE_* exposure, including hosting-injected variables.
+    envPrefix: [],
+    define: Object.fromEntries(publicNames.map((name) => [
+      `import.meta.env.${name}`, JSON.stringify(publicEnv[name] || ""),
+    ])),
+    plugins: [stagingTargetGuard(), react(), todoGuard()],
+    test: {
+      environment: "jsdom",
+      exclude: [
+        ...configDefaults.exclude,
+        "tests/**",
+        ".mimocode/**",
+      ],
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "vendor-mui": [
+              "@mui/material",
+              "@mui/icons-material",
+              "@emotion/react",
+              "@emotion/styled",
+            ],
+            "vendor-pdf": ["@react-pdf/renderer"],
+            "vendor-motion": ["framer-motion"],
+            "vendor-router": ["react-router-dom"],
+          },
         },
       },
     },
-  },
+  };
 });

@@ -1,5 +1,5 @@
 
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
 import { getSkillName, getVisibleSkillLevel, getEducationYears, getWorkPeriod, buildProfileContactLinks } from '../../../utils/helpers';
 import PdfResumeAvatar from './PdfResumeAvatar';
 
@@ -182,7 +182,9 @@ export default function ClassicPDF({ data }) {
                 </Text>
                 {proj.techStack && <Text style={styles.text}>Стек: {proj.techStack}</Text>}
                 {proj.description && <Text style={styles.text}>{proj.description}</Text>}
-                {proj.link && <Text style={styles.text}>{proj.link}</Text>}
+                {Array.isArray(proj.links) ? proj.links.map(link => (
+                  <Link key={link.url} src={link.url} style={styles.text}>{link.label}: {link.url}</Link>
+                )) : proj.link && <Text style={styles.text}>{proj.link}</Text>}
               </View>
             ))}
           </View>

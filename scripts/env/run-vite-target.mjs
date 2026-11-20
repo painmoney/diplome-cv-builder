@@ -38,7 +38,9 @@ function main() {
 
   console.log("Target assertion passed. Starting Vite...");
 
-  const child = spawn("npx", ["vite", "--mode", config.mode, "--port", config.port], {
+  const viteArgs = ["vite", "--mode", config.mode, "--port", config.port];
+  if (target === "staging") viteArgs.push("--host", "127.0.0.1", "--strictPort");
+  const child = spawn("npx", viteArgs, {
     cwd: ROOT,
     stdio: "inherit",
     shell: true,

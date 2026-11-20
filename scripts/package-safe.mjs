@@ -20,7 +20,7 @@ function fail(message) {
 
 function isSensitiveTrackedFile(file) {
   const normalized = file.replaceAll("\\", "/");
-  if (/^\.env($|\.|\/)/.test(normalized) && normalized !== ".env.example") return true;
+  if (/^\.env($|\.|\/)/.test(normalized) && ![".env.example", ".env.staging.example"].includes(normalized)) return true;
   if (normalized.startsWith("supabase/.temp/")) return true;
   if (normalized.startsWith("node_modules/")) return true;
   if (normalized.startsWith("dist/")) return true;

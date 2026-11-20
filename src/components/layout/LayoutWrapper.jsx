@@ -33,6 +33,9 @@ export default function LayoutWrapper({ children }) {
   const maxWidth = isAuthPage ? "md" : isHome ? "lg" : "xl";
   const mainPy = isHome ? 0 : 4;
 
+  // Recruiters see the resume directly, without application navigation or splash.
+  if (pathname === "/cv") return children;
+
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <AnimatePresence>
