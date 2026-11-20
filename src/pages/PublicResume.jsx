@@ -40,6 +40,23 @@ export default function PublicResume() {
         }}>
           <ClassicTemplate data={publicResume} />
         </Box>
+        <Box component="section" aria-labelledby="certificates-heading" sx={{
+          mt: 2.5, p: { xs: 2.5, sm: 3 }, bgcolor: "#fff", border: "1px solid #dce3eb", borderRadius: 3,
+        }}>
+          <Typography id="certificates-heading" component="h2" sx={{ fontSize: "1rem", fontWeight: 700, mb: 1.5 }}>
+            Курсы и сертификаты
+          </Typography>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
+            <Box>
+              <Typography sx={{ fontSize: "14px", fontWeight: 600 }}>Ручное тестирование с VK Testers</Typography>
+              <Typography variant="body2" sx={{ mt: 0.5, color: "#52627a" }}>VK Education · 2026 · 16 занятий</Typography>
+            </Box>
+            <Button component="a" href="/cv/certificates/vk-testers-manual-testing.pdf" target="_blank" rel="noopener noreferrer" variant="outlined" sx={{
+              color: "#24364b", borderColor: "#cbd5e1", borderRadius: 2, px: 2, py: 1.25, textTransform: "none", flexShrink: 0,
+              "&:hover": { borderColor: "#94a3b8", bgcolor: "#f8fafc" },
+            }}>Открыть сертификат · PDF ↗</Button>
+          </Stack>
+        </Box>
         <Stack component="section" aria-labelledby="contact-heading" direction={{ xs: "column", md: "row" }} spacing={2} sx={{
           mt: 2.5, p: { xs: 2.5, sm: 3 }, bgcolor: "#fff", border: "1px solid #dce3eb", borderRadius: 3,
           alignItems: { md: "center" }, justifyContent: "space-between", flexWrap: "wrap", gap: 2,
