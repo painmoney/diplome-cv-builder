@@ -46,7 +46,7 @@ export default function PublicResume() {
           <Typography id="certificates-heading" component="h2" sx={{ fontSize: "1rem", fontWeight: 700, mb: 1.5 }}>
             Курсы и сертификаты
           </Typography>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1.5, sm: 3 }} sx={{ alignItems: { xs: "flex-start", sm: "center" }, flexWrap: "wrap" }} useFlexGap>
             <Box>
               <Typography sx={{ fontSize: "14px", fontWeight: 600 }}>Ручное тестирование с VK Testers</Typography>
               <Typography variant="body2" sx={{ mt: 0.5, color: "#52627a" }}>VK Education · 2026 · 16 занятий</Typography>
